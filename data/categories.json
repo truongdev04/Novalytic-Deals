@@ -1,0 +1,130 @@
+[
+  {
+    "id": "cat_fashion",
+    "slug": "fashion",
+    "name": "Fashion",
+    "description": "Clothing, shoes, and accessories",
+    "iconName": "Shirt",
+    "isFeatured": true,
+    "seo": {
+      "title": "Fashion Coupons & Promo Codes",
+      "description": "Save on clothing, shoes, and accessories with verified fashion coupon codes."
+    },
+    "faq": [
+      { "question": "How often are Fashion coupons updated?", "answer": "Our team checks fashion retailers daily to remove expired codes and add newly verified ones." },
+      { "question": "Can I combine fashion coupons with sale prices?", "answer": "Most stores allow stacking a promo code on top of already-discounted sale items, but always check the individual coupon's terms." }
+    ]
+  },
+  {
+    "id": "cat_electronics",
+    "slug": "electronics",
+    "name": "Electronics",
+    "description": "Computers, phones, and gadgets",
+    "iconName": "Laptop",
+    "isFeatured": true,
+    "seo": {
+      "title": "Electronics Coupons & Promo Codes",
+      "description": "Verified discount codes for computers, phones, and gadgets from top electronics brands."
+    },
+    "faq": [
+      { "question": "Are electronics coupons valid on clearance items?", "answer": "It depends on the retailer — many electronics codes exclude clearance and open-box items, so check the terms before checkout." },
+      { "question": "When are the best times to find electronics deals?", "answer": "Black Friday, Cyber Monday, and back-to-school season typically bring the deepest electronics discounts." }
+    ]
+  },
+  {
+    "id": "cat_software",
+    "slug": "software",
+    "name": "Software",
+    "description": "Apps, tools, and digital services",
+    "iconName": "Code2",
+    "isFeatured": true,
+    "seo": {
+      "title": "Software Coupons & Promo Codes",
+      "description": "Discount codes for apps, tools, and digital subscription services."
+    },
+    "faq": [
+      { "question": "Do software coupons work on subscription renewals?", "answer": "Most codes apply to the first billing cycle only; renewal pricing typically reverts to standard rates." },
+      { "question": "Can I use a software coupon with a free trial?", "answer": "Yes, many services let you apply a promo code when your trial converts to a paid plan." }
+    ]
+  },
+  {
+    "id": "cat_travel",
+    "slug": "travel",
+    "name": "Travel",
+    "description": "Hotels, flights, and vacation packages",
+    "iconName": "Plane",
+    "isFeatured": true,
+    "seo": {
+      "title": "Travel Coupons & Promo Codes",
+      "description": "Save on hotels, flights, and vacation packages with verified travel deals."
+    },
+    "faq": [
+      { "question": "Are travel coupons refundable if my trip is cancelled?", "answer": "Refund policies depend on the property or airline's own cancellation terms, separate from the coupon itself." },
+      { "question": "Do travel discounts apply to last-minute bookings?", "answer": "Some do, but the deepest discounts are usually available when booking a few weeks in advance." }
+    ]
+  },
+  {
+    "id": "cat_home-garden",
+    "slug": "home-garden",
+    "name": "Home & Garden",
+    "description": "Furniture, decor, and outdoor",
+    "iconName": "Home",
+    "isFeatured": true,
+    "seo": {
+      "title": "Home & Garden Coupons & Promo Codes",
+      "description": "Verified discount codes for furniture, decor, and outdoor essentials."
+    },
+    "faq": [
+      { "question": "Do home & garden coupons apply to furniture delivery fees?", "answer": "Delivery and assembly fees are usually excluded unless the coupon specifically mentions free shipping." },
+      { "question": "What's the best season for home & garden deals?", "answer": "Spring and early summer bring the widest selection of outdoor and gardening discounts." }
+    ]
+  },
+  {
+    "id": "cat_beauty",
+    "slug": "beauty",
+    "name": "Beauty",
+    "description": "Makeup, skincare, and haircare",
+    "iconName": "Sparkles",
+    "isFeatured": true,
+    "seo": {
+      "title": "Beauty Coupons & Promo Codes",
+      "description": "Save on makeup, skincare, and haircare with verified beauty coupon codes."
+    },
+    "faq": [
+      { "question": "Do beauty coupons work on limited-edition sets?", "answer": "Limited-edition and gift sets are commonly excluded — check the coupon terms for specifics." },
+      { "question": "Can I get a free sample with a beauty coupon?", "answer": "Many beauty retailers offer a free sample alongside a percentage-off code with a qualifying minimum order." }
+    ]
+  },
+  {
+    "id": "cat_health",
+    "slug": "health",
+    "name": "Health",
+    "description": "Vitamins, supplements, and wellness",
+    "iconName": "HeartPulse",
+    "isFeatured": true,
+    "seo": {
+      "title": "Health Coupons & Promo Codes",
+      "description": "Verified discount codes for vitamins, supplements, and wellness products."
+    },
+    "faq": [
+      { "question": "Are health coupons valid on subscription orders?", "answer": "Many wellness brands offer an additional discount for subscribe-and-save orders on top of a welcome coupon." },
+      { "question": "Do health coupons expire quickly?", "answer": "Wellness promo codes typically run 2-4 weeks, so check the expiration badge before you shop." }
+    ]
+  },
+  {
+    "id": "cat_pets",
+    "slug": "pets",
+    "name": "Pets",
+    "description": "Pet food, toys, and supplies",
+    "iconName": "PawPrint",
+    "isFeatured": true,
+    "seo": {
+      "title": "Pets Coupons & Promo Codes",
+      "description": "Save on pet food, toys, and supplies with verified pet store coupons."
+    },
+    "faq": [
+      { "question": "Do pet store coupons apply to prescription pet food?", "answer": "Prescription and veterinary-exclusive items are often excluded from general storewide codes." },
+      { "question": "Can I stack a pet coupon with autoship discounts?", "answer": "Most retailers allow combining a promo code with an autoship or subscription discount for extra savings." }
+    ]
+  }
+]

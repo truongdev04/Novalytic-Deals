@@ -1,65 +1,140 @@
-import Image from "next/image";
+import type { Metadata } from "next";
+import {
+  getFeaturedStores,
+  getFeaturedCategories,
+  getFeaturedBlogPosts,
+  getTrendingDeals,
+  getCoupons,
+} from "@/lib/data";
+import { Container } from "@/components/layout/Container";
+import { SectionHeader } from "@/components/layout/SectionHeader";
+import { Hero } from "@/components/home/Hero";
+import { HowItWorks } from "@/components/home/HowItWorks";
+import { WhyTrustUs } from "@/components/home/WhyTrustUs";
+import { StoreCard } from "@/components/store/StoreCard";
+import { CategoryCard } from "@/components/category/CategoryCard";
+import { DealCard } from "@/components/coupon/DealCard";
+import { BlogCard } from "@/components/blog/BlogCard";
+import { Newsletter } from "@/components/ui/Newsletter";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-export default function Home() {
+export const revalidate = 300;
+
+export const metadata: Metadata = buildMetadata({
+  title: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+  description:
+    "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
+  path: "/",
+});
+
+export default async function HomePage() {
+  const [stores, categories, deals, posts, coupons] = await Promise.all([
+    getFeaturedStores(8),
+    getFeaturedCategories(8),
+    getTrendingDeals(3),
+    getFeaturedBlogPosts(3),
+    getCoupons(),
+  ]);
+
+  const suggestions = [...stores.map((s) => s.name), ...categories.map((c) => c.name)];
+  const storeById = new Map(stores.map((s) => [s.id, s]));
+  const couponCountByStore = new Map<string, number>();
+  const couponCountByCategory = new Map<string, number>();
+
+  for (const coupon of coupons) {
+    couponCountByStore.set(coupon.storeId, (couponCountByStore.get(coupon.storeId) ?? 0) + 1);
+  }
+  for (const category of categories) {
+    const count = coupons.filter((c) => {
+      const store = storeById.get(c.storeId);
+      return store?.categoryIds.includes(category.id);
+    }).length;
+    couponCountByCategory.set(category.id, count);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <Hero suggestions={suggestions} />
+
+      <div className="space-y-20 py-16">
+        <Container>
+          <SectionHeader
+            title="Popular stores"
+            subtitle="Shop from the most trusted retailers and save with exclusive coupon codes"
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {stores.map((store) => (
+              <StoreCard
+                key={store.id}
+                store={store}
+                couponCount={couponCountByStore.get(store.id) ?? 0}
+              />
+            ))}
+          </div>
+        </Container>
+
+        <Container>
+          <SectionHeader
+            title="Popular categories"
+            subtitle="Explore deals by category and find exactly what you need"
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {categories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                couponCount={couponCountByCategory.get(category.id) ?? 0}
+              />
+            ))}
+          </div>
+        </Container>
+
+        <Container>
+          <SectionHeader
+            title="Today's best deals"
+            subtitle="Limited time offers you don't want to miss"
+          />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {deals.map((coupon) => {
+              const store = storeById.get(coupon.storeId);
+              return store ? <DealCard key={coupon.id} coupon={coupon} store={store} /> : null;
+            })}
+          </div>
+        </Container>
+
+        <Container>
+          <HowItWorks />
+        </Container>
+
+        <Container>
+          <WhyTrustUs />
+        </Container>
+
+        <Container>
+          <SectionHeader title="From our blog" subtitle="Tips, guides, and insights to help you save more" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post) => (
+              <BlogCard key={post.id} post={post} />
+            ))}
+          </div>
+        </Container>
+      </div>
+
+      <section className="bg-brand-700">
+        <Container className="flex flex-col items-center gap-6 py-14 text-center">
+          <div>
+            <h2 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
+              Get the best deals delivered to your inbox
+            </h2>
+            <p className="mt-2 text-brand-100">
+              Subscribe to our newsletter and never miss out on exclusive offers.
+            </p>
+          </div>
+          <div className="w-full max-w-md">
+            <Newsletter variant="footer" />
+          </div>
+        </Container>
+      </section>
+    </>
   );
 }

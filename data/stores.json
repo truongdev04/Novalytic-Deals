@@ -1,0 +1,387 @@
+[
+  {
+    "id": "store_amazon",
+    "slug": "amazon",
+    "name": "Amazon",
+    "logoUrl": "/images/stores/amazon.svg",
+    "bannerUrl": "/images/stores/amazon-banner.svg",
+    "website": "https://www.amazon.com",
+    "description": "Millions of products across every category, from electronics to everyday essentials, with fast shipping and easy returns.",
+    "rating": 4.6,
+    "ratingCount": 18420,
+    "categoryIds": ["cat_electronics", "cat_home-garden"],
+    "region": "GLOBAL",
+    "affiliateNetwork": "Amazon Associates",
+    "isFeatured": true,
+    "seo": {
+      "title": "Amazon Coupons & Promo Codes",
+      "description": "Verified Amazon coupon codes and deals — save on electronics, home goods, and more."
+    },
+    "faq": [
+      { "question": "Does Amazon offer student discounts?", "answer": "Yes, Amazon Prime Student offers a discounted membership with free two-day shipping and exclusive deals." },
+      { "question": "How often are Amazon coupons updated?", "answer": "Our team verifies Amazon codes daily to make sure they are active before publishing." }
+    ],
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2026-06-20T00:00:00.000Z"
+  },
+  {
+    "id": "store_walmart",
+    "slug": "walmart",
+    "name": "Walmart",
+    "logoUrl": "/images/stores/walmart.svg",
+    "bannerUrl": "/images/stores/walmart-banner.svg",
+    "website": "https://www.walmart.com",
+    "description": "America's everyday low price retailer for groceries, electronics, home goods, and apparel.",
+    "rating": 4.3,
+    "ratingCount": 9250,
+    "categoryIds": ["cat_home-garden", "cat_fashion"],
+    "region": "US",
+    "affiliateNetwork": "Rakuten Advertising",
+    "isFeatured": true,
+    "seo": {
+      "title": "Walmart Coupons & Promo Codes",
+      "description": "Save more at Walmart with verified promo codes and weekly deals."
+    },
+    "faq": [
+      { "question": "Can I use Walmart coupons in-store and online?", "answer": "Most promo codes listed are valid for online orders at walmart.com." }
+    ],
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2026-06-18T00:00:00.000Z"
+  },
+  {
+    "id": "store_target",
+    "slug": "target",
+    "name": "Target",
+    "logoUrl": "/images/stores/target.svg",
+    "bannerUrl": "/images/stores/target-banner.svg",
+    "website": "https://www.target.com",
+    "description": "Trendy, affordable essentials for the whole family — from fashion to home decor.",
+    "rating": 4.5,
+    "ratingCount": 7310,
+    "categoryIds": ["cat_fashion", "cat_home-garden"],
+    "region": "US",
+    "affiliateNetwork": "Impact",
+    "isFeatured": true,
+    "seo": {
+      "title": "Target Coupons & Promo Codes",
+      "description": "Verified Target coupon codes for fashion, home, and everyday essentials."
+    },
+    "faq": [
+      { "question": "Does Target Circle stack with promo codes?", "answer": "Yes, Target Circle offers can typically be combined with promo codes for extra savings." }
+    ],
+    "createdAt": "2024-02-01T00:00:00.000Z",
+    "updatedAt": "2026-06-15T00:00:00.000Z"
+  },
+  {
+    "id": "store_best-buy",
+    "slug": "best-buy",
+    "name": "Best Buy",
+    "logoUrl": "/images/stores/best-buy.svg",
+    "bannerUrl": "/images/stores/best-buy-banner.svg",
+    "website": "https://www.bestbuy.com",
+    "description": "The leading electronics retailer for laptops, TVs, smart home, and gaming gear.",
+    "rating": 4.4,
+    "ratingCount": 6120,
+    "categoryIds": ["cat_electronics"],
+    "region": "US",
+    "affiliateNetwork": "CJ Affiliate",
+    "isFeatured": true,
+    "seo": {
+      "title": "Best Buy Coupons & Promo Codes",
+      "description": "Save on laptops, TVs, and electronics with verified Best Buy coupon codes."
+    },
+    "faq": [
+      { "question": "Does Best Buy price match?", "answer": "Best Buy offers price matching on identical items from major retailers." }
+    ],
+    "createdAt": "2024-02-05T00:00:00.000Z",
+    "updatedAt": "2026-06-22T00:00:00.000Z"
+  },
+  {
+    "id": "store_ebay",
+    "slug": "ebay",
+    "name": "eBay",
+    "logoUrl": "/images/stores/ebay.svg",
+    "bannerUrl": "/images/stores/ebay-banner.svg",
+    "website": "https://www.ebay.com",
+    "description": "The world's online marketplace for new, used, and rare finds across every category.",
+    "rating": 4.2,
+    "ratingCount": 15200,
+    "categoryIds": ["cat_electronics", "cat_fashion"],
+    "region": "GLOBAL",
+    "affiliateNetwork": "eBay Partner Network",
+    "isFeatured": true,
+    "seo": {
+      "title": "eBay Coupons & Promo Codes",
+      "description": "Verified eBay discount codes for electronics, fashion, and collectibles."
+    },
+    "faq": [
+      { "question": "Do eBay coupons apply to all sellers?", "answer": "Most eBay-wide codes apply to eligible listings marked with the promo icon." }
+    ],
+    "createdAt": "2024-01-20T00:00:00.000Z",
+    "updatedAt": "2026-06-10T00:00:00.000Z"
+  },
+  {
+    "id": "store_sephora",
+    "slug": "sephora",
+    "name": "Sephora",
+    "logoUrl": "/images/stores/sephora.svg",
+    "bannerUrl": "/images/stores/sephora-banner.svg",
+    "website": "https://www.sephora.com",
+    "description": "Prestige and indie beauty brands — makeup, skincare, and fragrance under one roof.",
+    "rating": 4.7,
+    "ratingCount": 5430,
+    "categoryIds": ["cat_beauty"],
+    "region": "US",
+    "affiliateNetwork": "Rakuten Advertising",
+    "isFeatured": true,
+    "seo": {
+      "title": "Sephora Coupons & Promo Codes",
+      "description": "Save on makeup, skincare, and fragrance with verified Sephora coupon codes."
+    },
+    "faq": [
+      { "question": "Does Sephora offer free samples with orders?", "answer": "Yes, most orders qualify for a free sample of your choice at checkout." }
+    ],
+    "createdAt": "2024-03-01T00:00:00.000Z",
+    "updatedAt": "2026-06-25T00:00:00.000Z"
+  },
+  {
+    "id": "store_nike",
+    "slug": "nike",
+    "name": "Nike",
+    "logoUrl": "/images/stores/nike.svg",
+    "bannerUrl": "/images/stores/nike-banner.svg",
+    "website": "https://www.nike.com",
+    "description": "Performance footwear, apparel, and gear for every sport and everyday life.",
+    "rating": 4.5,
+    "ratingCount": 11200,
+    "categoryIds": ["cat_fashion"],
+    "region": "GLOBAL",
+    "affiliateNetwork": "CJ Affiliate",
+    "isFeatured": true,
+    "seo": {
+      "title": "Nike Coupons & Promo Codes",
+      "description": "Verified Nike promo codes for shoes, apparel, and sports gear."
+    },
+    "faq": [
+      { "question": "Do Nike Member exclusives stack with coupons?", "answer": "Some member-only offers can be combined with sitewide promo codes." }
+    ],
+    "createdAt": "2024-01-15T00:00:00.000Z",
+    "updatedAt": "2026-06-19T00:00:00.000Z"
+  },
+  {
+    "id": "store_hm",
+    "slug": "hm",
+    "name": "H&M",
+    "logoUrl": "/images/stores/hm.svg",
+    "bannerUrl": "/images/stores/hm-banner.svg",
+    "website": "https://www.hm.com",
+    "description": "Affordable, trend-forward fashion for women, men, and kids.",
+    "rating": 4.1,
+    "ratingCount": 4870,
+    "categoryIds": ["cat_fashion"],
+    "region": "EU",
+    "affiliateNetwork": "Awin",
+    "isFeatured": true,
+    "seo": {
+      "title": "H&M Coupons & Promo Codes",
+      "description": "Verified H&M discount codes for the latest fashion trends."
+    },
+    "faq": [
+      { "question": "Does H&M ship to Europe and the US?", "answer": "Yes, H&M ships across most of Europe and the United States with regional pricing." }
+    ],
+    "createdAt": "2024-02-10T00:00:00.000Z",
+    "updatedAt": "2026-06-12T00:00:00.000Z"
+  },
+  {
+    "id": "store_adidas",
+    "slug": "adidas",
+    "name": "Adidas",
+    "logoUrl": "/images/stores/adidas.svg",
+    "bannerUrl": "/images/stores/adidas-banner.svg",
+    "website": "https://www.adidas.com",
+    "description": "Iconic sportswear and sneakers built for performance and street style.",
+    "rating": 4.4,
+    "ratingCount": 6890,
+    "categoryIds": ["cat_fashion"],
+    "region": "EU",
+    "affiliateNetwork": "Awin",
+    "isFeatured": false,
+    "seo": {
+      "title": "Adidas Coupons & Promo Codes",
+      "description": "Save on sneakers and sportswear with verified Adidas coupon codes."
+    },
+    "faq": [
+      { "question": "Does Adidas offer a Creators Club discount?", "answer": "Members of adiClub get birthday rewards and early access to sales." }
+    ],
+    "createdAt": "2024-03-05T00:00:00.000Z",
+    "updatedAt": "2026-06-14T00:00:00.000Z"
+  },
+  {
+    "id": "store_booking-com",
+    "slug": "booking-com",
+    "name": "Booking.com",
+    "logoUrl": "/images/stores/booking-com.svg",
+    "bannerUrl": "/images/stores/booking-com-banner.svg",
+    "website": "https://www.booking.com",
+    "description": "Hotels, apartments, and vacation rentals in every corner of the globe.",
+    "rating": 4.3,
+    "ratingCount": 20100,
+    "categoryIds": ["cat_travel"],
+    "region": "EU",
+    "affiliateNetwork": "Awin",
+    "isFeatured": false,
+    "seo": {
+      "title": "Booking.com Coupons & Promo Codes",
+      "description": "Verified Booking.com discount codes for hotels and vacation rentals."
+    },
+    "faq": [
+      { "question": "Can I cancel free of charge?", "answer": "Most properties on Booking.com offer free cancellation up to 24-48 hours before check-in." }
+    ],
+    "createdAt": "2024-01-25T00:00:00.000Z",
+    "updatedAt": "2026-06-08T00:00:00.000Z"
+  },
+  {
+    "id": "store_costco",
+    "slug": "costco",
+    "name": "Costco",
+    "logoUrl": "/images/stores/costco.svg",
+    "bannerUrl": "/images/stores/costco-banner.svg",
+    "website": "https://www.costco.com",
+    "description": "Bulk savings on groceries, electronics, and household essentials for members.",
+    "rating": 4.6,
+    "ratingCount": 8890,
+    "categoryIds": ["cat_home-garden"],
+    "region": "US",
+    "affiliateNetwork": "CJ Affiliate",
+    "isFeatured": false,
+    "seo": {
+      "title": "Costco Coupons & Promo Codes",
+      "description": "Member savings and verified Costco promo codes on bulk essentials."
+    },
+    "faq": [
+      { "question": "Do I need a membership to use Costco coupons?", "answer": "Most online promo codes apply to Costco.com orders and do not require in-warehouse membership verification at checkout." }
+    ],
+    "createdAt": "2024-02-14T00:00:00.000Z",
+    "updatedAt": "2026-06-05T00:00:00.000Z"
+  },
+  {
+    "id": "store_dyson",
+    "slug": "dyson",
+    "name": "Dyson",
+    "logoUrl": "/images/stores/dyson.svg",
+    "bannerUrl": "/images/stores/dyson-banner.svg",
+    "website": "https://www.dyson.com",
+    "description": "Innovative vacuums, air purifiers, and hair care technology.",
+    "rating": 4.5,
+    "ratingCount": 3210,
+    "categoryIds": ["cat_electronics", "cat_home-garden"],
+    "region": "EU",
+    "affiliateNetwork": "Impact",
+    "isFeatured": false,
+    "seo": {
+      "title": "Dyson Coupons & Promo Codes",
+      "description": "Verified Dyson discount codes on vacuums, air purifiers, and hair tools."
+    },
+    "faq": [
+      { "question": "Does Dyson offer refurbished discounts?", "answer": "Dyson Outlet offers certified refurbished machines at a reduced price with full warranty." }
+    ],
+    "createdAt": "2024-03-12T00:00:00.000Z",
+    "updatedAt": "2026-06-02T00:00:00.000Z"
+  },
+  {
+    "id": "store_etsy",
+    "slug": "etsy",
+    "name": "Etsy",
+    "logoUrl": "/images/stores/etsy.svg",
+    "bannerUrl": "/images/stores/etsy-banner.svg",
+    "website": "https://www.etsy.com",
+    "description": "Handmade, vintage, and unique goods from independent creators worldwide.",
+    "rating": 4.4,
+    "ratingCount": 9980,
+    "categoryIds": ["cat_home-garden", "cat_fashion"],
+    "region": "GLOBAL",
+    "affiliateNetwork": "Awin",
+    "isFeatured": false,
+    "seo": {
+      "title": "Etsy Coupons & Promo Codes",
+      "description": "Verified Etsy discount codes for handmade and vintage finds."
+    },
+    "faq": [
+      { "question": "Do Etsy coupons work with all sellers?", "answer": "Some codes are shop-specific while sitewide Etsy promotions apply across eligible listings." }
+    ],
+    "createdAt": "2024-02-20T00:00:00.000Z",
+    "updatedAt": "2026-05-30T00:00:00.000Z"
+  },
+  {
+    "id": "store_ikea",
+    "slug": "ikea",
+    "name": "IKEA",
+    "logoUrl": "/images/stores/ikea.svg",
+    "bannerUrl": "/images/stores/ikea-banner.svg",
+    "website": "https://www.ikea.com",
+    "description": "Affordable, thoughtfully designed furniture and home accessories.",
+    "rating": 4.3,
+    "ratingCount": 7640,
+    "categoryIds": ["cat_home-garden"],
+    "region": "EU",
+    "affiliateNetwork": "Awin",
+    "isFeatured": false,
+    "seo": {
+      "title": "IKEA Coupons & Promo Codes",
+      "description": "Verified IKEA discount codes on furniture and home accessories."
+    },
+    "faq": [
+      { "question": "Does IKEA Family offer extra discounts?", "answer": "Free IKEA Family membership unlocks special prices in addition to promo codes." }
+    ],
+    "createdAt": "2024-01-30T00:00:00.000Z",
+    "updatedAt": "2026-05-28T00:00:00.000Z"
+  },
+  {
+    "id": "store_macys",
+    "slug": "macys",
+    "name": "Macy's",
+    "logoUrl": "/images/stores/macys.svg",
+    "bannerUrl": "/images/stores/macys-banner.svg",
+    "website": "https://www.macys.com",
+    "description": "A department store icon for fashion, beauty, and home brands.",
+    "rating": 4.0,
+    "ratingCount": 5120,
+    "categoryIds": ["cat_fashion"],
+    "region": "US",
+    "affiliateNetwork": "Rakuten Advertising",
+    "isFeatured": false,
+    "seo": {
+      "title": "Macy's Coupons & Promo Codes",
+      "description": "Verified Macy's discount codes for fashion, beauty, and home."
+    },
+    "faq": [
+      { "question": "Can Macy's coupons be combined with clearance?", "answer": "Select codes exclude clearance items — check the terms on each coupon." }
+    ],
+    "createdAt": "2024-02-25T00:00:00.000Z",
+    "updatedAt": "2026-05-26T00:00:00.000Z"
+  },
+  {
+    "id": "store_zara",
+    "slug": "zara",
+    "name": "Zara",
+    "logoUrl": "/images/stores/zara.svg",
+    "bannerUrl": "/images/stores/zara-banner.svg",
+    "website": "https://www.zara.com",
+    "description": "Fast-fashion staples and runway-inspired pieces updated every week.",
+    "rating": 4.2,
+    "ratingCount": 4310,
+    "categoryIds": ["cat_fashion"],
+    "region": "EU",
+    "affiliateNetwork": "Awin",
+    "isFeatured": false,
+    "seo": {
+      "title": "Zara Coupons & Promo Codes",
+      "description": "Verified Zara discount codes for the latest fashion drops."
+    },
+    "faq": [
+      { "question": "Does Zara offer free returns?", "answer": "Zara offers free returns in-store and paid returns by courier in most regions." }
+    ],
+    "createdAt": "2024-03-18T00:00:00.000Z",
+    "updatedAt": "2026-05-22T00:00:00.000Z"
+  }
+]

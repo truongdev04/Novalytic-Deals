@@ -1,108 +1,190 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Hướng dẫn cho Claude Code khi làm việc với repo này.
 
-## Project overview
+## Tổng quan
 
-**NovalyticDeals** is a Coupon / Deals / Affiliate website targeting users in the **United States** and **Europe**. Goals: strong Google SEO, high conversion rate (CVR) and CTR, fast load times, full responsiveness, and an architecture that's easy to extend with a backend later.
+**NovalyticDeals** — website Coupon / Deals / Affiliate cho thị trường **Mỹ & Châu Âu**. Mục tiêu: SEO Google mạnh, CTR/CVR cao, load nhanh, responsive, sẵn sàng gắn backend thật.
 
-Reference material:
-- UX/layout inspiration: [fireskycoupons.com](https://fireskycoupons.com/) — reference only for layout/UX patterns, do not copy verbatim.
-- Wireframe doc (Google Doc): mostly image mockups, confirming the primary navigation is Home → Store → Category → Deal → Event → Blog. Treat the detailed spec below (from the project brief) as the source of truth over the doc, since the doc has little text content.
+**Tham khảo:**
 
-Design direction: modern, professional, clean, premium, trustworthy, highly readable. Primary color blue, accent orange/yellow, light background, generous white space, modern rounded corners, subtle shadows, tasteful animation.
+- UX/layout: [fireskycoupons.com](https://fireskycoupons.com/) — chỉ tham khảo pattern, không copy.
+- Wireframe doc (Google Doc) là mockup ảnh, xác nhận cấu trúc: Home → Store → Category → Deal → Event → Blog; Backend = Dashboard + Settings. Spec chi tiết trong file này là nguồn chính.
 
-## Project status
+**Design direction:** hiện đại, chuyên nghiệp, clean, premium. Primary **green**, accent **orange/yellow**, nền sáng, bo góc, shadow nhẹ, animation tiết chế.
 
-No source code exists yet — this is a blank slate. Before scaffolding, confirm with the user if anything below is ambiguous, then initialize with:
+## Trạng thái & lệnh
+
+Đã scaffold Next.js App Router với các route stub. Cập nhật lệnh khi `package.json` có thật — không bịa lệnh:
 
 ```
-npx create-next-app@latest --typescript --tailwind --app --eslint
+npm run dev         # dev server
+npm run build       # production build
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit  (thêm nếu chưa có)
 ```
-
-**Once scaffolded, replace this section and the "Build, lint, test" section below with the real commands** (`npm run dev`, `npm run build`, `npm run lint`, `npm run typecheck`, how to run a single test, etc.). Do not invent commands that don't exist yet.
 
 ## Tech stack
 
-Required:
-- Next.js (App Router)
-- TypeScript (strict mode)
-- Tailwind CSS
+**Frontend:** Next.js App Router · TypeScript strict · Tailwind · shadcn/ui · lucide-react · Framer Motion (nhẹ) · React Hook Form + Zod · `next/image` · `next/font` (Inter + Poppins).
+Server Components mặc định; Client Components chỉ khi cần tương tác.
 
-Use where it fits:
-- Server Components by default; Client Components only where interactivity is required
-- shadcn/ui for base components
-- lucide-react for icons
-- Framer Motion for light, purposeful animation (not decoration for its own sake)
-- React Hook Form + Zod for any forms (newsletter, contact, search filters)
-- `next/image` for all images, `next/font` for Inter and Poppins
+**Backend (đích):** Prisma + PostgreSQL (Supabase/Neon) · Redis Upstash (cache + rate limit) · NextAuth (admin) · Resend (email) · Meilisearch/Algolia (search khi cần) · Route Handlers `app/api/*`.
 
 ## Design system
 
-- Colors: blue as primary/brand color, orange or yellow as accent, light/white backgrounds. Keep contrast WCAG-compliant.
-- Fonts: Inter and Poppins, loaded via `next/font` (no external font CDN calls).
-- Rounded corners, soft/subtle shadows, restrained motion (hover states, copy-code feedback, modal transitions) — avoid heavy or gratuitous animation.
+- Colors: token trong `tailwind.config.ts` (`brand.*`, `accent.*`, `surface.*`, `muted.*`) — không hardcode hex.
+- Fonts: Inter (body), Poppins (heading), qua `next/font`. Contrast WCAG AA.
+- Radius: `rounded-lg` card, `rounded-xl` hero, `rounded-full` pill. Shadow `sm` → `md` khi hover.
+- Motion: 150–250ms `ease-out`. Tôn trọng `prefers-reduced-motion`.
 
-## Site structure
+## Site structure (Frontend)
 
-Pages to build, each as its own route under `app/`:
+Route dưới `app/`:
 
-- **Home** — Header, Nav, Hero Banner, Search Coupon, Popular Stores, Featured Coupons, Trending Deals, Categories, Recommended Stores, Latest Coupons, Newsletter, Footer
-- **Store page** (`/store/[slug]`) — Store banner, logo, rating, description, active coupons, expired coupons, FAQ, related stores
-- **Coupon detail** (`/coupon/[slug]`) — Coupon info, copy-code button, deal button, success popup, terms, expiration, user rating, share buttons
-- **Categories** (`/categories`) — Category grid, search, pagination
-- **Category detail** (`/categories/[slug]`)
-- **Search results** (`/search`) — Search bar, filters, sort, coupon cards
-- **About** (`/about`)
-- **Contact** (`/contact`)
-- **Privacy Policy** (`/privacy`)
-- **Terms** (`/terms`)
-- **Blog** (`/blog`) — Article list, featured article, sidebar
-- **Blog detail** (`/blog/[slug]`) — TOC, author, related posts, share, FAQ
+- `/` **Home** — Header, Hero + Search sticky, Popular Stores (grid logo), Featured Coupons, Trending Deals, Categories, Recommended Stores, Latest Coupons, Newsletter, Featured Blog, Footer.
+- `/stores`, `/store/[slug]` — index A–Z; trang store: banner, logo, rating, mô tả, coupon active/expired, FAQ, related stores, reviews.
+- `/coupon/[slug]` — thông tin, nút **Show Code / Get Deal**, modal reveal + auto-copy, terms, expiration, verified badge, thumbs up/down, share, related.
+- `/categories`, `/categories/[slug]` — grid + search + pagination; trang category: top stores + coupons + FAQ.
+- `/deals` — tất cả deals, filter/sort.
+- `/events`, `/events/[slug]` — landing seasonal (Black Friday, Cyber Monday, Prime Day, Christmas…) với timer + coupon curated.
+- `/search?q=` — kết quả + filter (store/category/type/discount) + sort (relevance/expiring/newest/discount).
+- `/blog`, `/blog/[slug]` — list + featured + sidebar; detail có TOC, author, related, share, FAQ.
+- `/about`, `/contact`, `/privacy`, `/terms`, `/submit` (user gửi coupon).
+- `/go/[couponId]` — server-side redirect log click rồi 302 sang affiliate URL (xem "Affiliate tracking").
 
-## Component library
+## Components (`components/`, gom theo domain)
 
-Build these as reusable components under `components/` (avoid duplicating markup per page):
+Layout: `Header`, `Footer`, `MobileNav`, `Breadcrumb`, `Container`, `SectionHeader`.
+Coupon: `CouponCard`, `DealCard`, `CouponCodeModal`, `CopyCodeButton`, `ExpirationBadge`, `VerifiedBadge`, `DiscountBadge`.
+Store: `StoreCard`, `StoreLogo`, `StoreRating`, `StoreHeader`, `StoreListAZ`.
+Category/Blog: `CategoryCard`, `CategoryChip`, `BlogCard`, `TableOfContents`, `RelatedPosts`, `ShareButtons`.
+Search: `SearchBox`, `SearchAutocomplete`, `FilterSidebar`, `SortDropdown`, `Pagination`, `ActiveFiltersBar`.
+UI: `FAQAccordion`, `Newsletter`, `Button`, `Modal`, `Toast`, `Rating`, `Badge`, `Tag`, `EmptyState`, `LoadingSkeleton`, `BackToTop`.
 
-`Header`, `Footer`, `CouponCard`, `DealCard`, `StoreCard`, `CategoryCard`, `BlogCard`, `SearchBox`, `Breadcrumb`, `Pagination`, `FAQAccordion`, `Newsletter`, `Button`, `Modal`, `Popup`, `Rating`, `Badge`, `Tag`, `EmptyState`, `LoadingSkeleton`.
+**KHÔNG hardcode content trong page/component.** Mọi dữ liệu đi qua `lib/data/*` (repository). Hiện tại repo đọc từ `data/*.json`, sau này swap sang Prisma/API — UI không đổi.
 
-**No hard-coded content in pages/components.** All coupons, stores, categories, and blog posts must come from mock data (e.g. `data/` or `lib/mock-data/`) shaped as if it came from a real API/backend, so swapping in a real backend later is a data-layer change only.
+## Backend architecture
+
+### Layered data flow
+
+```
+UI (Server Component) → lib/data/* (repository, async) → mock JSON | Prisma | fetch(API)
+```
+
+Types trong `types/`. UI **không** import mock trực tiếp, **không** gọi fetch nội bộ tới `/api/*` từ Server Component (gọi repository trực diện).
+
+### Domain model (đồng bộ với `prisma/schema.prisma` khi có)
+
+- **Store** — id, slug, name, logoUrl, bannerUrl, website, description, rating, ratingCount, categoryIds[], region (`US|EU|GLOBAL`), affiliateNetwork, isFeatured, seo{title,description}, faq[], timestamps.
+- **Coupon** — id, slug, storeId, title, description, type (`CODE|DEAL|CASHBACK|FREESHIP|BOGO`), code?, discountType (`PERCENT|AMOUNT|OTHER`), discountValue, currency, affiliateUrl, exclusive, verified, verifiedAt, terms, startsAt, expiresAt, usageCount, upvotes, downvotes, isFeatured, isTrending, timestamps.
+- **Category** — id, slug, name, description, iconName, parentId?, isFeatured, seo.
+- **BlogPost** — id, slug, title, excerpt, coverImage, authorId, tags[], categoryId, body (MDX), publishedAt, seo, isFeatured.
+- **Event** — id, slug, name, description, startsAt, endsAt, bannerUrl, featuredStoreIds[], featuredCouponIds[].
+- **Review** — id, storeId, userId?, rating (1–5), title, body, isApproved, createdAt.
+- **ClickEvent** — id, couponId, storeId, userAgent, referer, country, sessionId, createdAt (đo CTR/CVR).
+- **NewsletterSubscriber** — id, email, confirmedAt, unsubscribedAt, source, tags[].
+- **User (admin)** — id, email, hashedPassword|oauthId, role (`ADMIN|EDITOR`).
+
+### API surface (`app/api/*`, Zod validate, JSON typed)
+
+- `GET  /api/coupons`, `/api/coupons/[slug]`; `POST /api/coupons/[id]/vote`, `/api/coupons/[id]/reveal` (log + trả code + affiliate URL).
+- `GET  /api/stores`, `/api/stores/[slug]`; `POST /api/stores/[id]/reviews` (moderation queue).
+- `GET  /api/categories`, `/api/categories/[slug]`.
+- `GET  /api/blog`, `/api/blog/[slug]`; `GET /api/events`, `/api/events/[slug]`.
+- `GET  /api/search`.
+- `POST /api/newsletter/subscribe` (double opt-in Resend), `/api/contact`, `/api/submit-coupon`.
+- `GET  /api/sitemap` (chunk theo section nếu > 50k URL).
+- **Admin** `app/api/admin/*` — CRUD coupon/store/category/blog/event/review/user, bảo vệ bằng NextAuth middleware.
+
+### Affiliate tracking `/go/[couponId]`
+
+Không expose affiliate URL trong DOM. Server handler log `ClickEvent` + tăng `usageCount` rồi 302 sang affiliate. Modal "Show Code" đồng thời `POST /api/coupons/[id]/reveal` và mở `/go/[couponId]` tab mới.
+
+### Caching
+
+- Server Component fetch qua repo + `unstable_cache` / `next.revalidate` với tag: `coupons:list`, `coupon:<slug>`, `store:<slug>`.
+- ISR trang hot: home, top store, top category (`revalidate: 300`).
+- Admin update → `revalidateTag()`.
+- Redis (Upstash) khi traffic tăng: cache popular-stores, trending-deals, home blocks (TTL 60–300s).
+
+### Search
+
+Phase 1: Postgres `ILIKE` + trigram trên `title/description/store.name`. Phase 2: Meilisearch/Algolia + worker sync — API không đổi, chỉ swap repo.
+
+### Auth & bảo mật
+
+- Public site không cần login.
+- `/admin/*` + `/api/admin/*` bảo vệ bằng NextAuth (credentials + Google OAuth optional). Cookie `httpOnly, secure, sameSite=lax`. Roles `ADMIN|EDITOR`. Guard qua `middleware.ts`.
+- Mọi `POST`: Zod, size limit, rate limit (Upstash Ratelimit — newsletter 5/min, vote 10/min, review 3/h, submit-coupon 3/day), honeypot + Cloudflare Turnstile.
+- Headers qua `next.config.js`: CSP, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `X-Content-Type-Options: nosniff`.
+- Prisma parameterized only. Không `dangerouslySetInnerHTML` untrusted; MDX blog `rehype-sanitize`.
+
+### Backend Dashboard (`/admin`)
+
+Theo mockup doc — 2 khối chính:
+
+- **Dashboard**: KPI (traffic, click-out, CTR, CVR, top stores, top coupons, revenue estimate), biểu đồ theo ngày/tuần/tháng, feed hoạt động, moderation inbox (reviews + submitted coupons chờ duyệt).
+- **Settings**: profile admin, quản lý user + role, site meta (title/description/logo/favicon/OG), affiliate network defaults, integrations (Resend, Turnstile, Analytics), sitemap/robots toggles, redirect rules, cache purge.
+- CRUD modules: Stores, Coupons, Categories, Deals, Events, Blog, Reviews, Newsletter subscribers.
+
+### Env vars (`.env.example` commit, `.env` bỏ qua)
+
+```
+DATABASE_URL= REDIS_URL=
+NEXTAUTH_URL= NEXTAUTH_SECRET=
+RESEND_API_KEY=
+TURNSTILE_SITE_KEY= TURNSTILE_SECRET_KEY=
+AFFILIATE_DEFAULT_NETWORK=
+NEXT_PUBLIC_SITE_URL= NEXT_PUBLIC_GA_ID= NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
+```
+
+### Directory layout
+
+```
+app/  (marketing)/ (shop)/ (legal)/ admin/ api/ go/[couponId]/
+components/   (theo domain)
+lib/  data/  db/  cache/  seo/  affiliate/  analytics/  validators/  utils/
+data/         # mock JSON (bỏ khi có DB)
+types/  prisma/  public/  tests/
+```
 
 ## SEO checklist
 
-- Semantic HTML, correct H1–H6 hierarchy per page
-- Per-page meta title/description via Next.js Metadata API
-- Open Graph and Twitter Card tags
-- Canonical URLs
-- `robots.txt` and `sitemap.xml`
-- Structured data: Breadcrumb schema, FAQ schema, Organization schema, LocalBusiness schema where relevant
+- Semantic HTML, đúng H1–H6 (1 H1/trang).
+- `generateMetadata` mỗi route: title, description, canonical, OG, Twitter Card (ảnh riêng store/coupon).
+- `robots.txt` + dynamic `sitemap.xml` (split khi lớn).
+- JSON-LD trong `lib/seo/`: `Organization` (root), `WebSite + SearchAction` (home), `BreadcrumbList` mọi trang, `Product + Offer` cho coupon, `FAQPage`, `Article` blog, `AggregateRating` store.
+- Slug lowercase kebab, keyword-first (`/store/best-buy`, `/coupon/best-buy-10-off-tv`).
+- Internal link chặt: coupon↔store↔category↔blog. `alt` mô tả. 404 hữu ích. `hreflang` khi có US/EU tách bản.
 
-## Performance checklist
+## Performance
 
-- Optimize for Core Web Vitals
-- Lazy-load below-the-fold content and dynamic-import heavy/rarely-used components
-- `next/image` for image optimization, `next/font` for font optimization
-- Rely on Next.js code splitting; avoid large client bundles
+- Core Web Vitals: LCP < 2.5s, INP < 200ms, CLS < 0.1.
+- Server Components mặc định; audit `@next/bundle-analyzer`. `dynamic()` cho modal/share/MDX.
+- `next/image` (width/height hoặc `fill+sizes`), `next/font` subset.
+- ISR + `revalidateTag` như phần Caching. Brotli edge.
 
-## UX / conversion checklist
+## UX / CVR
 
-- Sticky header and sticky search
-- Copy-coupon success animation + toast notification
-- Hover effects on interactive cards
-- Skeleton loading states, empty states
-- Back-to-top control
-- Dark mode is optional, not required
+Header + search sticky · CTA accent nổi bật · reveal code modal + auto-copy + toast + tab affiliate · verified/exclusive badge · "Ends in Xd" · thumbs up/down · related coupons/stores · skeleton + empty state · newsletter exit-intent (dismissable, tôn trọng reduced-motion) · Back-to-top · dark mode optional.
 
-## Accessibility (WCAG)
+## Accessibility (WCAG AA)
 
-- Full keyboard navigation
-- ARIA labels on interactive/non-text elements
-- Sufficient color contrast
-- Visible focus states
+Keyboard đầy đủ · focus ring rõ · ARIA cho icon-button/accordion/toast · contrast đạt AA · landmark (`header/nav/main/aside/footer`) · modal focus-trap + Esc · form có label + `aria-describedby` cho lỗi · không dùng color-only.
 
 ## Code conventions
 
-- TypeScript strict mode, no implicit `any`
-- Split components by responsibility; keep pages thin, push logic/markup into `components/`
-- No hard-coded data — see mock data note above
-- Conventional Next.js App Router layout: `app/`, `components/`, `lib/`, `data/` (mock data), `types/`
+- TS strict, không implicit `any`, không `@ts-ignore` thiếu lý do.
+- Page mỏng: route + fetch qua repo + compose component.
+- Không hardcode content — luôn qua `lib/data/*`.
+- Named export, một component / file, filename khớp export.
+- Zod schema trong `lib/validators/` dùng chung cho API + form.
+- Commit theo Conventional Commits.
+
+## Khi phân vân
+
+- Ưu tiên pattern Next.js chuẩn hơn là "thông minh".
+- Đổi UI kéo theo đổi shape data → sửa `types/` + repo TRƯỚC, UI sau.
+- Sắp hardcode content → dừng, chuyển vào mock/repo.
+- Trang mới → luôn kèm `generateMetadata` + JSON-LD phù hợp.

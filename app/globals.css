@@ -2,25 +2,129 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #10241f;
+
+  --brand-50: #eefdf5;
+  --brand-100: #d6f8e3;
+  --brand-200: #aeefc9;
+  --brand-300: #78e0a9;
+  --brand-400: #43c987;
+  --brand-500: #1fae6d;
+  --brand-600: #128a57;
+  --brand-700: #106e48;
+  --brand-800: #10573b;
+  --brand-900: #0e4732;
+  --brand-950: #06281c;
+
+  --accent-50: #fffaeb;
+  --accent-100: #fff0c6;
+  --accent-200: #ffe088;
+  --accent-300: #ffc94a;
+  --accent-400: #ffb020;
+  --accent-500: #f98f08;
+  --accent-600: #dd6a03;
+  --accent-700: #b74a06;
+  --accent-800: #93390c;
+  --accent-900: #79300d;
+
+  --surface-0: #ffffff;
+  --surface-50: #f7faf9;
+  --surface-100: #eef3f1;
+  --surface-200: #e2e9e6;
+
+  --muted-100: #f1f5f3;
+  --muted-200: #e3e9e6;
+  --muted-300: #cbd5d0;
+  --muted-400: #9fada6;
+  --muted-500: #718077;
+  --muted-600: #56655d;
+  --muted-700: #414e47;
+  --muted-800: #2b3733;
+  --muted-900: #1a2320;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-50: var(--surface-50);
+  --color-surface-100: var(--surface-100);
+  --color-surface-200: var(--surface-200);
+
+  --color-muted-100: var(--muted-100);
+  --color-muted-200: var(--muted-200);
+  --color-muted-300: var(--muted-300);
+  --color-muted-400: var(--muted-400);
+  --color-muted-500: var(--muted-500);
+  --color-muted-600: var(--muted-600);
+  --color-muted-700: var(--muted-700);
+  --color-muted-800: var(--muted-800);
+  --color-muted-900: var(--muted-900);
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-poppins);
+
+  --animate-fade-in: fade-in 200ms ease-out;
+  --animate-fade-up: fade-up 250ms ease-out;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 body {
-  background: var(--background);
+  background: var(--surface-50);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

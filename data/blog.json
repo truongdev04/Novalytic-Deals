@@ -1,0 +1,141 @@
+[
+  {
+    "id": "blog_coupon-stacking-guide",
+    "slug": "how-to-maximize-your-savings-with-coupon-stacking",
+    "title": "How to maximize your savings with coupon stacking",
+    "excerpt": "Learn the art of combining multiple discounts to get the best possible price on your purchases.",
+    "coverImage": "/images/blog/coupon-stacking-guide.svg",
+    "author": { "id": "author_1", "name": "Maya Chen" },
+    "tags": ["Tips & Tricks"],
+    "categoryId": "cat_fashion",
+    "readingMinutes": 5,
+    "publishedAt": "2026-06-15T00:00:00.000Z",
+    "isFeatured": true,
+    "seo": {
+      "title": "How to Maximize Your Savings With Coupon Stacking",
+      "description": "A practical guide to combining store coupons, cashback, and promo codes for maximum savings."
+    },
+    "body": "## What is coupon stacking?\n\nCoupon stacking means combining more than one discount on a single order — a store-wide promo code, a cashback offer, and a loyalty reward, for example. Done right, it can turn a good deal into a great one.\n\n## How to stack discounts safely\n\nStart by checking whether a retailer allows combining a percentage-off code with free shipping or cashback through a browser extension. Most stores allow one promo code per order, but cashback and loyalty points usually stack on top.\n\nAlways read the terms on each coupon before checkout. Exclusions on clearance items, gift cards, or specific brands are common, and stacking rules can change during major sales events like Black Friday.\n\n## Order your discounts correctly\n\nFinally, add items to your cart in the order that maximizes eligible discounts — apply the largest percentage-off code first, then let cashback apply to the discounted total."
+  },
+  {
+    "id": "blog_back-to-school-stores",
+    "slug": "top-10-stores-for-back-to-school-deals",
+    "title": "Top 10 stores for back-to-school deals",
+    "excerpt": "Discover which retailers offer the best discounts on school supplies, clothing, and electronics.",
+    "coverImage": "/images/blog/back-to-school-stores.svg",
+    "author": { "id": "author_2", "name": "Jordan Lee" },
+    "tags": ["Shopping Guides"],
+    "categoryId": "cat_electronics",
+    "readingMinutes": 7,
+    "publishedAt": "2026-06-12T00:00:00.000Z",
+    "isFeatured": true,
+    "seo": {
+      "title": "Top 10 Stores for Back-to-School Deals",
+      "description": "The best back-to-school shopping destinations for supplies, clothing, and tech."
+    },
+    "body": "## Best times to shop\n\nBack-to-school season brings some of the year's most competitive sales, especially across electronics, apparel, and dorm essentials.\n\nTarget and Walmart typically lead with sitewide discounts on supplies and clothing during the first two weeks of August, while Best Buy and Amazon run laptop and tablet promotions timed to the season.\n\n## Don't miss student verification\n\nDon't overlook student-verification programs — many software and electronics brands offer exclusive pricing once you confirm enrollment through a service like UNiDAYS or Student Beans.\n\n## Time your laptop purchase\n\nSet price alerts early; the deepest discounts on laptops usually land two to three weeks before most semesters start, not the week of."
+  },
+  {
+    "id": "blog_coupon-expiration-terms",
+    "slug": "understanding-coupon-expiration-dates-and-terms",
+    "title": "Understanding coupon expiration dates and terms",
+    "excerpt": "A comprehensive guide to reading the fine print and making the most of your coupons.",
+    "coverImage": "/images/blog/coupon-expiration-terms.svg",
+    "author": { "id": "author_1", "name": "Maya Chen" },
+    "tags": ["Education"],
+    "readingMinutes": 4,
+    "publishedAt": "2026-06-08T00:00:00.000Z",
+    "isFeatured": true,
+    "seo": {
+      "title": "Understanding Coupon Expiration Dates and Terms",
+      "description": "Learn how to read coupon terms, expiration windows, and exclusions before you check out."
+    },
+    "body": "## Reading the lifecycle of a coupon\n\nEvery coupon has a lifecycle — a start date, an expiration date, and a set of terms that define exactly what it applies to. Understanding these details prevents a frustrating surprise at checkout.\n\nMost retailers set expiration dates based on internal promotional calendars, which is why identical-looking codes can expire days apart across different stores. Always check the 'Ends in' badge on the coupon card rather than assuming a code is evergreen.\n\n## Watch the exclusions\n\nException clauses matter just as much as the discount itself. Look for exclusions on clearance, gift cards, and specific brands, and check whether a minimum order value applies.\n\n## Common checkout failures\n\nWhen a code fails at checkout, it's almost always due to an expired window, an ineligible item, or a one-per-customer limit that's already been used."
+  },
+  {
+    "id": "blog_cashback-vs-coupons",
+    "slug": "cashback-vs-coupons-which-saves-you-more",
+    "title": "Cashback vs. coupons: which saves you more?",
+    "excerpt": "Breaking down the real difference between instant discounts and delayed cashback rewards.",
+    "coverImage": "/images/blog/cashback-vs-coupons.svg",
+    "author": { "id": "author_3", "name": "Priya Nair" },
+    "tags": ["Education", "Tips & Tricks"],
+    "readingMinutes": 6,
+    "publishedAt": "2026-05-28T00:00:00.000Z",
+    "isFeatured": false,
+    "seo": {
+      "title": "Cashback vs. Coupons: Which Saves You More?",
+      "description": "A side-by-side comparison of instant coupon discounts and delayed cashback rewards."
+    },
+    "body": "## Instant vs. delayed savings\n\nCoupons give you an instant, guaranteed discount at checkout. Cashback, on the other hand, is a percentage of your spend returned to you later — usually after a tracking and confirmation window of several weeks.\n\nFor big-ticket purchases, cashback percentages often outperform a flat coupon code, but you're trading immediate savings for a delayed payout that depends on the retailer confirming your order wasn't returned.\n\n## Combining both for maximum value\n\nThe best strategy is combining both: use a coupon code for the instant discount, then complete the purchase through a cashback-enabled link so you earn a percentage on the already-discounted total."
+  },
+  {
+    "id": "blog_black-friday-checklist",
+    "slug": "the-ultimate-black-friday-shopping-checklist",
+    "title": "The ultimate Black Friday shopping checklist",
+    "excerpt": "Everything you need to prepare for the biggest shopping day of the year.",
+    "coverImage": "/images/blog/black-friday-checklist.svg",
+    "author": { "id": "author_2", "name": "Jordan Lee" },
+    "tags": ["Shopping Guides"],
+    "readingMinutes": 6,
+    "publishedAt": "2026-05-20T00:00:00.000Z",
+    "isFeatured": false,
+    "seo": {
+      "title": "The Ultimate Black Friday Shopping Checklist",
+      "description": "Prepare for Black Friday with this step-by-step shopping and savings checklist."
+    },
+    "body": "## Build your wishlist early\n\nBlack Friday rewards preparation. Start by building a wishlist a few weeks ahead so you can track price history and recognize a genuine discount versus inflated 'was' pricing.\n\n## Prepare your accounts\n\nCreate store accounts and save payment details in advance — checkout speed matters when inventory on doorbuster items can sell out in minutes.\n\n## Set up alerts and bookmarks\n\nSign up for email and SMS alerts from your target stores; many retailers unlock early access windows exclusively for subscribers.\n\nFinally, keep a running list of coupon codes bookmarked the night before, since verified codes can change or expire as inventory shifts throughout the day."
+  },
+  {
+    "id": "blog_sustainable-shopping",
+    "slug": "a-guide-to-sustainable-shopping-on-a-budget",
+    "title": "A guide to sustainable shopping on a budget",
+    "excerpt": "How to shop more consciously without giving up the savings you rely on.",
+    "coverImage": "/images/blog/sustainable-shopping.svg",
+    "author": { "id": "author_3", "name": "Priya Nair" },
+    "tags": ["Tips & Tricks"],
+    "categoryId": "cat_home-garden",
+    "readingMinutes": 5,
+    "publishedAt": "2026-05-10T00:00:00.000Z",
+    "isFeatured": false,
+    "seo": {
+      "title": "A Guide to Sustainable Shopping on a Budget",
+      "description": "Practical tips for shopping sustainably while still taking advantage of verified deals."
+    },
+    "body": "## Sustainability and savings can coexist\n\nSustainable shopping and smart budgeting aren't mutually exclusive. Many brands with strong sustainability practices also run seasonal promo codes worth watching for.\n\n## Consider second-hand and refurbished\n\nSecond-hand and refurbished marketplaces — like certified refurbished electronics or vintage fashion listings — often combine a lower environmental footprint with steeper discounts than buying new.\n\n## Look for repair and warranty programs\n\nLook for stores offering repair programs or extended warranties as part of a promotion; these reduce the likelihood of replacement purchases down the line, which is both budget- and eco-friendly."
+  },
+  {
+    "id": "blog_student-discount-guide",
+    "slug": "the-complete-guide-to-student-discounts",
+    "title": "The complete guide to student discounts",
+    "excerpt": "How to verify your student status and unlock exclusive pricing across categories.",
+    "coverImage": "/images/blog/student-discount-guide.svg",
+    "author": { "id": "author_1", "name": "Maya Chen" },
+    "tags": ["Shopping Guides", "Education"],
+    "readingMinutes": 4,
+    "publishedAt": "2026-04-22T00:00:00.000Z",
+    "isFeatured": false,
+    "seo": {
+      "title": "The Complete Guide to Student Discounts",
+      "description": "Everything students need to know about verifying eligibility and finding exclusive discounts."
+    },
+    "body": "## How verification works\n\nStudent discounts typically require verification through a third-party service that confirms your enrollment using a school email or uploaded ID.\n\n## What you can save on\n\nOnce verified, discounts range from 10% off apparel to steep reductions on software subscriptions, streaming services, and electronics.\n\n## Keeping access active\n\nVerification usually lasts 12 months, so re-confirm annually to keep access active, and always check whether a discount can combine with a sitewide sale for extra savings."
+  },
+  {
+    "id": "blog_email-deal-alerts",
+    "slug": "why-email-deal-alerts-are-worth-the-inbox-space",
+    "title": "Why email deal alerts are worth the inbox space",
+    "excerpt": "Setting up smart notifications so the best deals find you first.",
+    "coverImage": "/images/blog/email-deal-alerts.svg",
+    "author": { "id": "author_2", "name": "Jordan Lee" },
+    "tags": ["Tips & Tricks"],
+    "readingMinutes": 3,
+    "publishedAt": "2026-04-05T00:00:00.000Z",
+    "isFeatured": false,
+    "seo": {
+      "title": "Why Email Deal Alerts Are Worth the Inbox Space",
+      "description": "How to set up deal alert emails that actually save you money instead of cluttering your inbox."
+    },
+    "body": "## Keep your inbox organized\n\nA dedicated folder or filter for deal alert emails keeps your inbox clean while making sure you never miss a flash sale.\n\n## Subscribe selectively\n\nSubscribe selectively — pick the handful of stores you shop most often rather than every retailer offering 10% off for an email address.\n\n## Early access is the real perk\n\nMany deal alert programs send early-access codes before a public sale goes live, which is often the real value of subscribing in the first place."
+  }
+]

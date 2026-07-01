@@ -1,0 +1,122 @@
+[
+  {
+    "id": "event_black-friday",
+    "slug": "black-friday",
+    "name": "Black Friday",
+    "iconName": "Tag",
+    "description": "The biggest shopping event of the year — massive discounts across every category.",
+    "bannerUrl": "/images/events/black-friday.svg",
+    "startsAt": "2026-11-27T00:00:00.000Z",
+    "endsAt": "2026-11-30T23:59:59.000Z",
+    "featuredStoreIds": ["store_best-buy", "store_amazon", "store_target"],
+    "featuredCouponIds": ["coupon_best-buy_1", "coupon_amazon_1", "coupon_target_2"]
+  },
+  {
+    "id": "event_cyber-monday",
+    "slug": "cyber-monday",
+    "name": "Cyber Monday",
+    "iconName": "Laptop",
+    "description": "Online-only deals on electronics, software, and tech accessories.",
+    "bannerUrl": "/images/events/cyber-monday.svg",
+    "startsAt": "2026-11-30T00:00:00.000Z",
+    "endsAt": "2026-12-01T23:59:59.000Z",
+    "featuredStoreIds": ["store_amazon", "store_best-buy", "store_dyson"],
+    "featuredCouponIds": ["coupon_amazon_1", "coupon_best-buy_1", "coupon_dyson_2"]
+  },
+  {
+    "id": "event_valentines-day",
+    "slug": "valentines-day",
+    "name": "Valentine's Day",
+    "iconName": "Heart",
+    "description": "Gifts, flowers, and romantic getaways for your special someone.",
+    "bannerUrl": "/images/events/valentines-day.svg",
+    "startsAt": "2027-02-07T00:00:00.000Z",
+    "endsAt": "2027-02-14T23:59:59.000Z",
+    "featuredStoreIds": ["store_sephora", "store_etsy", "store_booking-com"],
+    "featuredCouponIds": ["coupon_sephora_1", "coupon_etsy_1", "coupon_booking-com_1"]
+  },
+  {
+    "id": "event_easter",
+    "slug": "easter",
+    "name": "Easter",
+    "iconName": "Egg",
+    "description": "Spring savings on home, fashion, and family essentials.",
+    "bannerUrl": "/images/events/easter.svg",
+    "startsAt": "2027-03-28T00:00:00.000Z",
+    "endsAt": "2027-04-04T23:59:59.000Z",
+    "featuredStoreIds": ["store_target", "store_walmart", "store_ikea"],
+    "featuredCouponIds": ["coupon_target_1", "coupon_walmart_1", "coupon_ikea_2"]
+  },
+  {
+    "id": "event_mothers-day",
+    "slug": "mothers-day",
+    "name": "Mother's Day",
+    "iconName": "Flower2",
+    "description": "Thoughtful gifts and exclusive deals to celebrate mom.",
+    "bannerUrl": "/images/events/mothers-day.svg",
+    "startsAt": "2027-05-02T00:00:00.000Z",
+    "endsAt": "2027-05-09T23:59:59.000Z",
+    "featuredStoreIds": ["store_sephora", "store_etsy", "store_macys"],
+    "featuredCouponIds": ["coupon_sephora_2", "coupon_etsy_2", "coupon_macys_1"]
+  },
+  {
+    "id": "event_fathers-day",
+    "slug": "fathers-day",
+    "name": "Father's Day",
+    "iconName": "User",
+    "description": "Deals on tech, tools, and outdoor gear for dad.",
+    "bannerUrl": "/images/events/fathers-day.svg",
+    "startsAt": "2027-06-13T00:00:00.000Z",
+    "endsAt": "2027-06-20T23:59:59.000Z",
+    "featuredStoreIds": ["store_best-buy", "store_dyson", "store_nike"],
+    "featuredCouponIds": ["coupon_best-buy_2", "coupon_dyson_1", "coupon_nike_2"]
+  },
+  {
+    "id": "event_halloween",
+    "slug": "halloween",
+    "name": "Halloween",
+    "iconName": "Ghost",
+    "description": "Costumes, decor, and candy deals for spooky season.",
+    "bannerUrl": "/images/events/halloween.svg",
+    "startsAt": "2026-10-24T00:00:00.000Z",
+    "endsAt": "2026-10-31T23:59:59.000Z",
+    "featuredStoreIds": ["store_target", "store_amazon", "store_etsy"],
+    "featuredCouponIds": ["coupon_target_2", "coupon_amazon_2", "coupon_etsy_1"]
+  },
+  {
+    "id": "event_thanksgiving",
+    "slug": "thanksgiving",
+    "name": "Thanksgiving",
+    "iconName": "UtensilsCrossed",
+    "description": "Get ready to host with deals on home, kitchen, and grocery.",
+    "bannerUrl": "/images/events/thanksgiving.svg",
+    "startsAt": "2026-11-20T00:00:00.000Z",
+    "endsAt": "2026-11-26T23:59:59.000Z",
+    "featuredStoreIds": ["store_walmart", "store_costco", "store_target"],
+    "featuredCouponIds": ["coupon_walmart_2", "coupon_costco_1", "coupon_target_1"]
+  },
+  {
+    "id": "event_christmas",
+    "slug": "christmas",
+    "name": "Christmas",
+    "iconName": "Gift",
+    "description": "Holiday gift guides and last-minute deals across every store.",
+    "bannerUrl": "/images/events/christmas.svg",
+    "startsAt": "2026-12-01T00:00:00.000Z",
+    "endsAt": "2026-12-25T23:59:59.000Z",
+    "featuredStoreIds": ["store_amazon", "store_nike", "store_sephora"],
+    "featuredCouponIds": ["coupon_amazon_1", "coupon_nike_1", "coupon_sephora_1"]
+  },
+  {
+    "id": "event_boxing-day",
+    "slug": "boxing-day",
+    "name": "Boxing Day",
+    "iconName": "Package",
+    "description": "Post-holiday clearance across electronics, fashion, and home.",
+    "bannerUrl": "/images/events/boxing-day.svg",
+    "startsAt": "2026-12-26T00:00:00.000Z",
+    "endsAt": "2026-12-31T23:59:59.000Z",
+    "featuredStoreIds": ["store_best-buy", "store_zara", "store_ikea"],
+    "featuredCouponIds": ["coupon_best-buy_1", "coupon_zara_1", "coupon_ikea_1"]
+  }
+]
