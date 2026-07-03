@@ -2,6 +2,7 @@ import { Globe } from "lucide-react";
 import { StoreLogo } from "@/components/store/StoreLogo";
 import { StoreRating } from "@/components/store/StoreRating";
 import { Badge } from "@/components/ui/Badge";
+import { RichHtml } from "@/components/ui/RichHtml";
 import type { Store } from "@/types";
 
 export function StoreHeader({
@@ -20,7 +21,7 @@ export function StoreHeader({
       <div className="flex flex-col items-center text-center">
         <StoreLogo logoUrl={store.logoUrl} name={store.name} size="lg" />
         <h1 className="mt-4 font-heading text-xl font-semibold text-brand-950">{store.name}</h1>
-        <p className="mt-1 text-sm text-muted-600">{store.description}</p>
+        <RichHtml html={store.description} className="mt-1 text-sm text-muted-600" />
         <div className="mt-3">
           <StoreRating store={store} />
         </div>

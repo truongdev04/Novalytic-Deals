@@ -1,10 +1,12 @@
 "use client";
 
+import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { submitCouponSchema, type SubmitCouponInput } from "@/lib/validators/submitCoupon";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
+import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -14,19 +16,40 @@ export function SubmitCouponForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SubmitCouponInput>({ resolver: zodResolver(submitCouponSchema) });
 
-  async function onSubmit() {
-    // TODO(backend): POST /api/submit-coupon — goes to the moderation queue
-    // with rate limiting (3/day), honeypot, and Turnstile verification.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    toast.success("Thanks! Your coupon was submitted for review.");
-    reset();
+  const handleVerify = useCallback(
+    (token: string) => setValue("turnstileToken", token),
+    [setValue]
+  );
+
+  async function onSubmit(data: SubmitCouponInput) {
+    try {
+      const res = await fetch("/api/submit-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("submit failed");
+      toast.success("Thanks! Your coupon was submitted for review.");
+      reset();
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        className="hidden"
+        aria-hidden="true"
+        {...register("honeypot")}
+      />
       <div>
         <label htmlFor="storeName" className="mb-1.5 block text-sm font-medium text-brand-950">
           Store name
@@ -98,6 +121,8 @@ export function SubmitCouponForm() {
           </p>
         )}
       </div>
+
+      <TurnstileWidget onVerify={handleVerify} />
 
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Submitting..." : "Submit coupon"}

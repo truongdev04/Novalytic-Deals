@@ -24,6 +24,7 @@ export interface Coupon {
   downvotes: number;
   isFeatured: boolean;
   isTrending: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

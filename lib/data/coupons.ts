@@ -1,10 +1,40 @@
 import { unstable_cache } from "next/cache";
-import couponsData from "@/data/coupons.json";
+import { purgeTag } from "@/lib/server/cache/purgeTag";
+import { prisma } from "@/lib/server/db";
 import type { Coupon } from "@/types";
+import type { Coupon as PrismaCoupon } from "@prisma/client";
 import { getStoreBySlug, getStoresByCategory } from "./stores";
 import { isExpired } from "@/lib/utils";
 
-const allCoupons = couponsData as Coupon[];
+function toCoupon(row: PrismaCoupon): Coupon {
+  return {
+    id: row.id,
+    slug: row.slug,
+    storeId: row.storeId,
+    title: row.title,
+    description: row.description,
+    type: row.type,
+    code: row.code ?? undefined,
+    discountType: row.discountType,
+    discountValue: row.discountValue,
+    currency: row.currency,
+    affiliateUrl: row.affiliateUrl,
+    exclusive: row.exclusive,
+    verified: row.verified,
+    verifiedAt: row.verifiedAt?.toISOString(),
+    terms: row.terms,
+    startsAt: row.startsAt.toISOString(),
+    expiresAt: row.expiresAt?.toISOString(),
+    usageCount: row.usageCount,
+    upvotes: row.upvotes,
+    downvotes: row.downvotes,
+    isFeatured: row.isFeatured,
+    isTrending: row.isTrending,
+    isActive: row.isActive,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
 export interface CouponFilters {
   storeSlug?: string;
@@ -15,40 +45,71 @@ export interface CouponFilters {
   includeExpired?: boolean;
 }
 
-export const getCoupons = unstable_cache(
-  async (): Promise<Coupon[]> => allCoupons,
+const getAllCouponsCached = unstable_cache(
+  async (): Promise<Coupon[]> => {
+    const rows = await prisma.coupon.findMany();
+    return rows.map(toCoupon);
+  },
   ["coupons:list"],
   { tags: ["coupons:list"], revalidate: 300 }
 );
 
+// Unfiltered — includes coupons toggled off ("Status") for admin management.
+// Public pages must use `getCoupons` (or a helper built on it) instead.
+export async function getAllCoupons(): Promise<Coupon[]> {
+  return getAllCouponsCached();
+}
+
+export async function getCoupons(): Promise<Coupon[]> {
+  const all = await getAllCouponsCached();
+  return all.filter((c) => c.isActive);
+}
+
 export async function getCouponBySlug(slug: string): Promise<Coupon | undefined> {
   return unstable_cache(
-    async () => allCoupons.find((c) => c.slug === slug),
+    async () => {
+      const row = await prisma.coupon.findUnique({ where: { slug } });
+      if (!row || !row.isActive) return undefined;
+      return toCoupon(row);
+    },
     [`coupon:${slug}`],
     { tags: [`coupon:${slug}`], revalidate: 300 }
   )();
 }
 
 export async function getCouponsByStore(storeId: string): Promise<Coupon[]> {
-  return allCoupons.filter((c) => c.storeId === storeId);
+  const all = await getCoupons();
+  return all.filter((c) => c.storeId === storeId);
+}
+
+// Unfiltered lookup by id — used by admin editing and internal flows
+// (affiliate redirect) that must resolve a coupon even if it's currently
+// toggled off from public listings.
+export async function getCouponById(id: string): Promise<Coupon | undefined> {
+  const row = await prisma.coupon.findUnique({ where: { id } });
+  return row ? toCoupon(row) : undefined;
 }
 
 export const getFeaturedCoupons = unstable_cache(
-  async (limit = 6): Promise<Coupon[]> =>
-    allCoupons.filter((c) => c.isFeatured && !isExpired(c.expiresAt)).slice(0, limit),
+  async (limit = 6): Promise<Coupon[]> => {
+    const all = await getCoupons();
+    return all.filter((c) => c.isFeatured && !isExpired(c.expiresAt)).slice(0, limit);
+  },
   ["coupons:featured"],
   { tags: ["coupons:list"], revalidate: 300 }
 );
 
 export const getTrendingDeals = unstable_cache(
-  async (limit = 6): Promise<Coupon[]> =>
-    allCoupons.filter((c) => c.isTrending && !isExpired(c.expiresAt)).slice(0, limit),
+  async (limit = 6): Promise<Coupon[]> => {
+    const all = await getCoupons();
+    return all.filter((c) => c.isTrending && !isExpired(c.expiresAt)).slice(0, limit);
+  },
   ["coupons:trending"],
   { tags: ["coupons:list"], revalidate: 300 }
 );
 
 export async function filterCoupons(filters: CouponFilters = {}): Promise<Coupon[]> {
-  let result = [...allCoupons];
+  let result = await getCoupons();
 
   if (!filters.includeExpired) {
     result = result.filter((c) => !isExpired(c.expiresAt));
@@ -101,12 +162,143 @@ export async function filterCoupons(filters: CouponFilters = {}): Promise<Coupon
 }
 
 export async function getRelatedCoupons(coupon: Coupon, limit = 4): Promise<Coupon[]> {
-  return allCoupons
+  const all = await getCoupons();
+  return all
     .filter((c) => c.id !== coupon.id && c.storeId === coupon.storeId && !isExpired(c.expiresAt))
     .slice(0, limit);
 }
 
 export async function getCouponsByIds(ids: string[]): Promise<Coupon[]> {
-  const map = new Map(allCoupons.map((c) => [c.id, c]));
+  const all = await getCoupons();
+  const map = new Map(all.map((c) => [c.id, c]));
   return ids.map((id) => map.get(id)).filter((c): c is Coupon => Boolean(c));
+}
+
+export async function incrementCouponVote(
+  id: string,
+  direction: "up" | "down"
+): Promise<Coupon | undefined> {
+  try {
+    const row = await prisma.coupon.update({
+      where: { id },
+      data: direction === "up" ? { upvotes: { increment: 1 } } : { downvotes: { increment: 1 } },
+    });
+    return toCoupon(row);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function incrementCouponUsage(id: string): Promise<Coupon | undefined> {
+  try {
+    const row = await prisma.coupon.update({
+      where: { id },
+      data: { usageCount: { increment: 1 } },
+    });
+    return toCoupon(row);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function setCouponFeatured(id: string, isFeatured: boolean): Promise<Coupon> {
+  const row = await prisma.coupon.update({ where: { id }, data: { isFeatured } });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+  return toCoupon(row);
+}
+
+export async function setCouponVerified(id: string, verified: boolean): Promise<Coupon> {
+  const row = await prisma.coupon.update({
+    where: { id },
+    data: { verified, verifiedAt: verified ? new Date() : null },
+  });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+  return toCoupon(row);
+}
+
+export async function setCouponActive(id: string, isActive: boolean): Promise<Coupon> {
+  const row = await prisma.coupon.update({ where: { id }, data: { isActive } });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+  return toCoupon(row);
+}
+
+export async function deleteCoupon(id: string): Promise<void> {
+  const row = await prisma.coupon.delete({ where: { id } });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+}
+
+export interface AdminCouponFields {
+  storeId: string;
+  slug: string;
+  title: string;
+  description: string;
+  type: Coupon["type"];
+  code?: string | null;
+  discountType: Coupon["discountType"];
+  discountValue: number;
+  currency: string;
+  affiliateUrl: string;
+  exclusive: boolean;
+  terms: string;
+  startsAt: Date;
+  expiresAt?: Date | null;
+  isFeatured: boolean;
+  isTrending: boolean;
+}
+
+export async function createCoupon(fields: AdminCouponFields): Promise<Coupon> {
+  const row = await prisma.coupon.create({
+    data: {
+      id: crypto.randomUUID(),
+      storeId: fields.storeId,
+      slug: fields.slug,
+      title: fields.title,
+      description: fields.description,
+      type: fields.type,
+      code: fields.code || null,
+      discountType: fields.discountType,
+      discountValue: fields.discountValue,
+      currency: fields.currency,
+      affiliateUrl: fields.affiliateUrl,
+      exclusive: fields.exclusive,
+      terms: fields.terms,
+      startsAt: fields.startsAt,
+      expiresAt: fields.expiresAt || null,
+      isFeatured: fields.isFeatured,
+      isTrending: fields.isTrending,
+    },
+  });
+  purgeTag("coupons:list");
+  return toCoupon(row);
+}
+
+export async function updateCoupon(id: string, fields: AdminCouponFields): Promise<Coupon> {
+  const row = await prisma.coupon.update({
+    where: { id },
+    data: {
+      storeId: fields.storeId,
+      slug: fields.slug,
+      title: fields.title,
+      description: fields.description,
+      type: fields.type,
+      code: fields.code || null,
+      discountType: fields.discountType,
+      discountValue: fields.discountValue,
+      currency: fields.currency,
+      affiliateUrl: fields.affiliateUrl,
+      exclusive: fields.exclusive,
+      terms: fields.terms,
+      startsAt: fields.startsAt,
+      expiresAt: fields.expiresAt || null,
+      isFeatured: fields.isFeatured,
+      isTrending: fields.isTrending,
+    },
+  });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+  return toCoupon(row);
 }

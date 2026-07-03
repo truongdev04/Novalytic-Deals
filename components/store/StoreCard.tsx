@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StoreLogo } from "@/components/store/StoreLogo";
+import { stripHtml } from "@/lib/utils";
 import type { Store } from "@/types";
 
 export function StoreCard({ store, couponCount }: { store: Store; couponCount: number }) {
@@ -10,7 +11,7 @@ export function StoreCard({ store, couponCount }: { store: Store; couponCount: n
     >
       <StoreLogo logoUrl={store.logoUrl} name={store.name} size="md" />
       <h3 className="mt-3 font-heading text-sm font-semibold text-brand-950">{store.name}</h3>
-      <p className="mt-1 line-clamp-2 text-xs text-muted-500">{store.description}</p>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-500">{stripHtml(store.description)}</p>
       <span className="mt-3 text-xs font-semibold text-brand-600 group-hover:text-brand-700">
         {couponCount} {couponCount === 1 ? "coupon" : "coupons"}
       </span>

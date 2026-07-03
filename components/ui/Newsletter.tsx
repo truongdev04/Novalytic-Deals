@@ -1,11 +1,13 @@
 "use client";
 
+import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
 import { newsletterSchema, type NewsletterInput } from "@/lib/validators/newsletter";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
+import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 import { cn } from "@/lib/utils";
 
 export function Newsletter({ variant = "section" }: { variant?: "section" | "footer" }) {
@@ -13,14 +15,28 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<NewsletterInput>({ resolver: zodResolver(newsletterSchema) });
 
+  const handleVerify = useCallback(
+    (token: string) => setValue("turnstileToken", token),
+    [setValue]
+  );
+
   async function onSubmit(data: NewsletterInput) {
-    // TODO(backend): POST /api/newsletter/subscribe with double opt-in via Resend.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    toast.success(`You're subscribed! Check ${data.email} for confirmation soon.`);
-    reset();
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("subscribe failed");
+      toast.success(`You're subscribed! Check ${data.email} for confirmation soon.`);
+      reset();
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
   }
 
   const isFooter = variant === "footer";
@@ -31,6 +47,14 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
       noValidate
       className={cn("w-full", isFooter && "max-w-sm")}
     >
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        className="hidden"
+        aria-hidden="true"
+        {...register("honeypot")}
+      />
       <div className="flex items-stretch gap-2">
         <div className="relative flex-1">
           <Mail
@@ -67,6 +91,7 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
           {errors.email.message}
         </p>
       )}
+      <TurnstileWidget onVerify={handleVerify} />
     </form>
   );
 }

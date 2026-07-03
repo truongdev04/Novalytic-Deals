@@ -3,3 +3,8 @@ export * from "./coupons";
 export * from "./categories";
 export * from "./blog";
 export * from "./events";
+export * from "./reviews";
+export * from "./clicks";
+export * from "./newsletter";
+export * from "./submittedCoupons";
+export * from "./settings";

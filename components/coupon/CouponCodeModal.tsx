@@ -8,10 +8,15 @@ import { CopyCodeButton } from "@/components/coupon/CopyCodeButton";
 import { toast } from "@/components/ui/Toast";
 import type { Coupon, Store } from "@/types";
 
-// TODO(backend): reveal should POST /api/coupons/[id]/reveal and open /go/[couponId]
-// instead of linking straight to affiliateUrl once the redirect + click logging route exists.
-function openAffiliateLink(url: string) {
-  window.open(url, "_blank", "noopener,noreferrer");
+// The real affiliateUrl is never exposed here — /go/[couponId] resolves it
+// server-side, logs the click, and 302s. Opening it also fires a reveal POST
+// so usage/vote-adjacent stats stay accurate.
+function openGoLink(couponId: string) {
+  window.open(`/go/${couponId}`, "_blank", "noopener,noreferrer");
+}
+
+function revealCoupon(couponId: string) {
+  fetch(`/api/coupons/${couponId}/reveal`, { method: "POST" }).catch(() => {});
 }
 
 export function CouponCodeModal({
@@ -30,6 +35,7 @@ export function CouponCodeModal({
     if (open && coupon.code) {
       navigator.clipboard.writeText(coupon.code).catch(() => {});
       toast.success("Code copied to clipboard!");
+      revealCoupon(coupon.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -40,7 +46,7 @@ export function CouponCodeModal({
         type="button"
         variant="accent"
         size={size}
-        onClick={() => openAffiliateLink(coupon.affiliateUrl)}
+        onClick={() => openGoLink(coupon.id)}
       >
         <ExternalLink className="h-4 w-4" />
         Get Deal
@@ -71,7 +77,7 @@ export function CouponCodeModal({
           type="button"
           variant="accent"
           className="mt-5 w-full"
-          onClick={() => openAffiliateLink(coupon.affiliateUrl)}
+          onClick={() => openGoLink(coupon.id)}
         >
           <ExternalLink className="h-4 w-4" />
           Continue to {store.name}

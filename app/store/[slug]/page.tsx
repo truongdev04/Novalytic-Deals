@@ -13,6 +13,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCouponTabs } from "@/components/store/StoreCouponTabs";
 import { StoreCard } from "@/components/store/StoreCard";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
+import { RichHtml } from "@/components/ui/RichHtml";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -102,6 +103,20 @@ export default async function StorePage({
           <div className="mt-6">
             <StoreCouponTabs coupons={coupons} store={store} />
           </div>
+
+          {store.aboutStore && (
+            <div className="mt-12">
+              <SectionHeader title={`About ${store.name}`} align="left" />
+              <RichHtml html={store.aboutStore} className="text-sm text-muted-600" />
+            </div>
+          )}
+
+          {store.howToApply && (
+            <div className="mt-12">
+              <SectionHeader title="How to apply" align="left" />
+              <RichHtml html={store.howToApply} className="text-sm text-muted-600" />
+            </div>
+          )}
 
           {store.faq.length > 0 && (
             <div className="mt-12">

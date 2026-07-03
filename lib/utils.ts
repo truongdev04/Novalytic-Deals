@@ -5,6 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Strips HTML tags from rich-text fields (e.g. Store.description) for
+// contexts that only show a short plain-text excerpt, like a card blurb.
+export function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function formatDiscount(
   discountType: "PERCENT" | "AMOUNT" | "OTHER",
   discountValue: number,

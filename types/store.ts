@@ -18,12 +18,15 @@ export interface Store {
   bannerUrl?: string;
   website: string;
   description: string;
+  aboutStore: string;
+  howToApply?: string;
   rating: number;
   ratingCount: number;
   categoryIds: string[];
   region: StoreRegion;
   affiliateNetwork: string;
   isFeatured: boolean;
+  isActive: boolean;
   seo: StoreSeo;
   faq: StoreFaqItem[];
   createdAt: string;

@@ -1,0 +1,295 @@
+// Prisma schema for NovalyticDeals backend.
+// Mirrors the domain model in CLAUDE.md and the shapes already used by
+// types/*.ts + data/*.json, so lib/data/* can swap its internals without
+// changing any exported function signature.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum StoreRegion {
+  US
+  EU
+  GLOBAL
+}
+
+enum CouponType {
+  CODE
+  DEAL
+  CASHBACK
+  FREESHIP
+  BOGO
+}
+
+enum DiscountType {
+  PERCENT
+  AMOUNT
+  OTHER
+}
+
+enum AdminRole {
+  ADMIN
+  EDITOR
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Store {
+  id               String   @id
+  slug             String   @unique
+  name             String
+  logoUrl          String
+  bannerUrl        String?
+  website          String
+  description      String
+  aboutStore       String   @default("")
+  howToApply       String?
+  rating           Float    @default(0)
+  ratingCount      Int      @default(0)
+  region           StoreRegion
+  affiliateNetwork String
+  isFeatured       Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  seo              Json
+  faq              Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  categories  StoreCategory[]
+  coupons     Coupon[]
+  reviews     Review[]
+  clickEvents ClickEvent[]
+  eventLinks  EventStore[]
+
+  @@index([isFeatured])
+  @@index([isActive])
+  @@map("stores")
+}
+
+model Category {
+  id          String   @id
+  slug        String   @unique
+  name        String
+  description String
+  iconName    String
+  isFeatured  Boolean  @default(false)
+  seo         Json
+  faq         Json
+
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  stores    StoreCategory[]
+  blogPosts BlogPost[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model StoreCategory {
+  storeId    String
+  categoryId String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([storeId, categoryId])
+  @@index([categoryId])
+  @@map("store_categories")
+}
+
+model Coupon {
+  id             String       @id
+  slug           String       @unique
+  storeId        String
+  store          Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  type           CouponType
+  code           String?
+  discountType   DiscountType
+  discountValue  Float
+  currency       String
+  affiliateUrl   String
+  exclusive      Boolean      @default(false)
+  verified       Boolean      @default(false)
+  verifiedAt     DateTime?
+  terms          String
+  startsAt       DateTime
+  expiresAt      DateTime?
+  usageCount     Int          @default(0)
+  upvotes        Int          @default(0)
+  downvotes      Int          @default(0)
+  isFeatured     Boolean      @default(false)
+  isTrending     Boolean      @default(false)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  clickEvents ClickEvent[]
+  eventLinks  EventCoupon[]
+
+  @@index([storeId])
+  @@index([expiresAt])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@index([isActive])
+  @@map("coupons")
+}
+
+model BlogAuthor {
+  id        String     @id
+  name      String
+  avatarUrl String?
+  posts     BlogPost[]
+
+  @@map("blog_authors")
+}
+
+model BlogPost {
+  id             String     @id
+  slug           String     @unique
+  title          String
+  excerpt        String
+  coverImage     String
+  authorId       String
+  author         BlogAuthor @relation(fields: [authorId], references: [id])
+  tags           String[]
+  categoryId     String?
+  category       Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  body           String     @db.Text
+  readingMinutes Int
+  publishedAt    DateTime
+  seo            Json
+  isFeatured     Boolean    @default(false)
+
+  @@index([categoryId])
+  @@index([publishedAt])
+  @@map("blog_posts")
+}
+
+model Event {
+  id          String   @id
+  slug        String   @unique
+  name        String
+  iconName    String
+  description String
+  bannerUrl   String?
+  startsAt    DateTime
+  endsAt      DateTime
+
+  featuredStores  EventStore[]
+  featuredCoupons EventCoupon[]
+
+  @@map("events")
+}
+
+model EventStore {
+  eventId String
+  storeId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, storeId])
+  @@map("event_stores")
+}
+
+model EventCoupon {
+  eventId  String
+  couponId String
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, couponId])
+  @@map("event_coupons")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId     String?
+  authorName String
+  rating     Int
+  title      String
+  body       String
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([storeId])
+  @@index([isApproved])
+  @@map("reviews")
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userAgent String?
+  referer   String?
+  country   String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([couponId])
+  @@index([storeId])
+  @@index([createdAt])
+  @@map("click_events")
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+  source         String?
+  tags           String[]
+  createdAt      DateTime  @default(now())
+
+  @@map("newsletter_subscribers")
+}
+
+model SubmittedCoupon {
+  id              String           @id @default(cuid())
+  storeName       String
+  code            String?
+  description     String
+  expiresAt       DateTime?
+  submitterEmail  String
+  status          SubmissionStatus @default(PENDING)
+  createdAt       DateTime         @default(now())
+
+  @@index([status])
+  @@map("submitted_coupons")
+}
+
+model SiteSetting {
+  key   String @id
+  value Json
+
+  @@map("site_settings")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  hashedPassword String?
+  oauthId        String?
+  role           AdminRole @default(EDITOR)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("users")
+}

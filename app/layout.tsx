@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Toaster } from "sonner";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
@@ -56,10 +57,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-surface-50 text-foreground">
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <BackToTop />
+        <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>
+          {children}
+        </SiteChrome>
         <Toaster position="bottom-right" richColors />
       </body>
     </html>

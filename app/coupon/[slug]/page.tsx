@@ -21,6 +21,7 @@ import { ShareButtons } from "@/components/blog/ShareButtons";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { couponOfferJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { stripHtml } from "@/lib/utils";
 
 export const revalidate = 300;
 
@@ -99,7 +100,7 @@ export default async function CouponPage({
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-muted-200 pt-6">
-            <VoteButtons upvotes={coupon.upvotes} downvotes={coupon.downvotes} />
+            <VoteButtons couponId={coupon.id} upvotes={coupon.upvotes} downvotes={coupon.downvotes} />
             <ShareButtons url={`${siteUrl}/coupon/${coupon.slug}`} title={coupon.title} />
           </div>
 
@@ -120,7 +121,7 @@ export default async function CouponPage({
 
         <aside className="rounded-xl border border-muted-200 bg-surface-0 p-6 shadow-sm">
           <h2 className="font-heading text-sm font-semibold text-brand-950">About {store.name}</h2>
-          <p className="mt-2 text-sm text-muted-600">{store.description}</p>
+          <p className="mt-2 text-sm text-muted-600">{stripHtml(store.description)}</p>
           <Link
             href={`/store/${store.slug}`}
             className="mt-4 inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
