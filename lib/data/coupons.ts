@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
-import { prisma } from "@/lib/server/db";
+import { prisma, Prisma } from "@/lib/server/db";
 import type { Coupon } from "@/types";
 import type { Coupon as PrismaCoupon } from "@prisma/client";
 import { getStoreBySlug, getStoresByCategory } from "./stores";
@@ -47,7 +47,7 @@ export interface CouponFilters {
 
 const getAllCouponsCached = unstable_cache(
   async (): Promise<Coupon[]> => {
-    const rows = await prisma.coupon.findMany();
+    const rows = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
     return rows.map(toCoupon);
   },
   ["coupons:list"],
@@ -243,6 +243,7 @@ export interface AdminCouponFields {
   currency: string;
   affiliateUrl: string;
   exclusive: boolean;
+  verified: boolean;
   terms: string;
   startsAt: Date;
   expiresAt?: Date | null;
@@ -250,55 +251,88 @@ export interface AdminCouponFields {
   isTrending: boolean;
 }
 
+function throwIfSlugConflict(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    (error.meta?.target as string[] | undefined)?.includes("slug")
+  ) {
+    throw new Error("SLUG_TAKEN");
+  }
+  throw error;
+}
+
 export async function createCoupon(fields: AdminCouponFields): Promise<Coupon> {
-  const row = await prisma.coupon.create({
-    data: {
-      id: crypto.randomUUID(),
-      storeId: fields.storeId,
-      slug: fields.slug,
-      title: fields.title,
-      description: fields.description,
-      type: fields.type,
-      code: fields.code || null,
-      discountType: fields.discountType,
-      discountValue: fields.discountValue,
-      currency: fields.currency,
-      affiliateUrl: fields.affiliateUrl,
-      exclusive: fields.exclusive,
-      terms: fields.terms,
-      startsAt: fields.startsAt,
-      expiresAt: fields.expiresAt || null,
-      isFeatured: fields.isFeatured,
-      isTrending: fields.isTrending,
-    },
-  });
-  purgeTag("coupons:list");
-  return toCoupon(row);
+  try {
+    const row = await prisma.coupon.create({
+      data: {
+        id: crypto.randomUUID(),
+        storeId: fields.storeId,
+        slug: fields.slug,
+        title: fields.title,
+        description: fields.description,
+        type: fields.type,
+        code: fields.code || null,
+        discountType: fields.discountType,
+        discountValue: fields.discountValue,
+        currency: fields.currency,
+        affiliateUrl: fields.affiliateUrl,
+        exclusive: fields.exclusive,
+        verified: fields.verified,
+        verifiedAt: fields.verified ? new Date() : null,
+        terms: fields.terms,
+        startsAt: fields.startsAt,
+        expiresAt: fields.expiresAt || null,
+        isFeatured: fields.isFeatured,
+        isTrending: fields.isTrending,
+      },
+    });
+    purgeTag("coupons:list");
+    return toCoupon(row);
+  } catch (error) {
+    throwIfSlugConflict(error);
+  }
 }
 
 export async function updateCoupon(id: string, fields: AdminCouponFields): Promise<Coupon> {
-  const row = await prisma.coupon.update({
-    where: { id },
-    data: {
-      storeId: fields.storeId,
-      slug: fields.slug,
-      title: fields.title,
-      description: fields.description,
-      type: fields.type,
-      code: fields.code || null,
-      discountType: fields.discountType,
-      discountValue: fields.discountValue,
-      currency: fields.currency,
-      affiliateUrl: fields.affiliateUrl,
-      exclusive: fields.exclusive,
-      terms: fields.terms,
-      startsAt: fields.startsAt,
-      expiresAt: fields.expiresAt || null,
-      isFeatured: fields.isFeatured,
-      isTrending: fields.isTrending,
-    },
-  });
-  purgeTag("coupons:list");
-  purgeTag(`coupon:${row.slug}`);
-  return toCoupon(row);
+  try {
+    const existing = await prisma.coupon.findUnique({
+      where: { id },
+      select: { verified: true, verifiedAt: true },
+    });
+    const verifiedAt = fields.verified
+      ? existing?.verified
+        ? existing.verifiedAt
+        : new Date()
+      : null;
+
+    const row = await prisma.coupon.update({
+      where: { id },
+      data: {
+        storeId: fields.storeId,
+        slug: fields.slug,
+        title: fields.title,
+        description: fields.description,
+        type: fields.type,
+        code: fields.code || null,
+        discountType: fields.discountType,
+        discountValue: fields.discountValue,
+        currency: fields.currency,
+        affiliateUrl: fields.affiliateUrl,
+        exclusive: fields.exclusive,
+        verified: fields.verified,
+        verifiedAt,
+        terms: fields.terms,
+        startsAt: fields.startsAt,
+        expiresAt: fields.expiresAt || null,
+        isFeatured: fields.isFeatured,
+        isTrending: fields.isTrending,
+      },
+    });
+    purgeTag("coupons:list");
+    purgeTag(`coupon:${row.slug}`);
+    return toCoupon(row);
+  } catch (error) {
+    throwIfSlugConflict(error);
+  }
 }

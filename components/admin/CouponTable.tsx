@@ -11,6 +11,8 @@ import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import { toast } from "@/components/ui/Toast";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import type { Coupon, Store } from "@/types";
 
 const STORE_FILTER_ALL = "all";
@@ -29,6 +31,7 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
   const storeOptions = useMemo(
     () => [
@@ -91,7 +94,6 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
   async function handleBulkDelete() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
-    if (!window.confirm(`Delete ${ids.length} selected coupon(s)? This can't be undone.`)) return;
 
     setIsBulkDeleting(true);
     try {
@@ -102,6 +104,7 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
       toast.success(`Deleted ${ids.length} coupon(s).`);
       setSelectedIds(new Set());
       setSelectionMode(false);
+      setShowBulkDeleteConfirm(false);
       router.refresh();
     } catch {
       toast.error("Failed to delete selected coupons.");
@@ -194,7 +197,7 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
         {selectionMode && selectedIds.size > 0 && (
           <button
             type="button"
-            onClick={handleBulkDelete}
+            onClick={() => setShowBulkDeleteConfirm(true)}
             disabled={isBulkDeleting}
             className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
           >
@@ -203,6 +206,34 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
           </button>
         )}
       </div>
+
+      <Modal
+        open={showBulkDeleteConfirm}
+        onOpenChange={setShowBulkDeleteConfirm}
+        title="Delete confirmation"
+      >
+        <p className="text-sm text-muted-600">
+          Delete <span className="font-medium text-brand-950">{selectedIds.size}</span> selected
+          coupon(s)? This can&apos;t be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowBulkDeleteConfirm(false)}
+            disabled={isBulkDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="bg-red-600 hover:bg-red-700"
+            onClick={handleBulkDelete}
+            disabled={isBulkDeleting}
+          >
+            {isBulkDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
+      </Modal>
 
       <div className="mt-4 overflow-x-auto rounded-lg border border-muted-200 bg-surface-0">
         <table className="w-full text-left text-sm">

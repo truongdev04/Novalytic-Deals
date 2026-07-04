@@ -27,6 +27,7 @@ export interface Store {
   affiliateNetwork: string;
   isFeatured: boolean;
   isActive: boolean;
+  clickCount: number;
   seo: StoreSeo;
   faq: StoreFaqItem[];
   createdAt: string;

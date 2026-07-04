@@ -24,6 +24,7 @@ function toStore(row: StoreRow): Store {
     affiliateNetwork: row.affiliateNetwork,
     isFeatured: row.isFeatured,
     isActive: row.isActive,
+    clickCount: row.clickCount,
     seo: row.seo as unknown as StoreSeo,
     faq: row.faq as unknown as StoreFaqItem[],
     createdAt: row.createdAt.toISOString(),
@@ -135,6 +136,19 @@ export async function setStoreActive(id: string, isActive: boolean): Promise<Sto
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
   return toStore(row);
+}
+
+export async function incrementStoreClickCount(id: string): Promise<Store | undefined> {
+  try {
+    const row = await prisma.store.update({
+      where: { id },
+      data: { clickCount: { increment: 1 } },
+      include: { categories: true },
+    });
+    return toStore(row);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function deleteStore(id: string): Promise<void> {

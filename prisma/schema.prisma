@@ -60,16 +60,16 @@ model Store {
   affiliateNetwork String
   isFeatured       Boolean  @default(false)
   isActive         Boolean  @default(true)
+  clickCount       Int      @default(0)
   seo              Json
   faq              Json
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  categories  StoreCategory[]
-  coupons     Coupon[]
-  reviews     Review[]
-  clickEvents ClickEvent[]
-  eventLinks  EventStore[]
+  categories StoreCategory[]
+  coupons    Coupon[]
+  reviews    Review[]
+  eventLinks EventStore[]
 
   @@index([isFeatured])
   @@index([isActive])
@@ -136,8 +136,7 @@ model Coupon {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  clickEvents ClickEvent[]
-  eventLinks  EventCoupon[]
+  eventLinks EventCoupon[]
 
   @@index([storeId])
   @@index([expiresAt])
@@ -229,24 +228,6 @@ model Review {
   @@index([storeId])
   @@index([isApproved])
   @@map("reviews")
-}
-
-model ClickEvent {
-  id        String   @id @default(cuid())
-  couponId  String
-  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  userAgent String?
-  referer   String?
-  country   String?
-  sessionId String?
-  createdAt DateTime @default(now())
-
-  @@index([couponId])
-  @@index([storeId])
-  @@index([createdAt])
-  @@map("click_events")
 }
 
 model NewsletterSubscriber {

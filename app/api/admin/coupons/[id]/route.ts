@@ -28,25 +28,33 @@ export async function PATCH(
   // the full edit form sends the complete adminCouponSchema shape.
   const fullUpdate = adminCouponSchema.safeParse(body);
   if (fullUpdate.success) {
-    const coupon = await updateCoupon(id, {
-      storeId: fullUpdate.data.storeId,
-      slug: fullUpdate.data.slug,
-      title: fullUpdate.data.title,
-      description: fullUpdate.data.description,
-      type: fullUpdate.data.type,
-      code: fullUpdate.data.code || null,
-      discountType: fullUpdate.data.discountType,
-      discountValue: fullUpdate.data.discountValue,
-      currency: fullUpdate.data.currency,
-      affiliateUrl: fullUpdate.data.affiliateUrl,
-      exclusive: fullUpdate.data.exclusive,
-      terms: fullUpdate.data.terms,
-      startsAt: new Date(fullUpdate.data.startsAt),
-      expiresAt: fullUpdate.data.expiresAt ? new Date(fullUpdate.data.expiresAt) : null,
-      isFeatured: fullUpdate.data.isFeatured,
-      isTrending: fullUpdate.data.isTrending,
-    });
-    return jsonOk(coupon);
+    try {
+      const coupon = await updateCoupon(id, {
+        storeId: fullUpdate.data.storeId,
+        slug: fullUpdate.data.slug,
+        title: fullUpdate.data.title,
+        description: fullUpdate.data.description,
+        type: fullUpdate.data.type,
+        code: fullUpdate.data.code || null,
+        discountType: fullUpdate.data.discountType,
+        discountValue: fullUpdate.data.discountValue,
+        currency: fullUpdate.data.currency,
+        affiliateUrl: fullUpdate.data.affiliateUrl,
+        exclusive: fullUpdate.data.exclusive,
+        verified: fullUpdate.data.verified,
+        terms: fullUpdate.data.terms,
+        startsAt: fullUpdate.data.startsAt ? new Date(fullUpdate.data.startsAt) : new Date(),
+        expiresAt: fullUpdate.data.expiresAt ? new Date(fullUpdate.data.expiresAt) : null,
+        isFeatured: fullUpdate.data.isFeatured,
+        isTrending: fullUpdate.data.isTrending,
+      });
+      return jsonOk(coupon);
+    } catch (error) {
+      if (error instanceof Error && error.message === "SLUG_TAKEN") {
+        return jsonError(409, "This slug is already in use. Please choose another one.");
+      }
+      return jsonError(500, "Failed to save coupon");
+    }
   }
 
   if (typeof body?.isFeatured === "boolean") {

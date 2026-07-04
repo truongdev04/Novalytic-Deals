@@ -2,38 +2,20 @@ import Link from "next/link";
 import { Store, Tag, Tags, Network, FileText, Mail, Plus, MessageSquare, Inbox } from "lucide-react";
 import {
   getOverviewCounts,
-  getClicksSeriesForRange,
-  getTopStoresByClicksRange,
+  getTopStoresByClickCount,
   getRecentActivity,
   getModerationCounts,
-  resolveDashboardRange,
-  type DashboardRange,
 } from "@/lib/data/admin/analytics";
-import { DashboardRangePicker } from "@/components/admin/DashboardRangePicker";
-import { ClicksLineChart } from "@/components/admin/ClicksLineChart";
 import { TopStoresBarChart } from "@/components/admin/TopStoresBarChart";
-
-const RANGE_VALUES: DashboardRange[] = ["today", "yesterday", "7d", "month", "custom", "all"];
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("vi-VN");
 }
 
-export default async function AdminDashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
-}) {
-  const params = await searchParams;
-  const range: DashboardRange = RANGE_VALUES.includes(params.range as DashboardRange)
-    ? (params.range as DashboardRange)
-    : "7d";
-  const { since, until, bucket } = resolveDashboardRange(range, params.from, params.to);
-
-  const [overview, clicksSeries, topStores, recentActivity, moderation] = await Promise.all([
+export default async function AdminDashboardPage() {
+  const [overview, topStores, recentActivity, moderation] = await Promise.all([
     getOverviewCounts(),
-    getClicksSeriesForRange(since, until, bucket),
-    getTopStoresByClicksRange(5, since, until),
+    getTopStoresByClickCount(5),
     getRecentActivity(5),
     getModerationCounts(),
   ]);
@@ -95,27 +77,20 @@ export default async function AdminDashboardPage({
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-6">
         <h2 className="font-heading text-lg font-semibold text-brand-950">Thống kê click</h2>
-        <DashboardRangePicker current={range} from={params.from} to={params.to} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <div className="rounded-xl border border-muted-200 bg-surface-0 p-5">
-            <h3 className="font-heading text-sm font-semibold text-brand-950">Số lượng click theo thời gian</h3>
-            <div className="mt-2">
-              <ClicksLineChart data={clicksSeries} />
-            </div>
-          </div>
-          <div className="rounded-xl border border-muted-200 bg-surface-0 p-5">
             <h3 className="font-heading text-sm font-semibold text-brand-950">
-              Store có lượng click nhiều nhất
+              Store có lượng click nhiều nhất (tổng cộng)
             </h3>
             <div className="mt-2">
               {topStores.length === 0 ? (
                 <p className="flex h-[280px] items-center justify-center text-sm text-muted-500">
-                  Chưa có dữ liệu click trong khoảng thời gian này.
+                  Chưa có dữ liệu click nào.
                 </p>
               ) : (
                 <TopStoresBarChart data={topStores} />
