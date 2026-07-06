@@ -4,6 +4,17 @@ import { prisma, Prisma } from "@/lib/server/db";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
 import type { Store as PrismaStore } from "@prisma/client";
 
+function throwIfSlugConflict(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    (error.meta?.target as string[] | undefined)?.includes("slug")
+  ) {
+    throw new Error("SLUG_TAKEN");
+  }
+  throw error;
+}
+
 function toStore(row: PrismaStore): Store {
   return {
     id: row.id,
@@ -33,7 +44,7 @@ function toStore(row: PrismaStore): Store {
 
 const getAllStoresCached = unstable_cache(
   async (): Promise<Store[]> => {
-    const rows = await prisma.store.findMany();
+    const rows = await prisma.store.findMany({ orderBy: { createdAt: "desc" } });
     return rows.map(toStore);
   },
   ["stores:list"],
@@ -170,53 +181,63 @@ export interface AdminStoreFields {
 }
 
 export async function createStore(fields: AdminStoreFields): Promise<Store> {
-  const row = await prisma.store.create({
-    data: {
-      id: crypto.randomUUID(),
-      slug: fields.slug,
-      name: fields.name,
-      logoUrl: fields.logoUrl,
-      bannerUrl: fields.bannerUrl || null,
-      website: fields.website,
-      description: fields.description,
-      aboutStore: fields.aboutStore,
-      howToApply: fields.howToApply || null,
-      rating: fields.rating,
-      ratingCount: fields.ratingCount,
-      region: fields.region,
-      affiliateNetwork: fields.affiliateNetwork,
-      isFeatured: fields.isFeatured,
-      seo: fields.seo as unknown as Prisma.InputJsonValue,
-      faq: fields.faq as unknown as Prisma.InputJsonValue,
-      categoryIds: fields.categoryIds,
-    },
-  });
+  let row: PrismaStore;
+  try {
+    row = await prisma.store.create({
+      data: {
+        id: crypto.randomUUID(),
+        slug: fields.slug,
+        name: fields.name,
+        logoUrl: fields.logoUrl,
+        bannerUrl: fields.bannerUrl || null,
+        website: fields.website,
+        description: fields.description,
+        aboutStore: fields.aboutStore,
+        howToApply: fields.howToApply || null,
+        rating: fields.rating,
+        ratingCount: fields.ratingCount,
+        region: fields.region,
+        affiliateNetwork: fields.affiliateNetwork,
+        isFeatured: fields.isFeatured,
+        seo: fields.seo as unknown as Prisma.InputJsonValue,
+        faq: fields.faq as unknown as Prisma.InputJsonValue,
+        categoryIds: fields.categoryIds,
+      },
+    });
+  } catch (error) {
+    throwIfSlugConflict(error);
+  }
   purgeTag("stores:list");
   return toStore(row);
 }
 
 export async function updateStore(id: string, fields: AdminStoreFields): Promise<Store> {
-  const row = await prisma.store.update({
-    where: { id },
-    data: {
-      slug: fields.slug,
-      name: fields.name,
-      logoUrl: fields.logoUrl,
-      bannerUrl: fields.bannerUrl || null,
-      website: fields.website,
-      description: fields.description,
-      aboutStore: fields.aboutStore,
-      howToApply: fields.howToApply || null,
-      rating: fields.rating,
-      ratingCount: fields.ratingCount,
-      region: fields.region,
-      affiliateNetwork: fields.affiliateNetwork,
-      isFeatured: fields.isFeatured,
-      seo: fields.seo as unknown as Prisma.InputJsonValue,
-      faq: fields.faq as unknown as Prisma.InputJsonValue,
-      categoryIds: fields.categoryIds,
-    },
-  });
+  let row: PrismaStore;
+  try {
+    row = await prisma.store.update({
+      where: { id },
+      data: {
+        slug: fields.slug,
+        name: fields.name,
+        logoUrl: fields.logoUrl,
+        bannerUrl: fields.bannerUrl || null,
+        website: fields.website,
+        description: fields.description,
+        aboutStore: fields.aboutStore,
+        howToApply: fields.howToApply || null,
+        rating: fields.rating,
+        ratingCount: fields.ratingCount,
+        region: fields.region,
+        affiliateNetwork: fields.affiliateNetwork,
+        isFeatured: fields.isFeatured,
+        seo: fields.seo as unknown as Prisma.InputJsonValue,
+        faq: fields.faq as unknown as Prisma.InputJsonValue,
+        categoryIds: fields.categoryIds,
+      },
+    });
+  } catch (error) {
+    throwIfSlugConflict(error);
+  }
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
   return toStore(row);

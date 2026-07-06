@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { Extension } from "@tiptap/core";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { TextSelection } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -46,8 +48,10 @@ import {
   Redo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ImageInsertModal } from "@/components/admin/ImageInsertModal";
+import { ImageInsertModal, type EditingImage } from "@/components/admin/ImageInsertModal";
 import { LinkModal } from "@/components/admin/LinkModal";
+import { registerPendingImage } from "@/lib/richTextImageUpload";
+import { borderStyleProps, hspaceStyleProps, vspaceStyleProps, styleObjectToCss } from "@/lib/richTextImageStyle";
 
 const CustomImage = TiptapImage.extend({
   addAttributes() {
@@ -63,9 +67,77 @@ const CustomImage = TiptapImage.extend({
       },
       "data-upload-id": { default: null },
       "data-pending-upload": { default: null },
+      "data-full-width": { default: null },
+      // Plain literal attribute, same convention as data-full-width above —
+      // round-trips automatically via Tiptap's default parseHTML/renderHTML.
+      // Only 3 fixed values, so the visual effect (float/center) lives in CSS
+      // attribute selectors in globals.css rather than inline style.
+      "data-position": { default: null },
+      // These three render into `style` (not a standalone attribute) since
+      // they're arbitrary px values, not a small fixed enum. Each owns a
+      // different CSS property, so mergeAttributes' per-property style merge
+      // (confirmed in @tiptap/core source) composes them safely without them
+      // needing to know about each other — except hspace, which reads the
+      // sibling data-position value (Tiptap passes the full attrs object to
+      // every attribute's renderHTML, the same pattern FontSize uses above).
+      borderWidth: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const value = parseInt(element.style.borderWidth || "", 10);
+          return Number.isNaN(value) ? null : value;
+        },
+        renderHTML: (attrs: { borderWidth?: number | string | null }) => {
+          const style = styleObjectToCss(borderStyleProps(attrs.borderWidth));
+          return style ? { style } : {};
+        },
+      },
+      hspace: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const raw = element.style.marginRight || element.style.marginLeft;
+          const value = parseInt(raw || "", 10);
+          return Number.isNaN(value) ? null : value;
+        },
+        renderHTML: (attrs: { hspace?: number | string | null; "data-position"?: string | null }) => {
+          const style = styleObjectToCss(hspaceStyleProps(attrs.hspace, attrs["data-position"]));
+          return style ? { style } : {};
+        },
+      },
+      vspace: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const raw = element.style.marginTop || element.style.marginBottom;
+          const value = parseInt(raw || "", 10);
+          return Number.isNaN(value) ? null : value;
+        },
+        renderHTML: (attrs: { vspace?: number | string | null }) => {
+          const style = styleObjectToCss(vspaceStyleProps(attrs.vspace));
+          return style ? { style } : {};
+        },
+      },
     };
   },
+}).configure({
+  // Tiptap's Image node is block-level by default, forcing every image onto
+  // its own line. Marking it inline lets consecutive images (inserted or
+  // pasted back-to-back with no Enter in between) sit side by side within
+  // the same paragraph, wrapping to a new line only once the row runs out
+  // of width — matching normal inline flow, no extra CSS needed for this.
+  inline: true,
 });
+
+// Shared by both handlePaste branches below: creates an image node at
+// insertPos and moves the cursor just after it (rather than leaving it as
+// the replaceSelectionWith default NodeSelection) so a follow-up paste/
+// insert lands beside it inline instead of replacing it.
+function insertPastedImageNode(view: EditorView, insertPos: number, attrs: Record<string, unknown>) {
+  const node = view.state.schema.nodes.image.create(attrs);
+  const tr = view.state.tr.replaceSelectionWith(node);
+  const afterPos = Math.min(insertPos + node.nodeSize, tr.doc.content.size);
+  tr.setSelection(TextSelection.near(tr.doc.resolve(afterPos)));
+  view.dispatch(tr);
+  view.focus();
+}
 
 // No official Tiptap package ships a font-size mark, so this adds one as a
 // small extra attribute on the existing textStyle mark (the same approach
@@ -376,14 +448,21 @@ export function RichTextEditor({
   onChange,
   placeholder,
   minHeightClassName = "min-h-32",
+  maxHeightClassName = "max-h-96",
 }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   minHeightClassName?: string;
+  maxHeightClassName?: string;
 }) {
   const [showImageModal, setShowImageModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [editingImage, setEditingImage] = useState<EditingImage | null>(null);
+  // Bumped every time the image modal is opened so ImageInsertModal remounts
+  // (via the `key` below) and re-derives its initial state from the current
+  // editingImage — avoids needing an effect to sync state on open.
+  const [imageModalSession, setImageModalSession] = useState(0);
 
   const editor = useEditor({
     extensions: [
@@ -409,7 +488,104 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: cn("rich-text-content px-4 py-2.5 text-sm text-brand-950 focus:outline-none", minHeightClassName),
+        class: cn(
+          "rich-text-content overflow-y-auto px-4 py-2.5 text-sm text-brand-950 focus:outline-none",
+          minHeightClassName,
+          maxHeightClassName
+        ),
+      },
+      handlePaste: (view, event) => {
+        // Copying an image from a webpage (as opposed to a plain screenshot)
+        // puts BOTH the raw re-encoded image bytes AND a semantic text/html
+        // fragment (e.g. `<img src="https://original.com/photo.jpg"
+        // alt="...">`) on the clipboard. Prefer the HTML fragment when it has
+        // a real absolute URL — it carries the ORIGINAL src (no upload
+        // needed, matches the "URL images aren't uploaded to Cloudinary"
+        // behavior) and the source page's real alt text, instead of always
+        // falling back to a local blob with a generic "Product image" alt.
+        const html = event.clipboardData?.getData("text/html");
+        const imgFromHtml = html
+          ? new DOMParser().parseFromString(html, "text/html").querySelector("img[src]")
+          : null;
+        const htmlSrc = imgFromHtml?.getAttribute("src");
+
+        if (htmlSrc && /^https?:\/\//i.test(htmlSrc)) {
+          event.preventDefault();
+          const alt = imgFromHtml?.getAttribute("alt")?.trim() || "Product image";
+          const insertPos = view.state.selection.from;
+          const img = new window.Image();
+          const insert = (width?: number, height?: number) => {
+            insertPastedImageNode(view, insertPos, { src: htmlSrc, alt, width: width ?? null, height: height ?? null });
+          };
+          img.onload = () => {
+            const width = Math.round(Math.min(img.naturalWidth, 480));
+            insert(width, Math.round(width / (img.naturalWidth / img.naturalHeight)));
+          };
+          // Some sources block hotlinked loads in this context (e.g. referrer
+          // checks) — still insert by URL with no explicit size rather than
+          // silently dropping the paste; CSS max-width handles display.
+          img.onerror = () => insert();
+          img.src = htmlSrc;
+          return true;
+        }
+
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+        if (!imageItem) return false;
+        const file = imageItem.getAsFile();
+        if (!file) return false;
+
+        event.preventDefault();
+        const src = URL.createObjectURL(file);
+        const img = new window.Image();
+        img.onload = () => {
+          const naturalRatio = img.naturalWidth / img.naturalHeight;
+          const width = Math.round(Math.min(img.naturalWidth, 480));
+          const height = Math.round(width / naturalRatio);
+          const uploadId = registerPendingImage(file);
+          const insertPos = view.state.selection.from;
+          insertPastedImageNode(view, insertPos, {
+            src,
+            alt: "Product image",
+            width,
+            height,
+            "data-upload-id": uploadId,
+            "data-pending-upload": "true",
+          });
+        };
+        img.src = src;
+        return true;
+      },
+      handleDOMEvents: {
+        dblclick: (view, event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLImageElement)) return false;
+          const pos = view.posAtDOM(target, 0);
+          if (pos == null || pos < 0) return false;
+          const resolved = view.state.doc.resolve(pos);
+          const isAfterImage = resolved.nodeAfter?.type.name === "image";
+          const isBeforeImage = resolved.nodeBefore?.type.name === "image";
+          if (!isAfterImage && !isBeforeImage) return false;
+          const node = isAfterImage ? resolved.nodeAfter! : resolved.nodeBefore!;
+          const nodePos = isAfterImage ? pos : pos - node.nodeSize;
+          if (view.nodeDOM(nodePos) !== target) return false;
+          // The single click preceding this dblclick already left the image
+          // as a NodeSelection (that's what shows the selected-image
+          // outline). If it stays that way while the edit dialog is open,
+          // closing the dialog (Cancel or Save) and then inserting a new
+          // image elsewhere via the toolbar would replace this NodeSelection
+          // instead of inserting beside it. Move the cursor just after the
+          // image so it's no longer "the current selection" once the dialog
+          // closes — we already captured its position/attrs in editingImage,
+          // so we don't need the ProseMirror selection to track it anymore.
+          const afterPos = Math.min(nodePos + node.nodeSize, view.state.doc.content.size);
+          view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(afterPos))));
+          setEditingImage({ pos: nodePos, attrs: node.attrs as EditingImage["attrs"] });
+          setImageModalSession((s) => s + 1);
+          setShowImageModal(true);
+          return true;
+        },
       },
     },
   });
@@ -420,11 +596,24 @@ export function RichTextEditor({
     <div className="overflow-hidden rounded-lg border border-muted-300 bg-surface-0 focus-within:ring-2 focus-within:ring-brand-500">
       <Toolbar
         editor={editor}
-        onOpenImageModal={() => setShowImageModal(true)}
+        onOpenImageModal={() => {
+          setEditingImage(null);
+          setImageModalSession((s) => s + 1);
+          setShowImageModal(true);
+        }}
         onOpenLinkModal={() => setShowLinkModal(true)}
       />
       <EditorContent editor={editor} />
-      <ImageInsertModal editor={editor} open={showImageModal} onOpenChange={setShowImageModal} />
+      <ImageInsertModal
+        key={imageModalSession}
+        editor={editor}
+        open={showImageModal}
+        onOpenChange={(next) => {
+          setShowImageModal(next);
+          if (!next) setEditingImage(null);
+        }}
+        editingImage={editingImage}
+      />
       <LinkModal editor={editor} open={showLinkModal} onOpenChange={setShowLinkModal} />
     </div>
   );

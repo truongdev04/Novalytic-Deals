@@ -9,7 +9,10 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""} https://challenges.cloudflare.com https://www.googletagmanager.com https://plausible.io`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com",
+  // https: (any host) is needed because admins can paste an external image
+  // URL (Google, Facebook, etc.) directly into the rich-text image dialog,
+  // not just upload to Supabase/Cloudinary.
+  "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "frame-src https://challenges.cloudflare.com",
   "connect-src 'self' https://www.google-analytics.com https://plausible.io",

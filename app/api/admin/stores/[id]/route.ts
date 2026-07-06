@@ -33,26 +33,33 @@ export async function PATCH(
     const existing = await getStoreById(id);
     if (!existing) return jsonError(404, "Store not found");
 
-    const store = await updateStore(id, {
-      slug: fullUpdate.data.slug,
-      name: fullUpdate.data.name,
-      logoUrl: fullUpdate.data.logoUrl,
-      bannerUrl: fullUpdate.data.bannerUrl || null,
-      website: fullUpdate.data.website,
-      description: fullUpdate.data.description,
-      aboutStore: fullUpdate.data.aboutStore,
-      howToApply: fullUpdate.data.howToApply || null,
-      rating: existing.rating,
-      ratingCount: existing.ratingCount,
-      region: existing.region,
-      affiliateNetwork: fullUpdate.data.affiliateNetwork,
-      categoryIds: fullUpdate.data.categoryIds,
-      isFeatured: fullUpdate.data.isFeatured,
-      seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
-      faq: fullUpdate.data.faq,
-    });
-    await setStoreEvent(id, fullUpdate.data.eventId);
-    return jsonOk(store);
+    try {
+      const store = await updateStore(id, {
+        slug: fullUpdate.data.slug,
+        name: fullUpdate.data.name,
+        logoUrl: fullUpdate.data.logoUrl,
+        bannerUrl: fullUpdate.data.bannerUrl || null,
+        website: fullUpdate.data.website,
+        description: fullUpdate.data.description,
+        aboutStore: fullUpdate.data.aboutStore,
+        howToApply: fullUpdate.data.howToApply || null,
+        rating: existing.rating,
+        ratingCount: existing.ratingCount,
+        region: existing.region,
+        affiliateNetwork: fullUpdate.data.affiliateNetwork,
+        categoryIds: fullUpdate.data.categoryIds,
+        isFeatured: fullUpdate.data.isFeatured,
+        seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
+        faq: fullUpdate.data.faq,
+      });
+      await setStoreEvent(id, fullUpdate.data.eventId);
+      return jsonOk(store);
+    } catch (error) {
+      if (error instanceof Error && error.message === "SLUG_TAKEN") {
+        return jsonError(409, "This slug is already in use. Please choose another one.");
+      }
+      return jsonError(500, "Failed to save store");
+    }
   }
 
   if (typeof body?.isFeatured === "boolean") {

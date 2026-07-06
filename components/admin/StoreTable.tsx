@@ -3,11 +3,15 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Pencil, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { toast } from "@/components/ui/Toast";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import type { Category, Event, Store } from "@/types";
 
 const EVENT_FILTER_ALL = "all";
@@ -26,10 +30,15 @@ export function StoreTable({
   categories: Category[];
   events: Event[];
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [eventFilter, setEventFilter] = useState(EVENT_FILTER_ALL);
   const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
   const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((c) => [c.id, c.name])),
@@ -71,6 +80,57 @@ export function StoreTable({
   }, [stores, query, eventFilter, featuredFilter, statusFilter]);
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
+
+  const pagedIds = useMemo(() => paged.map((s) => s.id), [paged]);
+  const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.has(id));
+
+  function toggleSelectionMode() {
+    setSelectionMode((prev) => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPagedSelected) {
+        pagedIds.forEach((id) => next.delete(id));
+      } else {
+        pagedIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const results = await Promise.all(
+        ids.map((id) => fetch(`/api/admin/stores/${id}`, { method: "DELETE" }))
+      );
+      if (results.some((res) => !res.ok)) throw new Error("delete failed");
+      toast.success(`Deleted ${ids.length} store(s).`);
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      setShowBulkDeleteConfirm(false);
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete selected stores.");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }
 
   return (
     <div>
@@ -121,10 +181,78 @@ export function StoreTable({
         </select>
       </div>
 
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleSelectionMode}
+            className={
+              selectionMode
+                ? "flex items-center gap-1.5 rounded-lg border border-brand-400 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700"
+                : "flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+            }
+          >
+            <ListChecks className="h-4 w-4" />
+            Select Items
+          </button>
+
+          {selectionMode && (
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+            >
+              {allPagedSelected ? "Deselect all" : "Select All"}
+            </button>
+          )}
+        </div>
+
+        {selectionMode && selectedIds.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowBulkDeleteConfirm(true)}
+            disabled={isBulkDeleting}
+            className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isBulkDeleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+          </button>
+        )}
+      </div>
+
+      <Modal
+        open={showBulkDeleteConfirm}
+        onOpenChange={setShowBulkDeleteConfirm}
+        title="Delete confirmation"
+      >
+        <p className="text-sm text-muted-600">
+          Delete <span className="font-medium text-brand-950">{selectedIds.size}</span> selected
+          store(s)? This can&apos;t be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowBulkDeleteConfirm(false)}
+            disabled={isBulkDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="bg-red-600 hover:bg-red-700"
+            onClick={handleBulkDelete}
+            disabled={isBulkDeleting}
+          >
+            {isBulkDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
+      </Modal>
+
       <div className="mt-4 overflow-x-auto rounded-lg border border-muted-200 bg-surface-0">
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-100 text-xs uppercase text-muted-500">
             <tr>
+              {selectionMode && <th className="w-10 px-4 py-3" />}
               <th className="px-4 py-3">Logo</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Category</th>
@@ -141,6 +269,17 @@ export function StoreTable({
               const currentEventId = store.eventId ?? null;
               return (
                 <tr key={store.id} className="border-t border-muted-200">
+                  {selectionMode && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={selectedIds.has(store.id)}
+                        onChange={() => toggleOne(store.id)}
+                        aria-label={`Select ${store.name}`}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="relative h-11 w-11 overflow-hidden rounded-full border border-muted-200 bg-surface-100">
                       <Image src={store.logoUrl} alt={store.name} fill sizes="44px" className="object-cover" />
@@ -219,7 +358,7 @@ export function StoreTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-muted-500">
+                <td colSpan={selectionMode ? 10 : 9} className="px-4 py-6 text-center text-muted-500">
                   No stores found.
                 </td>
               </tr>

@@ -187,9 +187,41 @@ body {
   padding: 0 0.15em;
 }
 .rich-text-content img {
+  /* Tailwind's preflight sets `img { display: block }` globally, which would
+     force every image onto its own line even though the image node is now
+     schema-level "inline" in Tiptap — override back to inline-block so
+     consecutive images can sit side by side and wrap like normal text. */
+  display: inline-block;
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
+}
+/* ProseMirror adds this class to an image's DOM node whenever it holds a
+   NodeSelection (e.g. a single click on the image) — with no styling for it,
+   clicking an image gave no visual feedback that it was selected. */
+.rich-text-content img.ProseMirror-selectednode {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+.rich-text-content img[data-position="left"] {
+  float: left;
+  margin: 0 1rem 0.5rem 0;
+}
+.rich-text-content img[data-position="right"] {
+  float: right;
+  margin: 0 0 0.5rem 1rem;
+}
+.rich-text-content img[data-position="center"] {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.rich-text-content img[data-full-width="true"] {
+  width: 100%;
+  height: auto;
+  float: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 .rich-text-content table {
   border-collapse: collapse;

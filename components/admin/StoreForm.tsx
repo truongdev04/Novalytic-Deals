@@ -34,7 +34,6 @@ export function StoreForm({
   events: Event[];
 }) {
   const router = useRouter();
-  const [slugTouched, setSlugTouched] = useState(Boolean(store));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showFaqPaste, setShowFaqPaste] = useState(false);
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
@@ -61,6 +60,7 @@ export function StoreForm({
     handleSubmit,
     control,
     setValue,
+    setError,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<AdminStoreInput>({
     resolver: zodResolver(adminStoreSchema),
@@ -127,7 +127,15 @@ export function StoreForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, description, aboutStore, howToApply, logoUrl, bannerUrl }),
       });
-      if (!res.ok) throw new Error("save failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const message = body?.error ?? "Failed to save store.";
+        if (message.toLowerCase().includes("slug")) {
+          setError("slug", { message });
+        }
+        toast.error(message);
+        return;
+      }
       toast.success(store ? "Store updated." : "Store created.");
       router.push("/admin/stores");
       router.refresh();
@@ -167,7 +175,7 @@ export function StoreForm({
               className={fieldClassName}
               {...register("name", {
                 onChange: (e) => {
-                  if (!slugTouched) setValue("slug", slugify(e.target.value), { shouldDirty: true });
+                  if (!store) setValue("slug", slugify(e.target.value), { shouldDirty: true });
                 },
               })}
             />
@@ -182,7 +190,7 @@ export function StoreForm({
               id="slug"
               placeholder="e.g. amazon"
               className={fieldClassName}
-              {...register("slug", { onChange: () => setSlugTouched(true) })}
+              {...register("slug")}
             />
             {errors.slug && <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p>}
           </div>
@@ -313,6 +321,7 @@ export function StoreForm({
                   onChange={field.onChange}
                   placeholder="Short blurb shown on store cards and listings"
                   minHeightClassName="min-h-20"
+                  maxHeightClassName="max-h-40"
                 />
               )}
             />
@@ -334,6 +343,7 @@ export function StoreForm({
                   onChange={field.onChange}
                   placeholder="Tell shoppers about this store, what it sells, and why it's worth checking out"
                   minHeightClassName="min-h-56"
+                  maxHeightClassName="max-h-[28rem]"
                 />
               )}
             />
@@ -355,6 +365,7 @@ export function StoreForm({
                   onChange={field.onChange}
                   placeholder="Steps shoppers should follow to redeem a coupon at checkout"
                   minHeightClassName="min-h-40"
+                  maxHeightClassName="max-h-80"
                 />
               )}
             />
