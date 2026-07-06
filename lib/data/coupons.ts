@@ -4,6 +4,7 @@ import { prisma, Prisma } from "@/lib/server/db";
 import type { Coupon } from "@/types";
 import type { Coupon as PrismaCoupon } from "@prisma/client";
 import { getStoreBySlug, getStoresByCategory } from "./stores";
+import { syncCouponWithStoreEvent } from "./events";
 import { isExpired } from "@/lib/utils";
 
 function toCoupon(row: PrismaCoupon): Coupon {
@@ -222,6 +223,7 @@ export async function setCouponActive(id: string, isActive: boolean): Promise<Co
   const row = await prisma.coupon.update({ where: { id }, data: { isActive } });
   purgeTag("coupons:list");
   purgeTag(`coupon:${row.slug}`);
+  await syncCouponWithStoreEvent(row);
   return toCoupon(row);
 }
 
@@ -288,6 +290,7 @@ export async function createCoupon(fields: AdminCouponFields): Promise<Coupon> {
       },
     });
     purgeTag("coupons:list");
+    await syncCouponWithStoreEvent(row);
     return toCoupon(row);
   } catch (error) {
     throwIfSlugConflict(error);
@@ -331,6 +334,7 @@ export async function updateCoupon(id: string, fields: AdminCouponFields): Promi
     });
     purgeTag("coupons:list");
     purgeTag(`coupon:${row.slug}`);
+    await syncCouponWithStoreEvent(row);
     return toCoupon(row);
   } catch (error) {
     throwIfSlugConflict(error);

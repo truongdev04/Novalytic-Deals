@@ -135,6 +135,42 @@ export async function updateEvent(id: string, fields: AdminEventFields): Promise
   return toEvent(row, stores.map((s) => s.id));
 }
 
+// Adds `couponIds` to an event's curated list without duplicating entries
+// already there — shared by the store-joins-event seed below and by
+// syncCouponWithStoreEvent (called whenever a coupon write could make it
+// newly eligible for its store's event).
+async function unionCouponsIntoEvent(eventId: string, couponIds: string[]): Promise<void> {
+  if (couponIds.length === 0) return;
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { couponId: true, slug: true },
+  });
+  if (!event) return;
+  const merged = Array.from(new Set([...event.couponId, ...couponIds]));
+  if (merged.length === event.couponId.length) return;
+  await prisma.event.update({ where: { id: eventId }, data: { couponId: merged } });
+  purgeTag(`event:${event.slug}`);
+  purgeTag("events:list");
+}
+
+// Called after any coupon create/update/activate — pre-seeds it into its
+// store's event the moment it becomes exclusive+active, not just when the
+// store first joins the event.
+export async function syncCouponWithStoreEvent(coupon: {
+  id: string;
+  storeId: string;
+  exclusive: boolean;
+  isActive: boolean;
+}): Promise<void> {
+  if (!coupon.exclusive || !coupon.isActive) return;
+  const store = await prisma.store.findUnique({
+    where: { id: coupon.storeId },
+    select: { eventId: true },
+  });
+  if (!store?.eventId) return;
+  await unionCouponsIntoEvent(store.eventId, [coupon.id]);
+}
+
 // A store belongs to at most one event in the admin UI, so this replaces
 // whatever event it was previously assigned to rather than adding to it.
 export async function setStoreEvent(storeId: string, eventId: string | null): Promise<void> {
@@ -149,18 +185,7 @@ export async function setStoreEvent(storeId: string, eventId: string | null): Pr
       where: { storeId, exclusive: true, isActive: true },
       select: { id: true },
     });
-    if (exclusiveCoupons.length > 0) {
-      const targetEvent = await prisma.event.findUnique({
-        where: { id: eventId },
-        select: { couponId: true },
-      });
-      if (targetEvent) {
-        const merged = Array.from(
-          new Set([...targetEvent.couponId, ...exclusiveCoupons.map((c) => c.id)])
-        );
-        await prisma.event.update({ where: { id: eventId }, data: { couponId: merged } });
-      }
-    }
+    await unionCouponsIntoEvent(eventId, exclusiveCoupons.map((c) => c.id));
   }
 
   const affectedIds = new Set([previous?.eventId, eventId].filter((x): x is string => Boolean(x)));

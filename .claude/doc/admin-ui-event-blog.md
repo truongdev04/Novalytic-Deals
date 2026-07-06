@@ -22,6 +22,7 @@ Hoàn thiện admin CRUD cho Event (form, danh sách, Featured Coupons) và Blog
 - Chỉ lấy coupon `isActive=true` (đổi `getAllCoupons()` → `getCoupons()` ở 2 trang new/[id]).
 - `setStoreEvent()` tự động seed coupon `exclusive && isActive` của store vào `Event.couponId` khi store gia nhập event.
 - Fix bug P2011 (tạo event mới lỗi "Failed to save event.") — `createEvent()` thiếu `couponId: []` tường minh do cột DB mất default (drift cũ).
+- `lib/data/events.ts` thêm `syncCouponWithStoreEvent()` (dùng chung helper `unionCouponsIntoEvent()` với `setStoreEvent`), gọi từ `createCoupon`/`updateCoupon`/`setCouponActive` (`lib/data/coupons.ts`) — coupon vừa tạo/sửa/bật lại mà `exclusive && isActive` và store đã thuộc 1 event sẽ tự động vào `Event.couponId` ngay lúc ghi, không cần đợi store gia nhập event hay chạy lại script backfill thủ công (chiều "gỡ ra" vẫn cố ý không tự động).
 
 **Blog admin — danh sách (`BlogTable.tsx`, `app/admin/blog/page.tsx`)**
 - Sort riêng cho admin: Featured/First lên đầu, sau đó theo `createdAt desc` (không đụng `getBlogPosts()` dùng cho `/blog` public).
@@ -46,7 +47,7 @@ Hoàn thiện admin CRUD cho Event (form, danh sách, Featured Coupons) và Blog
 - `npm run typecheck` và `npm run lint` sạch xuyên suốt toàn session (chỉ còn 1 warning có sẵn từ trước, không liên quan — `lib/server/affiliate/redirect.ts` biến `_store` không dùng).
 - Dev server chạy tại `http://localhost:3000`, đã restart đúng lúc sau mỗi lần đổi Prisma schema/migration (bắt buộc, Prisma Client không hot-reload).
 - 2 migration đã áp dụng lên Supabase thật qua `prisma migrate deploy` (không dùng `prisma migrate dev` — DB này có drift cũ ở vài cột array khiến `migrate dev` đòi reset mất dữ liệu).
-- Đã chạy 1 script backfill một lần (không commit vào repo) để union coupon exclusive có sẵn vào các event đã test trước đó.
+- Coupon exclusive giờ tự động union vào `Event.couponId` ngay lúc tạo/sửa/bật lại (`syncCouponWithStoreEvent`) — không còn phụ thuộc script backfill thủ công. Đã chạy 1 lượt quét cuối cùng (không commit vào repo) để xác nhận dữ liệu hiện tại đã đồng bộ đầy đủ (0 event cần cập nhật).
 - Đã smoke-test bằng curl các trang public (`/`, `/blog`, `/blog/[slug]`, `/events`, `/events/[slug]`) và các trang admin (chỉ xác nhận được response code do không có session đăng nhập, không đăng nhập bằng browser thật được — user cần tự xác nhận qua UI thật).
 - Có 1 hydration warning không liên quan phát hiện tình cờ ở `CouponTable.tsx` (định dạng ngày lệch giữa server/client) — chưa fix, ngoài phạm vi các yêu cầu trong session này.
 - Trang public `/blog`'s phần "Topics" hiện vẫn dựa trên field `tags` (tự do), CHƯA nối với model `BlogTopic` mới — theo đúng quyết định giữ nguyên phạm vi ban đầu.
@@ -56,4 +57,3 @@ Hoàn thiện admin CRUD cho Event (form, danh sách, Featured Coupons) và Blog
 a. User cần tự đăng nhập `/admin` và xác nhận trực tiếp trên UI thật các flow đã sửa trong session (đặc biệt: Featured Coupons dropdown, auto-seed exclusive coupon, Blog Topics CRUD + sidebar submenu, Author Avatar/Name behavior) — nhiều thay đổi mới chỉ được xác minh qua typecheck/lint/curl, chưa qua thao tác tay thật.
 b. Nếu muốn "Topics" công khai trên `/blog` phản ánh đúng `BlogTopic` mới thay vì `tags` tự do — cần một task riêng (ngoài phạm vi đã làm).
 c. Hydration warning ở `CouponTable.tsx` (ngày tạo lệch server/client) — có thể fix riêng nếu cần, hiện chưa động tới.
-d. Chưa có cơ chế backfill tự động/định kỳ cho coupon exclusive mới thêm vào các event cũ đã tồn tại từ trước migration — script backfill chỉ chạy 1 lần thủ công trong session này.
