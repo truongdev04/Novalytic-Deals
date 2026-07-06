@@ -1,27 +1,59 @@
-# Admin UI Session Summary — 2026-07-03 → 2026-07-04
+# Admin UI Coupon — Session Summary — 2026-07-04
 
 ## 1. Mục tiêu
 
-Bổ sung CRUD đầy đủ cho Coupon/BlogPost/Event, quản lý nhiều Store/Coupon cho Event, rate-limit upload, và nâng cấp bảng quản lý Coupon (Status, filter, bulk-select).
+Hoàn thiện CRUD Coupon trong Admin: UX form thêm/sửa, sinh slug, đổi hạ tầng đếm click, và các cải tiến bảng danh sách/xóa.
 
 ## 2. Những phần đã hoàn thành
 
-- **CRUD Coupon**: `components/admin/CouponForm.tsx`, `lib/validators/admin/coupon.ts`, `createCoupon`/`updateCoupon` (`lib/data/coupons.ts`), route `app/admin/coupons/new|[id]`, API `app/api/admin/coupons/route.ts` + `[id]/route.ts`.
-- **CRUD BlogPost**: `components/admin/BlogForm.tsx`, `lib/validators/admin/blog.ts`, `createBlogPost`/`updateBlogPost`/`getBlogAuthors`/`getBlogPostById` (`lib/data/blog.ts`), route `app/admin/blog/new|[id]`. Body dùng textarea markdown-lite (`## Heading`), không TipTap.
-- **CRUD Event**: `components/admin/EventForm.tsx`, `lib/validators/admin/event.ts`, `createEvent`/`updateEvent`/`getEventById` (`lib/data/events.ts`), route `app/admin/events/new|[id]`.
-- **Multi-select Store/Coupon cho Event**: `components/admin/MultiSelectDropdown.tsx` mới; `setEventStores()` (giữ invariant 1 store/1 event qua `setStoreEvent()`), `setEventCoupons()` (không giới hạn, replace qua transaction) trong `lib/data/events.ts`; `EventTable` thêm cột đếm Stores/Coupons.
-- **Rate-limit `/api/admin/upload`**: `uploadRateLimit = createLimiter(20, "1 m")` (`lib/server/cache/rateLimit.ts`), định danh theo `session.user.email` (fallback IP), check đặt đầu `POST` trước `formData()`.
-- **`Coupon.isActive` + Status column**: migration `20260703145600_coupon_is_active`; `lib/data/coupons.ts` tách `getAllCoupons()` (admin) / `getCoupons()` (public, filter active) / `setCouponActive()`; `getCouponBySlug` filter, `getCouponById` không filter (dùng cho `/go/[couponId]`).
-- **`CouponTable` nâng cấp**: cột thứ tự Store/Title/Type/Featured/Status/Verified/Date/Actions; Featured/Status/Verified dùng `AdminDropdownSelect` width cố định; filter Store/Featured/Status/Verified cạnh search; logo 24px→32px; bulk-select ("Select Items" → checkbox + "Select All"/"Deselect all" + "Delete (N)").
-- **`SingleSelectDropdown`**: thêm prop `searchable`/`searchPlaceholder` (ô tìm kiếm lọc option), dùng cho filter Store.
+**`components/admin/CouponForm.tsx`**
+
+- Store: chuyển `<select>` → `SingleSelectDropdown` (qua `Controller`) có ô search.
+- Description: tự sinh theo Store/Type/Discount Type/Discount Value/Currency, không bắt buộc; gõ tay sẽ tắt auto-fill (`descriptionTouched`).
+- Type: chỉ còn `CODE / DEAL / FREESHIP` (bỏ CASHBACK, BOGO khỏi lựa chọn — vẫn giữ trong enum Prisma/validator để không vỡ dữ liệu cũ).
+- Currency: ẩn trừ khi Discount Type = `AMOUNT`; là `<input list>` + `<datalist>` ($, €, £, CHF) — vừa chọn vừa gõ tay.
+- Discount Value: `type="text" inputMode="decimal"` (không còn `type="number"`) để trình duyệt autofill gợi ý giá trị cũ giống Code/Affiliate Link; bỏ default `0`.
+- Terms, Starts At: không bắt buộc.
+- Slug: tự sinh dạng `[store.slug]-[12 ký tự random a-z0-9]` khi chọn Store (không còn phụ thuộc Title); có validate trùng lặp (xem bên dưới).
+- Checkbox: bỏ **Trending**, thêm **Verified** (tự tick khi tạo coupon mới).
+- `onSubmit`: đọc `error` message từ response, `setError("slug", ...)` khi lỗi liên quan slug, toast hiển thị message thật thay vì "Failed to save coupon." chung chung.
+
+**Slug duplicate validation**
+
+- `lib/data/coupons.ts`: `createCoupon`/`updateCoupon` bắt lỗi Prisma `P2002` trên field `slug`, throw `Error("SLUG_TAKEN")`.
+- `app/api/admin/coupons/route.ts`, `[id]/route.ts`: catch `SLUG_TAKEN` → `jsonError(409, "This slug is already in use...")`.
+
+**Verified thay Trending**
+
+- `lib/validators/admin/coupon.ts`: thêm `verified: z.boolean()` (giữ `isTrending` trong schema/DB, chỉ bỏ UI).
+- `lib/data/coupons.ts`: `AdminCouponFields` thêm `verified`; `createCoupon` set `verifiedAt = now()` nếu verified; `updateCoupon` chỉ refresh `verifiedAt` khi chuyển `false→true`, giữ nguyên khi `true→true`, clear khi `→false` (tránh nhảy ngày verified mỗi lần sửa không liên quan).
+
+**Bỏ bảng `click_events` → counter đơn giản**
+
+- `prisma/schema.prisma`: xóa `model ClickEvent` + quan hệ ở `Store`/`Coupon`; thêm `Store.clickCount Int @default(0)`. Coupon dùng lại `usageCount` có sẵn (đã tương đương click counter).
+- Migration mới: `prisma/migrations/20260704092613_remove_click_events_add_store_click_count/` — backfill `clickCount` từ `click_events` cũ rồi `DROP TABLE`. Đã áp dụng lên DB Supabase thật (`prisma migrate deploy`).
+- `lib/data/stores.ts`: thêm `incrementStoreClickCount()`; `types/store.ts` thêm `clickCount`.
+- `lib/data/clicks.ts` xóa hẳn; `app/go/[couponId]/route.ts` bỏ `logClickEvent` + cookie `nd_session` (không còn ai dùng), chỉ còn `incrementCouponUsage` + `incrementStoreClickCount`.
+- `lib/data/admin/analytics.ts`: xóa các hàm dựa vào `clickEvent` (`getClicksSeriesForRange`, `getTopStoresByClicksRange`, `resolveDashboardRange`, ...), thêm `getTopStoresByClickCount()` (all-time, không lọc ngày).
+- `app/admin/page.tsx`: bỏ `ClicksLineChart` + `DashboardRangePicker` (đã xóa 2 file component này), Dashboard chỉ còn "Top store theo tổng click all-time".
+- **Đánh đổi đã xác nhận với user**: mất hẳn chart click theo giờ/ngày và lọc top-store theo khoảng ngày.
+
+**Danh sách & xóa Coupon**
+
+- `lib/data/coupons.ts`: `getAllCoupons()` thêm `orderBy: { createdAt: "desc" }` → coupon mới tạo lên đầu bảng.
+- `components/admin/DeleteButton.tsx`: thay `window.confirm` bằng dialog `Modal` xác nhận (áp dụng cho mọi bảng admin dùng chung component này: Store/Category/Blog/Event/Review/Newsletter/Coupon).
+- `components/admin/CouponTable.tsx`: nút xóa hàng loạt cũng đổi sang cùng dialog xác nhận.
 
 ## 3. Trạng thái hiện tại
 
-- Dev server chạy ổn định tại `http://localhost:3000`.
-- `npm run typecheck`, `npm run lint`, `npm run build` đều sạch (chỉ 1 warning cũ không liên quan ở `lib/server/affiliate/redirect.ts`).
-- Toàn bộ tính năng đã test end-to-end bằng Playwright thật, không còn lỗi tồn đọng.
-- Lưu ý vận hành: sau khi đổi Prisma schema, nếu dev server đang chạy vẫn thiếu field mới dù đã restart process, phải `rm -rf .next` rồi `npm run dev` lại (cache đĩa Turbopack giữ bản compile cũ).
+- Dev server chạy ổn tại `http://localhost:3000`; `npm run typecheck`, `npm run lint`, `npm run build` sạch (chỉ còn 1 warning cũ không liên quan ở `lib/server/affiliate/redirect.ts`).
+- Toàn bộ tính năng đã test bằng Playwright thật (đăng nhập admin thật, DB Supabase thật), dữ liệu test đã dọn sau mỗi lần.
+- Đã commit + push lên `origin/main` (repo `truongdev04/Novalytic-Deals`), commit `bb9247f` "edit coupons admin".
+- 2 file ảnh `public/images/anh/a5.png`, `b1.png` (screenshot debug user dán vào chat) vẫn **untracked**, chưa add vào git — không liên quan tới code.
+- Lưu ý vận hành cũ vẫn đúng: đổi Prisma schema xong phải `rm -rf .next` rồi `npm run dev` lại (Turbopack cache).
 
 ## 4. Bước tiếp theo
 
-- Compress ảnh Logo/Banner (`ImageUploadField`, upload thường) về `.webp` như ảnh chèn trong rich text — thêm `format=webp` khi gọi upload.
+- Chưa có việc cụ thể nào được giao tiếp theo — chờ yêu cầu mới từ user.
+- Việc tồn đọng từ trước (chưa làm): nén ảnh Logo/Banner (`ImageUploadField`, upload thường) sang `.webp` giống ảnh chèn rich text.
+- Cân nhắc: nếu sau này cần lại biểu đồ click theo thời gian, phải build lại cơ chế lưu theo ngày (vì `click_events` đã xóa vĩnh viễn, chỉ còn tổng all-time).

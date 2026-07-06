@@ -5,6 +5,12 @@ import { EventTable } from "@/components/admin/EventTable";
 
 export default async function AdminEventsPage() {
   const events = await getEvents();
+  // Public pages want getEvents()'s chronological (startsAt) order; the
+  // admin list wants newest-created first, so re-sort a copy here instead
+  // of changing the shared cached order.
+  const eventsNewestFirst = [...events].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return (
     <div>
@@ -23,7 +29,7 @@ export default async function AdminEventsPage() {
       </div>
 
       <div className="mt-6">
-        <EventTable events={events} />
+        <EventTable events={eventsNewestFirst} />
       </div>
     </div>
   );

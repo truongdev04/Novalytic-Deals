@@ -5,6 +5,16 @@ import { BlogTable } from "@/components/admin/BlogTable";
 
 export default async function AdminBlogPage() {
   const posts = await getBlogPosts();
+  // Public pages want getBlogPosts()'s publish-date order; the admin list
+  // wants Featured/First posts pinned to the top, newest-created first
+  // within each group, so re-sort a copy here instead of changing the
+  // shared cached order.
+  const postsForAdmin = [...posts].sort((a, b) => {
+    const aPriority = a.isFeatured || a.isFirst ? 1 : 0;
+    const bPriority = b.isFeatured || b.isFirst ? 1 : 0;
+    if (aPriority !== bPriority) return bPriority - aPriority;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   return (
     <div>
@@ -23,7 +33,7 @@ export default async function AdminBlogPage() {
       </div>
 
       <div className="mt-6">
-        <BlogTable posts={posts} />
+        <BlogTable posts={postsForAdmin} />
       </div>
     </div>
   );

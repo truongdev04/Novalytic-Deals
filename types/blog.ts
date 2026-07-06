@@ -3,24 +3,22 @@ export interface BlogSeo {
   description: string;
 }
 
-export interface BlogAuthor {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-}
-
 export interface BlogPost {
   id: string;
   slug: string;
   title: string;
   excerpt: string;
   coverImage: string;
-  author: BlogAuthor;
+  authorName: string;
+  authorAvatarUrl?: string;
   tags: string[];
   categoryId?: string;
+  topicId?: string;
   body: string;
   readingMinutes: number;
   publishedAt: string;
   seo: BlogSeo;
   isFeatured: boolean;
+  isFirst: boolean;
+  createdAt: string;
 }

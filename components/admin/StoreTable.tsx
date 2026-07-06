@@ -36,14 +36,6 @@ export function StoreTable({
     [categories]
   );
 
-  const eventIdByStoreId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const event of events) {
-      for (const storeId of event.featuredStoreIds) map.set(storeId, event.id);
-    }
-    return map;
-  }, [events]);
-
   const eventOptions = useMemo(
     () => [
       { value: null, label: "Uncategorized" },
@@ -58,7 +50,7 @@ export function StoreTable({
       if (q && !store.name.toLowerCase().includes(q)) return false;
 
       if (eventFilter !== EVENT_FILTER_ALL) {
-        const currentEventId = eventIdByStoreId.get(store.id) ?? null;
+        const currentEventId = store.eventId ?? null;
         if (eventFilter === EVENT_FILTER_UNCATEGORIZED) {
           if (currentEventId !== null) return false;
         } else if (currentEventId !== eventFilter) {
@@ -76,7 +68,7 @@ export function StoreTable({
 
       return true;
     });
-  }, [stores, query, eventFilter, featuredFilter, statusFilter, eventIdByStoreId]);
+  }, [stores, query, eventFilter, featuredFilter, statusFilter]);
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
 
@@ -146,7 +138,7 @@ export function StoreTable({
           </thead>
           <tbody>
             {paged.map((store) => {
-              const currentEventId = eventIdByStoreId.get(store.id) ?? null;
+              const currentEventId = store.eventId ?? null;
               return (
                 <tr key={store.id} className="border-t border-muted-200">
                   <td className="px-4 py-3">

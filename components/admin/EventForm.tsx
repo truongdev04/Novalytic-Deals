@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -9,9 +9,11 @@ import { adminEventSchema, type AdminEventInput } from "@/lib/validators/admin/e
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { MultiSelectDropdown } from "@/components/admin/MultiSelectDropdown";
+import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+import { ScrollableSingleSelectDropdown } from "@/components/admin/ScrollableSingleSelectDropdown";
+import { ScrollableMultiSelectDropdown } from "@/components/admin/ScrollableMultiSelectDropdown";
 import { slugify } from "@/lib/utils";
+import { iconMap, renderCategoryIcon } from "@/lib/icons";
 import type { Coupon, Event, Store } from "@/types";
 
 const fieldClassName =
@@ -25,6 +27,11 @@ function toDateInput(iso?: string) {
   return iso ? iso.slice(0, 10) : "";
 }
 
+const iconOptions = [
+  { value: "", label: "None" },
+  ...Object.keys(iconMap).map((name) => ({ value: name, label: name })),
+];
+
 export function EventForm({
   event,
   stores,
@@ -35,21 +42,40 @@ export function EventForm({
   coupons: Coupon[];
 }) {
   const router = useRouter();
-  const [slugTouched, setSlugTouched] = useState(Boolean(event));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [pendingBannerFile, setPendingBannerFile] = useState<File | null>(null);
+  const [pendingBannerProvider, setPendingBannerProvider] = useState<StorageProvider>("cloudinary");
+  const [pendingIconFile, setPendingIconFile] = useState<File | null>(null);
+  const [pendingIconProvider, setPendingIconProvider] = useState<StorageProvider>("cloudinary");
+  const [couponStoreFilter, setCouponStoreFilter] = useState("");
 
   const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
-  const storeOptions = useMemo(
-    () => stores.map((s) => ({ value: s.id, label: s.name })),
-    [stores]
+  const eventStoreIds = useMemo(() => new Set(event?.featuredStoreIds ?? []), [event]);
+  const showFeaturedCoupons = Boolean(event) && eventStoreIds.size > 0;
+  const eventStores = useMemo(
+    () => stores.filter((s) => eventStoreIds.has(s.id)),
+    [stores, eventStoreIds]
   );
-  const couponOptions = useMemo(
+  const eventCoupons = useMemo(
+    () => coupons.filter((c) => eventStoreIds.has(c.storeId)),
+    [coupons, eventStoreIds]
+  );
+  const pickerCoupons = useMemo(
     () =>
-      coupons.map((c) => ({
+      couponStoreFilter ? eventCoupons.filter((c) => c.storeId === couponStoreFilter) : eventCoupons,
+    [eventCoupons, couponStoreFilter]
+  );
+  const storeFilterOptions = useMemo(
+    () => [{ value: "", label: "All stores" }, ...eventStores.map((s) => ({ value: s.id, label: s.name }))],
+    [eventStores]
+  );
+  const pickerCouponOptions = useMemo(
+    () =>
+      pickerCoupons.map((c) => ({
         value: c.id,
-        label: `${storeById.get(c.storeId)?.name ?? "—"} — ${c.title}`,
+        label: c.exclusive ? `${c.title} (Exclusive)` : c.title,
       })),
-    [coupons, storeById]
+    [pickerCoupons]
   );
 
   const {
@@ -64,34 +90,65 @@ export function EventForm({
       ? {
           slug: event.slug,
           name: event.name,
-          iconName: event.iconName,
+          iconName: event.iconName ?? "",
+          iconImageUrl: event.iconImageUrl ?? "",
           description: event.description,
           bannerUrl: event.bannerUrl ?? "",
           startsAt: toDateInput(event.startsAt),
           endsAt: toDateInput(event.endsAt),
-          featuredStoreIds: event.featuredStoreIds,
           featuredCouponIds: event.featuredCouponIds,
         }
       : {
           slug: "",
           name: "",
           iconName: "",
+          iconImageUrl: "",
           description: "",
           bannerUrl: "",
           startsAt: "",
           endsAt: "",
-          featuredStoreIds: [],
           featuredCouponIds: [],
         },
   });
 
+  const previewName = useWatch({ control, name: "name" }) || "Event";
+  const previewIconName = useWatch({ control, name: "iconName" });
+  const previewIconImageUrl = useWatch({ control, name: "iconImageUrl" });
+
+  async function uploadIfPending(
+    currentValue: string | undefined,
+    file: File | null,
+    provider: StorageProvider,
+    label: string
+  ): Promise<string | null> {
+    if (!file) return currentValue ?? "";
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("provider", provider);
+    const uploadRes = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    const uploadBody = await uploadRes.json().catch(() => null);
+    if (!uploadRes.ok || !uploadBody?.data?.url) {
+      toast.error(uploadBody?.error || `Failed to upload ${label}.`);
+      return null;
+    }
+    return uploadBody.data.url;
+  }
+
   async function onSubmit(data: AdminEventInput) {
     try {
+      const [bannerUrl, iconImageUrl] = await Promise.all([
+        uploadIfPending(data.bannerUrl, pendingBannerFile, pendingBannerProvider, "banner"),
+        uploadIfPending(data.iconImageUrl, pendingIconFile, pendingIconProvider, "icon image"),
+      ]);
+      if ((pendingBannerFile && bannerUrl === null) || (pendingIconFile && iconImageUrl === null)) {
+        return;
+      }
+
       const endpoint = event ? `/api/admin/events/${event.id}` : "/api/admin/events";
       const res = await fetch(endpoint, {
         method: event ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, bannerUrl, iconImageUrl }),
       });
       if (!res.ok) throw new Error("save failed");
       toast.success(event ? "Event updated." : "Event created.");
@@ -133,7 +190,12 @@ export function EventForm({
               className={fieldClassName}
               {...register("name", {
                 onChange: (e) => {
-                  if (!slugTouched) setValue("slug", slugify(e.target.value), { shouldDirty: true });
+                  if (!event) {
+                    setValue("slug", slugify(e.target.value), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }
                 },
               })}
             />
@@ -148,18 +210,62 @@ export function EventForm({
               id="slug"
               placeholder="e.g. black-friday"
               className={fieldClassName}
-              {...register("slug", { onChange: () => setSlugTouched(true) })}
+              {...register("slug")}
             />
             {errors.slug && <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p>}
           </div>
 
-          <div>
-            <label htmlFor="iconName" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Icon name <span className="text-muted-400">(lucide-react icon name)</span>
-              {requiredMark()}
-            </label>
-            <input id="iconName" placeholder="e.g. Tag" className={fieldClassName} {...register("iconName")} />
-            {errors.iconName && <p className="mt-1 text-xs text-red-600">{errors.iconName.message}</p>}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <span className="mb-1.5 block text-sm font-medium text-brand-950">
+                Icon name <span className="text-muted-400">(optional, lucide-react)</span>
+              </span>
+              <Controller
+                control={control}
+                name="iconName"
+                render={({ field }) => (
+                  <ScrollableSingleSelectDropdown
+                    options={iconOptions}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    searchable
+                    searchPlaceholder="Search icons..."
+                  />
+                )}
+              />
+              {errors.iconName && (
+                <p className="mt-1 text-xs text-red-600">{errors.iconName.message}</p>
+              )}
+            </div>
+
+            <Controller
+              control={control}
+              name="iconImageUrl"
+              render={({ field }) => (
+                <ImageUploadField
+                  label="Icon image"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  aspectClassName="aspect-square w-20"
+                  error={errors.iconImageUrl?.message}
+                  deferUpload
+                  onFileSelected={(file, provider) => {
+                    setPendingIconFile(file);
+                    setPendingIconProvider(provider);
+                  }}
+                />
+              )}
+            />
+
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-xs font-medium text-muted-500">Preview</span>
+              <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-muted-200 bg-brand-50 text-brand-600">
+                {renderCategoryIcon(
+                  { name: previewName, iconName: previewIconName, iconImageUrl: previewIconImageUrl },
+                  { iconClassName: "h-5 w-5" }
+                )}
+              </span>
+            </div>
           </div>
 
           <div>
@@ -181,6 +287,11 @@ export function EventForm({
                 value={field.value ?? ""}
                 onChange={field.onChange}
                 aspectClassName="aspect-video w-48"
+                deferUpload
+                onFileSelected={(file, provider) => {
+                  setPendingBannerFile(file);
+                  setPendingBannerProvider(provider);
+                }}
               />
             )}
           />
@@ -188,7 +299,7 @@ export function EventForm({
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="startsAt" className="mb-1.5 block text-sm font-medium text-brand-950">
-                Starts At{requiredMark()}
+                Starts At <span className="text-muted-400">(optional)</span>
               </label>
               <input id="startsAt" type="date" className={fieldClassName} {...register("startsAt")} />
               {errors.startsAt && <p className="mt-1 text-xs text-red-600">{errors.startsAt.message}</p>}
@@ -196,52 +307,99 @@ export function EventForm({
 
             <div>
               <label htmlFor="endsAt" className="mb-1.5 block text-sm font-medium text-brand-950">
-                Ends At{requiredMark()}
+                Ends At <span className="text-muted-400">(optional)</span>
               </label>
               <input id="endsAt" type="date" className={fieldClassName} {...register("endsAt")} />
               {errors.endsAt && <p className="mt-1 text-xs text-red-600">{errors.endsAt.message}</p>}
             </div>
           </div>
 
-          <div>
-            <span className="mb-1.5 block text-sm font-medium text-brand-950">
-              Featured Stores <span className="text-muted-400">(optional)</span>
-            </span>
-            <p className="mb-1.5 text-xs text-muted-400">
-              A store belongs to at most one event — picking it here moves it out of any
-              other event it&rsquo;s currently featured in.
-            </p>
-            <Controller
-              control={control}
-              name="featuredStoreIds"
-              render={({ field }) => (
-                <MultiSelectDropdown
-                  options={storeOptions}
-                  values={field.value}
-                  onChange={field.onChange}
-                  placeholder="Select stores..."
-                />
-              )}
-            />
-          </div>
+          {showFeaturedCoupons && (
+            <div>
+              <span className="mb-1.5 block text-sm font-medium text-brand-950">
+                Featured Coupons <span className="text-muted-400">(optional)</span>
+              </span>
+              <Controller
+                control={control}
+                name="featuredCouponIds"
+                render={({ field }) => {
+                  const selectedSet = new Set(field.value);
+                  function toggle(couponId: string) {
+                    field.onChange(
+                      selectedSet.has(couponId)
+                        ? field.value.filter((id) => id !== couponId)
+                        : [...field.value, couponId]
+                    );
+                  }
+                  const selectedCoupons = eventCoupons.filter((c) => selectedSet.has(c.id));
 
-          <div>
-            <span className="mb-1.5 block text-sm font-medium text-brand-950">
-              Featured Coupons <span className="text-muted-400">(optional)</span>
-            </span>
-            <Controller
-              control={control}
-              name="featuredCouponIds"
-              render={({ field }) => (
-                <MultiSelectDropdown
-                  options={couponOptions}
-                  values={field.value}
-                  onChange={field.onChange}
-                  placeholder="Select coupons..."
-                />
-              )}
-            />
-          </div>
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <span className="mb-1.5 block text-xs font-medium text-muted-500">
+                            Filter by store
+                          </span>
+                          <ScrollableSingleSelectDropdown
+                            options={storeFilterOptions}
+                            value={couponStoreFilter}
+                            onChange={setCouponStoreFilter}
+                            searchable
+                            searchPlaceholder="Search stores..."
+                          />
+                        </div>
+
+                        <div>
+                          <span className="mb-1.5 block text-xs font-medium text-muted-500">
+                            Coupons
+                          </span>
+                          <ScrollableMultiSelectDropdown
+                            options={pickerCouponOptions}
+                            values={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select coupons..."
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs font-medium text-muted-500">
+                          Selected coupons ({selectedCoupons.length})
+                        </p>
+                        <div className="mt-1.5 space-y-1.5">
+                          {selectedCoupons.map((coupon) => (
+                            <div
+                              key={coupon.id}
+                              className="flex items-center justify-between gap-2 rounded-lg border border-muted-200 bg-surface-0 px-3 py-1.5 text-sm"
+                            >
+                              <span className="text-brand-950">
+                                {storeById.get(coupon.storeId)?.name ?? "—"} — {coupon.title}
+                                {coupon.exclusive && (
+                                  <span className="ml-1.5 text-xs font-medium text-accent-700">
+                                    (Exclusive)
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggle(coupon.id)}
+                                className="shrink-0 text-xs font-medium text-muted-500 hover:text-red-600"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                          {selectedCoupons.length === 0 && (
+                            <p className="text-sm text-muted-400">No coupons selected yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                }}
+              />
+            </div>
+          )}
 
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>

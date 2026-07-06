@@ -9,9 +9,9 @@ import { adminBlogPostSchema, type AdminBlogPostInput } from "@/lib/validators/a
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { slugify } from "@/lib/utils";
-import type { BlogAuthor, BlogPost, Category } from "@/types";
+import type { BlogPost, BlogTopic, Category } from "@/types";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -22,16 +22,19 @@ function requiredMark() {
 
 export function BlogForm({
   post,
-  authors,
   categories,
+  topics,
 }: {
   post?: BlogPost;
-  authors: BlogAuthor[];
   categories: Category[];
+  topics: BlogTopic[];
 }) {
   const router = useRouter();
-  const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [pendingCoverProvider, setPendingCoverProvider] = useState<StorageProvider>("cloudinary");
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [pendingAvatarProvider, setPendingAvatarProvider] = useState<StorageProvider>("cloudinary");
 
   const {
     register,
@@ -47,13 +50,16 @@ export function BlogForm({
           title: post.title,
           excerpt: post.excerpt,
           coverImage: post.coverImage,
-          authorId: post.author.id,
-          tags: post.tags.join(", "),
+          authorName: post.authorName,
+          authorAvatarUrl: post.authorAvatarUrl ?? "",
+          tags: post.tags,
           categoryId: post.categoryId ?? "",
+          topicId: post.topicId ?? "",
           body: post.body,
           readingMinutes: post.readingMinutes,
           publishedAt: post.publishedAt.slice(0, 10),
           isFeatured: post.isFeatured,
+          isFirst: post.isFirst,
           seoTitle: post.seo.title,
           seoDescription: post.seo.description,
         }
@@ -62,25 +68,55 @@ export function BlogForm({
           title: "",
           excerpt: "",
           coverImage: "",
-          authorId: "",
-          tags: "",
+          authorName: "",
+          authorAvatarUrl: "",
+          tags: [],
           categoryId: "",
+          topicId: "",
           body: "",
           readingMinutes: 1,
           publishedAt: "",
           isFeatured: false,
+          isFirst: false,
           seoTitle: "",
           seoDescription: "",
         },
   });
 
+  async function uploadIfPending(
+    currentValue: string | undefined,
+    file: File | null,
+    provider: StorageProvider,
+    label: string
+  ): Promise<string | null> {
+    if (!file) return currentValue ?? "";
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("provider", provider);
+    const uploadRes = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    const uploadBody = await uploadRes.json().catch(() => null);
+    if (!uploadRes.ok || !uploadBody?.data?.url) {
+      toast.error(uploadBody?.error || `Failed to upload ${label}.`);
+      return null;
+    }
+    return uploadBody.data.url;
+  }
+
   async function onSubmit(data: AdminBlogPostInput) {
     try {
+      const [coverImage, authorAvatarUrl] = await Promise.all([
+        uploadIfPending(data.coverImage, pendingCoverFile, pendingCoverProvider, "cover image"),
+        uploadIfPending(data.authorAvatarUrl, pendingAvatarFile, pendingAvatarProvider, "author avatar"),
+      ]);
+      if ((pendingCoverFile && coverImage === null) || (pendingAvatarFile && authorAvatarUrl === null)) {
+        return;
+      }
+
       const endpoint = post ? `/api/admin/blog/${post.id}` : "/api/admin/blog";
       const res = await fetch(endpoint, {
         method: post ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, coverImage, authorAvatarUrl }),
       });
       if (!res.ok) throw new Error("save failed");
       toast.success(post ? "Blog post updated." : "Blog post created.");
@@ -122,7 +158,12 @@ export function BlogForm({
               className={fieldClassName}
               {...register("title", {
                 onChange: (e) => {
-                  if (!slugTouched) setValue("slug", slugify(e.target.value), { shouldDirty: true });
+                  if (!post) {
+                    setValue("slug", slugify(e.target.value), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }
                 },
               })}
             />
@@ -137,7 +178,7 @@ export function BlogForm({
               id="slug"
               placeholder="e.g. save-on-back-to-school-shopping"
               className={fieldClassName}
-              {...register("slug", { onChange: () => setSlugTouched(true) })}
+              {...register("slug")}
             />
             {errors.slug && <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p>}
           </div>
@@ -161,51 +202,77 @@ export function BlogForm({
                 onChange={field.onChange}
                 aspectClassName="aspect-video w-48"
                 error={errors.coverImage?.message}
+                deferUpload
+                onFileSelected={(file, provider) => {
+                  setPendingCoverFile(file);
+                  setPendingCoverProvider(provider);
+                }}
               />
             )}
           />
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-brand-950">
-                Author{requiredMark()}
-              </span>
-              <select className={fieldClassName} {...register("authorId")}>
-                <option value="">Select an author...</option>
-                {authors.map((author) => (
-                  <option key={author.id} value={author.id}>
-                    {author.name}
-                  </option>
-                ))}
-              </select>
-              {errors.authorId && <p className="mt-1 text-xs text-red-600">{errors.authorId.message}</p>}
+              <label htmlFor="authorName" className="mb-1.5 block text-sm font-medium text-brand-950">
+                Author Name <span className="text-muted-400">(optional)</span>
+              </label>
+              <input
+                id="authorName"
+                placeholder="e.g. NovalyticDeals"
+                className={fieldClassName}
+                {...register("authorName")}
+              />
+              {errors.authorName && (
+                <p className="mt-1 text-xs text-red-600">{errors.authorName.message}</p>
+              )}
             </div>
 
-            <div>
-              <span className="mb-1.5 block text-sm font-medium text-brand-950">
-                Category <span className="text-muted-400">(optional)</span>
-              </span>
-              <select className={fieldClassName} {...register("categoryId")}>
-                <option value="">None</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Controller
+              control={control}
+              name="authorAvatarUrl"
+              render={({ field }) => (
+                <ImageUploadField
+                  label="Author Avatar"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  aspectClassName="aspect-square w-20"
+                  allowManualUrl
+                  deferUpload
+                  onFileSelected={(file, provider) => {
+                    setPendingAvatarFile(file);
+                    setPendingAvatarProvider(provider);
+                  }}
+                />
+              )}
+            />
           </div>
 
           <div>
-            <label htmlFor="tags" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Tags <span className="text-muted-400">(comma-separated, optional)</span>
-            </label>
-            <input
-              id="tags"
-              placeholder="e.g. shopping, back-to-school, tips"
-              className={fieldClassName}
-              {...register("tags")}
-            />
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">
+              Category <span className="text-muted-400">(optional)</span>
+            </span>
+            <select className={fieldClassName} {...register("categoryId")}>
+              <option value="">None</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">
+              Topic <span className="text-muted-400">(optional)</span>
+            </span>
+            <select className={fieldClassName} {...register("topicId")}>
+              <option value="">None</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -287,6 +354,11 @@ export function BlogForm({
           <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
             <input type="checkbox" className="h-4 w-4" {...register("isFeatured")} />
             Featured
+          </label>
+
+          <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
+            <input type="checkbox" className="h-4 w-4" {...register("isFirst")} />
+            First post
           </label>
 
           <div className="flex justify-end pt-2">

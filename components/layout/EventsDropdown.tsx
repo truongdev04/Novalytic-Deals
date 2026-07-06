@@ -3,7 +3,7 @@
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { renderIcon } from "@/lib/icons";
+import { renderCategoryIcon } from "@/lib/icons";
 import type { Event } from "@/types";
 
 export function EventsDropdown({ events }: { events: Event[] }) {
@@ -25,7 +25,9 @@ export function EventsDropdown({ events }: { events: Event[] }) {
                 href={`/events/${event.slug}`}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-700 outline-none hover:bg-surface-100 hover:text-brand-800 focus:bg-surface-100"
               >
-                {renderIcon(event.iconName, "h-4 w-4 text-brand-600")}
+                <span className="relative flex h-4 w-4 items-center justify-center overflow-hidden text-brand-600">
+                  {renderCategoryIcon(event, { iconClassName: "h-4 w-4" })}
+                </span>
                 {event.name}
               </Link>
             </DropdownMenu.Item>

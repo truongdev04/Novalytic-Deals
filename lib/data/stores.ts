@@ -2,11 +2,9 @@ import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
-import type { Store as PrismaStore, StoreCategory } from "@prisma/client";
+import type { Store as PrismaStore } from "@prisma/client";
 
-type StoreRow = PrismaStore & { categories: StoreCategory[] };
-
-function toStore(row: StoreRow): Store {
+function toStore(row: PrismaStore): Store {
   return {
     id: row.id,
     slug: row.slug,
@@ -19,7 +17,8 @@ function toStore(row: StoreRow): Store {
     howToApply: row.howToApply ?? undefined,
     rating: row.rating,
     ratingCount: row.ratingCount,
-    categoryIds: row.categories.map((c) => c.categoryId),
+    categoryIds: row.categoryIds,
+    eventId: row.eventId ?? null,
     region: row.region,
     affiliateNetwork: row.affiliateNetwork,
     isFeatured: row.isFeatured,
@@ -34,7 +33,7 @@ function toStore(row: StoreRow): Store {
 
 const getAllStoresCached = unstable_cache(
   async (): Promise<Store[]> => {
-    const rows = await prisma.store.findMany({ include: { categories: true } });
+    const rows = await prisma.store.findMany();
     return rows.map(toStore);
   },
   ["stores:list"],
@@ -64,10 +63,7 @@ export const getFeaturedStores = unstable_cache(
 export async function getStoreBySlug(slug: string): Promise<Store | undefined> {
   return unstable_cache(
     async () => {
-      const row = await prisma.store.findUnique({
-        where: { slug },
-        include: { categories: true },
-      });
+      const row = await prisma.store.findUnique({ where: { slug } });
       if (!row || !row.isActive) return undefined;
       return toStore(row);
     },
@@ -120,7 +116,6 @@ export async function setStoreFeatured(id: string, isFeatured: boolean): Promise
   const row = await prisma.store.update({
     where: { id },
     data: { isFeatured },
-    include: { categories: true },
   });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
@@ -131,7 +126,6 @@ export async function setStoreActive(id: string, isActive: boolean): Promise<Sto
   const row = await prisma.store.update({
     where: { id },
     data: { isActive },
-    include: { categories: true },
   });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
@@ -143,7 +137,6 @@ export async function incrementStoreClickCount(id: string): Promise<Store | unde
     const row = await prisma.store.update({
       where: { id },
       data: { clickCount: { increment: 1 } },
-      include: { categories: true },
     });
     return toStore(row);
   } catch {
@@ -195,39 +188,34 @@ export async function createStore(fields: AdminStoreFields): Promise<Store> {
       isFeatured: fields.isFeatured,
       seo: fields.seo as unknown as Prisma.InputJsonValue,
       faq: fields.faq as unknown as Prisma.InputJsonValue,
-      categories: { create: fields.categoryIds.map((categoryId) => ({ categoryId })) },
+      categoryIds: fields.categoryIds,
     },
-    include: { categories: true },
   });
   purgeTag("stores:list");
   return toStore(row);
 }
 
 export async function updateStore(id: string, fields: AdminStoreFields): Promise<Store> {
-  const row = await prisma.$transaction(async (tx) => {
-    await tx.storeCategory.deleteMany({ where: { storeId: id } });
-    return tx.store.update({
-      where: { id },
-      data: {
-        slug: fields.slug,
-        name: fields.name,
-        logoUrl: fields.logoUrl,
-        bannerUrl: fields.bannerUrl || null,
-        website: fields.website,
-        description: fields.description,
-        aboutStore: fields.aboutStore,
-        howToApply: fields.howToApply || null,
-        rating: fields.rating,
-        ratingCount: fields.ratingCount,
-        region: fields.region,
-        affiliateNetwork: fields.affiliateNetwork,
-        isFeatured: fields.isFeatured,
-        seo: fields.seo as unknown as Prisma.InputJsonValue,
-        faq: fields.faq as unknown as Prisma.InputJsonValue,
-        categories: { create: fields.categoryIds.map((categoryId) => ({ categoryId })) },
-      },
-      include: { categories: true },
-    });
+  const row = await prisma.store.update({
+    where: { id },
+    data: {
+      slug: fields.slug,
+      name: fields.name,
+      logoUrl: fields.logoUrl,
+      bannerUrl: fields.bannerUrl || null,
+      website: fields.website,
+      description: fields.description,
+      aboutStore: fields.aboutStore,
+      howToApply: fields.howToApply || null,
+      rating: fields.rating,
+      ratingCount: fields.ratingCount,
+      region: fields.region,
+      affiliateNetwork: fields.affiliateNetwork,
+      isFeatured: fields.isFeatured,
+      seo: fields.seo as unknown as Prisma.InputJsonValue,
+      faq: fields.faq as unknown as Prisma.InputJsonValue,
+      categoryIds: fields.categoryIds,
+    },
   });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);

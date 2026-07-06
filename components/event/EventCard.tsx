@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { renderIcon } from "@/lib/icons";
+import { renderCategoryIcon } from "@/lib/icons";
 import { formatDate } from "@/lib/utils";
 import type { Event } from "@/types";
 
@@ -23,13 +23,18 @@ export function EventCard({ event }: { event: Event }) {
       )}
       <div className="p-4">
         <div className="flex items-center gap-2">
-          {renderIcon(event.iconName, "h-4 w-4 text-brand-600")}
+          <span className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded text-brand-600">
+            {renderCategoryIcon(event, { iconClassName: "h-4 w-4" })}
+          </span>
           <h3 className="font-heading font-semibold text-brand-950">{event.name}</h3>
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-muted-600">{event.description}</p>
-        <p className="mt-3 text-xs font-medium text-muted-500">
-          {formatDate(event.startsAt)} – {formatDate(event.endsAt)}
-        </p>
+        {(event.startsAt || event.endsAt) && (
+          <p className="mt-3 text-xs font-medium text-muted-500">
+            {event.startsAt ? formatDate(event.startsAt) : "TBA"} –{" "}
+            {event.endsAt ? formatDate(event.endsAt) : "TBA"}
+          </p>
+        )}
       </div>
     </Link>
   );

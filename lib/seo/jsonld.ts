@@ -92,7 +92,7 @@ export function articleJsonLd(post: BlogPost) {
     datePublished: post.publishedAt,
     author: {
       "@type": "Person",
-      name: post.author.name,
+      name: post.authorName,
     },
   };
 }

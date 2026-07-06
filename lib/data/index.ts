@@ -2,6 +2,7 @@ export * from "./stores";
 export * from "./coupons";
 export * from "./categories";
 export * from "./blog";
+export * from "./blogTopics";
 export * from "./events";
 export * from "./reviews";
 export * from "./newsletter";

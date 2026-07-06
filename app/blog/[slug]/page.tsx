@@ -70,7 +70,7 @@ export default async function BlogPostPage({
           <h1 className="mt-4 font-heading text-3xl font-bold text-brand-950">{post.title}</h1>
 
           <div className="mt-3 flex items-center gap-3 text-sm text-muted-500">
-            <span>{post.author.name}</span>
+            <span>{post.authorName}</span>
             <span>·</span>
             <span>{formatDate(post.publishedAt)}</span>
             <span>·</span>

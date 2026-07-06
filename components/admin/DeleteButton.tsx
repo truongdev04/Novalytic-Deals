@@ -16,12 +16,15 @@ export function DeleteButton({ endpoint, confirmLabel }: { endpoint: string; con
     setIsDeleting(true);
     try {
       const res = await fetch(endpoint, { method: "DELETE" });
-      if (!res.ok) throw new Error("delete failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "Failed to delete.");
+      }
       toast.success("Deleted.");
       setShowConfirm(false);
       router.refresh();
-    } catch {
-      toast.error("Failed to delete.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete.");
     } finally {
       setIsDeleting(false);
     }

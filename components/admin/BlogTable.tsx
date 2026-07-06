@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Pencil, Search } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
-import { ToggleButton } from "@/components/admin/ToggleButton";
+import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import type { BlogPost } from "@/types";
@@ -17,7 +17,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
     const q = query.trim().toLowerCase();
     if (!q) return posts;
     return posts.filter(
-      (p) => p.title.toLowerCase().includes(q) || p.author.name.toLowerCase().includes(q)
+      (p) => p.title.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q)
     );
   }, [posts, query]);
 
@@ -45,6 +45,8 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
               <th className="px-4 py-3">Author</th>
               <th className="px-4 py-3">Published</th>
               <th className="px-4 py-3">Featured</th>
+              <th className="px-4 py-3">First</th>
+              <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -57,17 +59,46 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-medium text-brand-950">{post.title}</td>
-                <td className="px-4 py-3 text-muted-600">{post.author.name}</td>
+                <td className="px-4 py-3 text-muted-600">{post.authorName}</td>
                 <td className="px-4 py-3 text-muted-600">
                   {new Date(post.publishedAt).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3">
-                  <ToggleButton
+                  <AdminDropdownSelect
                     endpoint={`/api/admin/blog/${post.id}`}
                     field="isFeatured"
                     value={post.isFeatured}
-                    label={post.isFeatured ? "Featured" : "Not featured"}
+                    options={[
+                      { value: true, label: "Featured" },
+                      { value: false, label: "Not featured" },
+                    ]}
+                    triggerClassName="w-28"
+                    badgeClassName={
+                      post.isFeatured
+                        ? "border-brand-300 bg-brand-50 text-brand-700"
+                        : "border-muted-300 text-muted-500 hover:bg-surface-100"
+                    }
                   />
+                </td>
+                <td className="px-4 py-3">
+                  <AdminDropdownSelect
+                    endpoint={`/api/admin/blog/${post.id}`}
+                    field="isFirst"
+                    value={post.isFirst}
+                    options={[
+                      { value: true, label: "First" },
+                      { value: false, label: "Not first" },
+                    ]}
+                    triggerClassName="w-28"
+                    badgeClassName={
+                      post.isFirst
+                        ? "border-brand-300 bg-brand-50 text-brand-700"
+                        : "border-muted-300 text-muted-500 hover:bg-surface-100"
+                    }
+                  />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                  {new Date(post.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
@@ -85,7 +116,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-muted-500">
                   No posts found.
                 </td>
               </tr>

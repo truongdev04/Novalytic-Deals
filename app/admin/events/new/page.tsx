@@ -1,8 +1,8 @@
-import { getAllCoupons, getAllStores } from "@/lib/data";
+import { getAllStores, getCoupons } from "@/lib/data";
 import { EventForm } from "@/components/admin/EventForm";
 
 export default async function NewEventPage() {
-  const [stores, coupons] = await Promise.all([getAllStores(), getAllCoupons()]);
+  const [stores, coupons] = await Promise.all([getAllStores(), getCoupons()]);
 
   return (
     <div>

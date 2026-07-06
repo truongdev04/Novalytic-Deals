@@ -1,11 +1,5 @@
 import type { NextRequest } from "next/server";
-import {
-  deleteEvent,
-  getEventById,
-  setEventCoupons,
-  setEventStores,
-  updateEvent,
-} from "@/lib/data";
+import { deleteEvent, getEventById, setEventCoupons, updateEvent } from "@/lib/data";
 import { adminEventSchema } from "@/lib/validators/admin/event";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
@@ -28,17 +22,15 @@ export async function PATCH(
   await updateEvent(id, {
     slug: parsed.data.slug,
     name: parsed.data.name,
-    iconName: parsed.data.iconName,
+    iconName: parsed.data.iconName || undefined,
+    iconImageUrl: parsed.data.iconImageUrl || null,
     description: parsed.data.description,
     bannerUrl: parsed.data.bannerUrl || null,
-    startsAt: new Date(parsed.data.startsAt),
-    endsAt: new Date(parsed.data.endsAt),
+    startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
+    endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
   });
 
-  await Promise.all([
-    setEventStores(id, parsed.data.featuredStoreIds),
-    setEventCoupons(id, parsed.data.featuredCouponIds),
-  ]);
+  await setEventCoupons(id, parsed.data.featuredCouponIds);
 
   const event = await getEventById(id);
   return jsonOk(event);
@@ -49,6 +41,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await deleteEvent(id);
-  return jsonOk({ deleted: true });
+  try {
+    await deleteEvent(id);
+    return jsonOk({ deleted: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "EVENT_IN_USE") {
+      return jsonError(
+        409,
+        "Cannot delete this event because it still has stores assigned to it. Remove them first."
+      );
+    }
+    return jsonError(500, "Failed to delete event");
+  }
 }

@@ -25,10 +25,20 @@ export async function uploadToCloudinary(
   const base64 = Buffer.from(arrayBuffer).toString("base64");
   const dataUri = `data:${file.type};base64,${base64}`;
 
+  // Cloudinary keeps `public_id` verbatim and appends the detected format to
+  // the delivery URL — if `path` already ends in an extension (e.g.
+  // "stores/abc.png"), the result doubles up (".../stores/abc.png.jpg").
+  // Strip it here and use it as the default `format` instead.
+  const lastSlash = path.lastIndexOf("/");
+  const lastDot = path.lastIndexOf(".");
+  const hasExtension = lastDot > lastSlash;
+  const publicId = hasExtension ? path.slice(0, lastDot) : path;
+  const inferredFormat = hasExtension ? path.slice(lastDot + 1) : undefined;
+
   const result = await cloudinary.uploader.upload(dataUri, {
-    public_id: path,
+    public_id: publicId,
     overwrite: true,
-    format: options?.format,
+    format: options?.format ?? inferredFormat,
   });
   return result.secure_url;
 }

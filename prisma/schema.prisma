@@ -63,16 +63,18 @@ model Store {
   clickCount       Int      @default(0)
   seo              Json
   faq              Json
+  categoryIds      String[]
+  eventId          String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  categories StoreCategory[]
-  coupons    Coupon[]
-  reviews    Review[]
-  eventLinks EventStore[]
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  coupons Coupon[]
+  reviews Review[]
 
   @@index([isFeatured])
   @@index([isActive])
+  @@index([eventId])
   @@map("stores")
 }
 
@@ -82,30 +84,21 @@ model Category {
   name        String
   description String
   iconName    String
+  iconImageUrl String?
   isFeatured  Boolean  @default(false)
   seo         Json
   faq         Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   parentId String?
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")
 
-  stores    StoreCategory[]
   blogPosts BlogPost[]
 
   @@index([parentId])
   @@map("categories")
-}
-
-model StoreCategory {
-  storeId    String
-  categoryId String
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@id([storeId, categoryId])
-  @@index([categoryId])
-  @@map("store_categories")
 }
 
 model Coupon {
@@ -136,8 +129,6 @@ model Coupon {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  eventLinks EventCoupon[]
-
   @@index([storeId])
   @@index([expiresAt])
   @@index([isFeatured])
@@ -146,71 +137,64 @@ model Coupon {
   @@map("coupons")
 }
 
-model BlogAuthor {
-  id        String     @id
-  name      String
-  avatarUrl String?
-  posts     BlogPost[]
-
-  @@map("blog_authors")
-}
-
 model BlogPost {
-  id             String     @id
-  slug           String     @unique
-  title          String
-  excerpt        String
-  coverImage     String
-  authorId       String
-  author         BlogAuthor @relation(fields: [authorId], references: [id])
-  tags           String[]
-  categoryId     String?
-  category       Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  body           String     @db.Text
-  readingMinutes Int
-  publishedAt    DateTime
-  seo            Json
-  isFeatured     Boolean    @default(false)
+  id              String     @id
+  slug            String     @unique
+  title           String
+  excerpt         String
+  coverImage      String
+  authorName      String
+  authorAvatarUrl String?
+  tags            String[]
+  categoryId      String?
+  category        Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topicId         String?
+  topic           BlogTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  body            String     @db.Text
+  readingMinutes  Int
+  publishedAt     DateTime
+  seo             Json
+  isFeatured      Boolean    @default(false)
+  isFirst         Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@index([categoryId])
+  @@index([topicId])
   @@index([publishedAt])
   @@map("blog_posts")
 }
 
-model Event {
+model BlogTopic {
   id          String   @id
   slug        String   @unique
   name        String
-  iconName    String
-  description String
-  bannerUrl   String?
-  startsAt    DateTime
-  endsAt      DateTime
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  featuredStores  EventStore[]
-  featuredCoupons EventCoupon[]
+  posts BlogPost[]
+
+  @@map("blog_topics")
+}
+
+model Event {
+  id           String    @id
+  slug         String    @unique
+  name         String
+  iconName     String
+  iconImageUrl String?
+  description  String
+  bannerUrl    String?
+  startsAt     DateTime?
+  endsAt       DateTime?
+  couponId     String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  stores Store[]
 
   @@map("events")
-}
-
-model EventStore {
-  eventId String
-  storeId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  @@id([eventId, storeId])
-  @@map("event_stores")
-}
-
-model EventCoupon {
-  eventId  String
-  couponId String
-  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
-
-  @@id([eventId, couponId])
-  @@map("event_coupons")
 }
 
 model Review {
@@ -224,6 +208,7 @@ model Review {
   body       String
   isApproved Boolean  @default(false)
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([storeId])
   @@index([isApproved])
@@ -238,6 +223,7 @@ model NewsletterSubscriber {
   source         String?
   tags           String[]
   createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@map("newsletter_subscribers")
 }
@@ -251,14 +237,17 @@ model SubmittedCoupon {
   submitterEmail  String
   status          SubmissionStatus @default(PENDING)
   createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([status])
   @@map("submitted_coupons")
 }
 
 model SiteSetting {
-  key   String @id
-  value Json
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("site_settings")
 }

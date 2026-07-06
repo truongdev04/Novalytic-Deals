@@ -14,7 +14,7 @@ import { CountdownTimer } from "@/components/event/CountdownTimer";
 import { CouponCard } from "@/components/coupon/CouponCard";
 import { StoreCard } from "@/components/store/StoreCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { renderIcon } from "@/lib/icons";
+import { renderCategoryIcon } from "@/lib/icons";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
@@ -67,12 +67,12 @@ export default async function EventPage({
           </div>
         )}
         <Container className="flex flex-col items-center gap-4 py-16 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white">
-            {renderIcon(event.iconName, "h-6 w-6")}
+          <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/15 text-white">
+            {renderCategoryIcon(event, { iconClassName: "h-6 w-6" })}
           </span>
           <h1 className="font-heading text-3xl font-bold text-white sm:text-4xl">{event.name}</h1>
           <p className="max-w-xl text-brand-100">{event.description}</p>
-          <CountdownTimer endsAt={event.endsAt} />
+          {event.endsAt && <CountdownTimer endsAt={event.endsAt} />}
         </Container>
       </section>
 

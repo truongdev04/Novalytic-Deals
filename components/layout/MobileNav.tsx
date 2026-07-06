@@ -5,7 +5,7 @@ import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Accordion from "@radix-ui/react-accordion";
 import { Menu, X, ChevronDown, Tag } from "lucide-react";
-import { renderIcon } from "@/lib/icons";
+import { renderCategoryIcon } from "@/lib/icons";
 import { SearchBox } from "@/components/search/SearchBox";
 import type { Event } from "@/types";
 
@@ -73,7 +73,9 @@ export function MobileNav({ events }: { events: Event[] }) {
                       onClick={() => setOpen(false)}
                       className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-700 hover:bg-surface-100 hover:text-brand-800"
                     >
-                      {renderIcon(event.iconName, "h-4 w-4 text-brand-600")}
+                      <span className="relative flex h-4 w-4 items-center justify-center overflow-hidden text-brand-600">
+                        {renderCategoryIcon(event, { iconClassName: "h-4 w-4" })}
+                      </span>
                       {event.name}
                     </Link>
                   ))}

@@ -1,5 +1,11 @@
 import type { NextRequest } from "next/server";
-import { deleteBlogPost, getBlogPostById, setBlogPostFeatured, updateBlogPost } from "@/lib/data";
+import {
+  deleteBlogPost,
+  getBlogPostById,
+  setBlogPostFeatured,
+  setBlogPostFirst,
+  updateBlogPost,
+} from "@/lib/data";
 import { adminBlogPostSchema } from "@/lib/validators/admin/blog";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
@@ -26,15 +32,16 @@ export async function PATCH(
       title: fullUpdate.data.title,
       excerpt: fullUpdate.data.excerpt,
       coverImage: fullUpdate.data.coverImage,
-      authorId: fullUpdate.data.authorId,
-      tags: fullUpdate.data.tags
-        ? fullUpdate.data.tags.split(",").map((t) => t.trim()).filter(Boolean)
-        : [],
+      authorName: fullUpdate.data.authorName || "NovalyticDeals",
+      authorAvatarUrl: fullUpdate.data.authorAvatarUrl || "/images/logo/logo/app-icon.png",
+      tags: fullUpdate.data.tags,
       categoryId: fullUpdate.data.categoryId || null,
+      topicId: fullUpdate.data.topicId || null,
       body: fullUpdate.data.body,
       readingMinutes: fullUpdate.data.readingMinutes,
       publishedAt: new Date(fullUpdate.data.publishedAt),
       isFeatured: fullUpdate.data.isFeatured,
+      isFirst: fullUpdate.data.isFirst,
       seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
     });
     return jsonOk(post);
@@ -42,6 +49,11 @@ export async function PATCH(
 
   if (typeof body?.isFeatured === "boolean") {
     const post = await setBlogPostFeatured(id, body.isFeatured);
+    return jsonOk(post);
+  }
+
+  if (typeof body?.isFirst === "boolean") {
+    const post = await setBlogPostFirst(id, body.isFirst);
     return jsonOk(post);
   }
 

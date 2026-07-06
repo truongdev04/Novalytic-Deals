@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAllCoupons, getAllStores, getEventById } from "@/lib/data";
+import { getAllStores, getCoupons, getEventById } from "@/lib/data";
 import { EventForm } from "@/components/admin/EventForm";
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -7,7 +7,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const [event, stores, coupons] = await Promise.all([
     getEventById(id),
     getAllStores(),
-    getAllCoupons(),
+    getCoupons(),
   ]);
   if (!event) notFound();
 

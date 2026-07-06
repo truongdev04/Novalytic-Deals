@@ -1,36 +1,34 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
-import type { BlogAuthor, BlogPost, BlogSeo } from "@/types";
-import type { BlogPost as PrismaBlogPost, BlogAuthor as PrismaBlogAuthor } from "@prisma/client";
+import type { BlogPost, BlogSeo } from "@/types";
+import type { BlogPost as PrismaBlogPost } from "@prisma/client";
 
-type BlogPostRow = PrismaBlogPost & { author: PrismaBlogAuthor };
-
-function toBlogPost(row: BlogPostRow): BlogPost {
+function toBlogPost(row: PrismaBlogPost): BlogPost {
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt,
     coverImage: row.coverImage,
-    author: {
-      id: row.author.id,
-      name: row.author.name,
-      avatarUrl: row.author.avatarUrl ?? undefined,
-    },
+    authorName: row.authorName,
+    authorAvatarUrl: row.authorAvatarUrl ?? undefined,
     tags: row.tags,
     categoryId: row.categoryId ?? undefined,
+    topicId: row.topicId ?? undefined,
     body: row.body,
     readingMinutes: row.readingMinutes,
     publishedAt: row.publishedAt.toISOString(),
     seo: row.seo as unknown as BlogSeo,
     isFeatured: row.isFeatured,
+    isFirst: row.isFirst,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
 export const getBlogPosts = unstable_cache(
   async (): Promise<BlogPost[]> => {
-    const rows = await prisma.blogPost.findMany({ include: { author: true } });
+    const rows = await prisma.blogPost.findMany();
     return rows
       .map(toBlogPost)
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
@@ -51,10 +49,7 @@ export const getFeaturedBlogPosts = unstable_cache(
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
   return unstable_cache(
     async () => {
-      const row = await prisma.blogPost.findUnique({
-        where: { slug },
-        include: { author: true },
-      });
+      const row = await prisma.blogPost.findUnique({ where: { slug } });
       return row ? toBlogPost(row) : undefined;
     },
     [`blog:${slug}`],
@@ -70,24 +65,24 @@ export async function getRelatedBlogPosts(post: BlogPost, limit = 3): Promise<Bl
 }
 
 export async function getBlogPostById(id: string): Promise<BlogPost | undefined> {
-  const row = await prisma.blogPost.findUnique({ where: { id }, include: { author: true } });
+  const row = await prisma.blogPost.findUnique({ where: { id } });
   return row ? toBlogPost(row) : undefined;
-}
-
-export async function getBlogAuthors(): Promise<BlogAuthor[]> {
-  const rows = await prisma.blogAuthor.findMany({ orderBy: { name: "asc" } });
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    avatarUrl: row.avatarUrl ?? undefined,
-  }));
 }
 
 export async function setBlogPostFeatured(id: string, isFeatured: boolean): Promise<BlogPost> {
   const row = await prisma.blogPost.update({
     where: { id },
     data: { isFeatured },
-    include: { author: true },
+  });
+  purgeTag("blog:list");
+  purgeTag(`blog:${row.slug}`);
+  return toBlogPost(row);
+}
+
+export async function setBlogPostFirst(id: string, isFirst: boolean): Promise<BlogPost> {
+  const row = await prisma.blogPost.update({
+    where: { id },
+    data: { isFirst },
   });
   purgeTag("blog:list");
   purgeTag(`blog:${row.slug}`);
@@ -105,13 +100,16 @@ export interface AdminBlogPostFields {
   title: string;
   excerpt: string;
   coverImage: string;
-  authorId: string;
+  authorName: string;
+  authorAvatarUrl?: string | null;
   tags: string[];
   categoryId?: string | null;
+  topicId?: string | null;
   body: string;
   readingMinutes: number;
   publishedAt: Date;
   isFeatured: boolean;
+  isFirst: boolean;
   seo: BlogSeo;
 }
 
@@ -123,16 +121,18 @@ export async function createBlogPost(fields: AdminBlogPostFields): Promise<BlogP
       title: fields.title,
       excerpt: fields.excerpt,
       coverImage: fields.coverImage,
-      authorId: fields.authorId,
+      authorName: fields.authorName,
+      authorAvatarUrl: fields.authorAvatarUrl || null,
       tags: fields.tags,
       categoryId: fields.categoryId || null,
+      topicId: fields.topicId || null,
       body: fields.body,
       readingMinutes: fields.readingMinutes,
       publishedAt: fields.publishedAt,
       isFeatured: fields.isFeatured,
+      isFirst: fields.isFirst,
       seo: fields.seo as unknown as Prisma.InputJsonValue,
     },
-    include: { author: true },
   });
   purgeTag("blog:list");
   return toBlogPost(row);
@@ -146,16 +146,18 @@ export async function updateBlogPost(id: string, fields: AdminBlogPostFields): P
       title: fields.title,
       excerpt: fields.excerpt,
       coverImage: fields.coverImage,
-      authorId: fields.authorId,
+      authorName: fields.authorName,
+      authorAvatarUrl: fields.authorAvatarUrl || null,
       tags: fields.tags,
       categoryId: fields.categoryId || null,
+      topicId: fields.topicId || null,
       body: fields.body,
       readingMinutes: fields.readingMinutes,
       publishedAt: fields.publishedAt,
       isFeatured: fields.isFeatured,
+      isFirst: fields.isFirst,
       seo: fields.seo as unknown as Prisma.InputJsonValue,
     },
-    include: { author: true },
   });
   purgeTag("blog:list");
   purgeTag(`blog:${row.slug}`);

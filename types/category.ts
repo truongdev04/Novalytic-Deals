@@ -13,9 +13,11 @@ export interface Category {
   slug: string;
   name: string;
   description: string;
-  iconName: string;
+  iconName?: string;
+  iconImageUrl?: string;
   parentId?: string;
   isFeatured: boolean;
   seo: CategorySeo;
   faq: CategoryFaqItem[];
+  createdAt: string;
 }

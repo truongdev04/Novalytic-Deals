@@ -23,6 +23,7 @@ export interface Store {
   rating: number;
   ratingCount: number;
   categoryIds: string[];
+  eventId?: string | null;
   region: StoreRegion;
   affiliateNetwork: string;
   isFeatured: boolean;

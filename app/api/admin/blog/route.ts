@@ -18,15 +18,16 @@ export async function POST(request: NextRequest) {
     title: parsed.data.title,
     excerpt: parsed.data.excerpt,
     coverImage: parsed.data.coverImage,
-    authorId: parsed.data.authorId,
-    tags: parsed.data.tags
-      ? parsed.data.tags.split(",").map((t) => t.trim()).filter(Boolean)
-      : [],
+    authorName: parsed.data.authorName || "NovalyticDeals",
+    authorAvatarUrl: parsed.data.authorAvatarUrl || "/images/logo/logo/app-icon.png",
+    tags: parsed.data.tags,
     categoryId: parsed.data.categoryId || null,
+    topicId: parsed.data.topicId || null,
     body: parsed.data.body,
     readingMinutes: parsed.data.readingMinutes,
     publishedAt: new Date(parsed.data.publishedAt),
     isFeatured: parsed.data.isFeatured,
+    isFirst: parsed.data.isFirst,
     seo: { title: parsed.data.seoTitle, description: parsed.data.seoDescription },
   });
 

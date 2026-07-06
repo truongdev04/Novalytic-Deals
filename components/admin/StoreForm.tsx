@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import { adminStoreSchema, type AdminStoreInput } from "@/lib/validators/admin/s
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { FaqPasteModal } from "@/components/admin/FaqPasteModal";
@@ -37,11 +37,24 @@ export function StoreForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(store));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showFaqPaste, setShowFaqPaste] = useState(false);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [pendingLogoProvider, setPendingLogoProvider] = useState<StorageProvider>("cloudinary");
+  const [pendingBannerFile, setPendingBannerFile] = useState<File | null>(null);
+  const [pendingBannerProvider, setPendingBannerProvider] = useState<StorageProvider>("cloudinary");
 
-  const currentEventId = useMemo(() => {
-    if (!store) return null;
-    return events.find((event) => event.featuredStoreIds.includes(store.id))?.id ?? null;
-  }, [store, events]);
+  async function uploadPendingImage(file: File, provider: StorageProvider): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("provider", provider);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.data?.url) {
+      throw new Error(body?.error || "Image upload failed");
+    }
+    return body.data.url;
+  }
+
+  const currentEventId = store?.eventId ?? null;
 
   const {
     register,
@@ -92,19 +105,27 @@ export function StoreForm({
 
   async function onSubmit(data: AdminStoreInput) {
     try {
-      // Images inserted into the rich-text fields are only local previews —
-      // upload them to Cloudinary (as .webp) now, right before saving.
-      const [description, aboutStore, howToApply] = await Promise.all([
+      // Images inserted into the rich-text fields, plus the Logo/Banner
+      // fields, are only local previews until now — upload them all right
+      // before saving so a draft that's never submitted never orphans an
+      // image on Cloudinary/Supabase.
+      const [description, aboutStore, howToApply, logoUrl, bannerUrl] = await Promise.all([
         resolveRichTextImages(data.description),
         resolveRichTextImages(data.aboutStore),
         data.howToApply ? resolveRichTextImages(data.howToApply) : Promise.resolve(data.howToApply),
+        pendingLogoFile
+          ? uploadPendingImage(pendingLogoFile, pendingLogoProvider)
+          : Promise.resolve(data.logoUrl),
+        pendingBannerFile
+          ? uploadPendingImage(pendingBannerFile, pendingBannerProvider)
+          : Promise.resolve(data.bannerUrl),
       ]);
 
       const endpoint = store ? `/api/admin/stores/${store.id}` : "/api/admin/stores";
       const res = await fetch(endpoint, {
         method: store ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, description, aboutStore, howToApply }),
+        body: JSON.stringify({ ...data, description, aboutStore, howToApply, logoUrl, bannerUrl }),
       });
       if (!res.ok) throw new Error("save failed");
       toast.success(store ? "Store updated." : "Store created.");
@@ -177,6 +198,11 @@ export function StoreForm({
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.logoUrl?.message}
+                  deferUpload
+                  onFileSelected={(file, provider) => {
+                    setPendingLogoFile(file);
+                    setPendingLogoProvider(provider);
+                  }}
                 />
               )}
             />
@@ -189,6 +215,11 @@ export function StoreForm({
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   aspectClassName="aspect-video w-48"
+                  deferUpload
+                  onFileSelected={(file, provider) => {
+                    setPendingBannerFile(file);
+                    setPendingBannerProvider(provider);
+                  }}
                 />
               )}
             />
