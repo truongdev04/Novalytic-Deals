@@ -20,12 +20,14 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = buildMetadata({
-  title: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
-  description:
-    "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
-  path: "/",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+    description:
+      "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
+    path: "/",
+  });
+}
 
 export default async function HomePage() {
   const [stores, categories, deals, posts, coupons] = await Promise.all([

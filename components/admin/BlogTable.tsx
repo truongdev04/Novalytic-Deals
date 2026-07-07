@@ -10,33 +10,80 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import type { BlogPost } from "@/types";
 
+const BOOL_FILTER_ALL = "all";
+
+const selectClassName =
+  "rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:border-brand-400 focus:outline-none";
+
 export function BlogTable({ posts }: { posts: BlogPost[] }) {
   const [query, setQuery] = useState("");
+  const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
+  const [firstFilter, setFirstFilter] = useState(BOOL_FILTER_ALL);
+  const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return posts;
-    return posts.filter(
-      (p) => p.title.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q)
-    );
-  }, [posts, query]);
+    return posts.filter((p) => {
+      if (q) {
+        const matchesQuery =
+          p.title.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q);
+        if (!matchesQuery) return false;
+      }
+      if (featuredFilter !== BOOL_FILTER_ALL && String(p.isFeatured) !== featuredFilter) return false;
+      if (firstFilter !== BOOL_FILTER_ALL && String(p.isFirst) !== firstFilter) return false;
+      if (statusFilter !== BOOL_FILTER_ALL && String(p.isActive) !== statusFilter) return false;
+      return true;
+    });
+  }, [posts, query, featuredFilter, firstFilter, statusFilter]);
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
 
   return (
     <div>
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-400" />
-        <input
-          type="text"
-          placeholder="Search posts..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-lg border border-muted-300 bg-surface-0 py-2 pl-9 pr-3 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-400" />
+          <input
+            type="text"
+            placeholder="Search posts..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-lg border border-muted-300 bg-surface-0 py-2 pl-9 pr-3 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          />
+        </div>
+
+        <select
+          value={featuredFilter}
+          onChange={(e) => setFeaturedFilter(e.target.value)}
+          className={selectClassName}
+        >
+          <option value={BOOL_FILTER_ALL}>All featured</option>
+          <option value="true">Featured</option>
+          <option value="false">Not featured</option>
+        </select>
+
+        <select
+          value={firstFilter}
+          onChange={(e) => setFirstFilter(e.target.value)}
+          className={selectClassName}
+        >
+          <option value={BOOL_FILTER_ALL}>All first</option>
+          <option value="true">First</option>
+          <option value="false">Not first</option>
+        </select>
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className={selectClassName}
+        >
+          <option value={BOOL_FILTER_ALL}>All statuses</option>
+          <option value="true">Active</option>
+          <option value="false">Hidden</option>
+        </select>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-muted-200 bg-surface-0">
+      <div className="mt-4 overflow-x-auto rounded-lg border border-muted-200 bg-surface-0">
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-100 text-xs uppercase text-muted-500">
             <tr>
@@ -46,6 +93,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
               <th className="px-4 py-3">Published</th>
               <th className="px-4 py-3">Featured</th>
               <th className="px-4 py-3">First</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -97,6 +145,23 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
                     }
                   />
                 </td>
+                <td className="px-4 py-3">
+                  <AdminDropdownSelect
+                    endpoint={`/api/admin/blog/${post.id}`}
+                    field="isActive"
+                    value={post.isActive}
+                    options={[
+                      { value: true, label: "Active" },
+                      { value: false, label: "Hidden" },
+                    ]}
+                    triggerClassName="w-20"
+                    badgeClassName={
+                      post.isActive
+                        ? "border-brand-300 bg-brand-50 text-brand-700"
+                        : "border-red-200 bg-red-50 text-red-600"
+                    }
+                  />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-muted-600">
                   {new Date(post.createdAt).toLocaleDateString()}
                 </td>
@@ -116,7 +181,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-muted-500">
+                <td colSpan={9} className="px-4 py-6 text-center text-muted-500">
                   No posts found.
                 </td>
               </tr>

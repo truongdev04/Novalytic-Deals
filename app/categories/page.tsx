@@ -8,11 +8,13 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = buildMetadata({
-  title: "All Categories — Shop Coupons by Category",
-  description: "Find deals organized by category to shop what you love.",
-  path: "/categories",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "All Categories — Shop Coupons by Category",
+    description: "Find deals organized by category to shop what you love.",
+    path: "/categories",
+  });
+}
 
 export default async function CategoriesPage() {
   const [categories, stores, coupons] = await Promise.all([

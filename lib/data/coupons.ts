@@ -46,8 +46,19 @@ export interface CouponFilters {
   includeExpired?: boolean;
 }
 
+// Coupons have no background job to flip their status the instant they
+// expire, so this runs on every cache miss instead — piggybacking on the
+// existing 5-minute revalidate/purge cycle rather than adding new infra.
+async function expireOverdueCoupons(): Promise<void> {
+  await prisma.coupon.updateMany({
+    where: { isActive: true, expiresAt: { lt: new Date() } },
+    data: { isActive: false, isFeatured: false },
+  });
+}
+
 const getAllCouponsCached = unstable_cache(
   async (): Promise<Coupon[]> => {
+    await expireOverdueCoupons();
     const rows = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
     return rows.map(toCoupon);
   },
@@ -220,6 +231,17 @@ export async function setCouponVerified(id: string, verified: boolean): Promise<
 }
 
 export async function setCouponActive(id: string, isActive: boolean): Promise<Coupon> {
+  if (isActive) {
+    const existing = await prisma.coupon.findUnique({ where: { id }, include: { store: true } });
+    if (!existing) throw new Error("COUPON_NOT_FOUND");
+    if (existing.expiresAt && existing.expiresAt < new Date()) {
+      throw new Error("COUPON_EXPIRED");
+    }
+    if (!existing.store.isActive) {
+      throw new Error("STORE_INACTIVE");
+    }
+  }
+
   const row = await prisma.coupon.update({ where: { id }, data: { isActive } });
   purgeTag("coupons:list");
   purgeTag(`coupon:${row.slug}`);

@@ -1,9 +1,19 @@
 import type { MetadataRoute } from "next";
-import { getStores, getCoupons, getCategories, getBlogPosts, getEvents } from "@/lib/data";
+import {
+  getStores,
+  getCoupons,
+  getCategories,
+  getBlogPosts,
+  getEvents,
+  getGeneralSettings,
+} from "@/lib/data";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const settings = await getGeneralSettings();
+  if (!settings.sitemapEnabled) return [];
+
   const [stores, coupons, categories, posts, events] = await Promise.all([
     getStores(),
     getCoupons(),

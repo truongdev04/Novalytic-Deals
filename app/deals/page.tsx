@@ -29,11 +29,13 @@ function parseSort(value?: string): CouponFilters["sort"] {
     : "relevance";
 }
 
-export const metadata: Metadata = buildMetadata({
-  title: "All Deals — Browse the Latest Coupon Codes & Offers",
-  description: "Browse all deals and save money today. Filter by category, store, and discount.",
-  path: "/deals",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "All Deals — Browse the Latest Coupon Codes & Offers",
+    description: "Browse all deals and save money today. Filter by category, store, and discount.",
+    path: "/deals",
+  });
+}
 
 const PAGE_SIZE = 9;
 

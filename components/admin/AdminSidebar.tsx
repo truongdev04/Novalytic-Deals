@@ -26,42 +26,91 @@ interface FlatNavItem {
   exact?: boolean;
 }
 
+interface NavChild {
+  href: string;
+  label: string;
+}
+
 interface ParentNavItem {
   label: string;
   icon: LucideIcon;
-  children: { href: string; label: string }[];
+  children: NavChild[];
 }
 
-const navItems: (FlatNavItem | ParentNavItem)[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/stores", label: "Stores", icon: Store },
-  { href: "/admin/coupons", label: "Coupons", icon: Ticket },
-  { href: "/admin/categories", label: "Categories", icon: FolderTree },
-  { href: "/admin/events", label: "Events", icon: CalendarDays },
-  {
-    label: "Blog",
-    icon: Newspaper,
-    children: [
-      { href: "/admin/blog/topics", label: "Topics" },
-      { href: "/admin/blog", label: "Blog" },
-    ],
-  },
-  { href: "/admin/reviews", label: "Reviews", icon: MessageSquare },
-  { href: "/admin/submissions", label: "Submissions", icon: Inbox },
-  { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-];
+function buildNavItems(role?: "ADMIN" | "EDITOR"): (FlatNavItem | ParentNavItem)[] {
+  return [
+    { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { href: "/admin/stores", label: "Stores", icon: Store },
+    { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+    { href: "/admin/categories", label: "Categories", icon: FolderTree },
+    { href: "/admin/events", label: "Events", icon: CalendarDays },
+    {
+      label: "Blog",
+      icon: Newspaper,
+      children: [
+        { href: "/admin/blog/topics", label: "Topics" },
+        { href: "/admin/blog", label: "Blog" },
+      ],
+    },
+    { href: "/admin/reviews", label: "Reviews", icon: MessageSquare },
+    { href: "/admin/submissions", label: "Submissions", icon: Inbox },
+    { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
+    {
+      label: "Settings",
+      icon: Settings,
+      children: [
+        { href: "/admin/settings", label: "General" },
+        { href: "/admin/settings/integrations", label: "Integrations" },
+        { href: "/admin/settings/affiliate", label: "Affiliate & Redirects" },
+        ...(role === "ADMIN" ? [{ href: "/admin/settings/users", label: "Users" }] : []),
+      ],
+    },
+  ];
+}
 
 const rowClassName =
   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors";
 const activeClassName = "bg-brand-50 text-brand-700";
 const inactiveClassName = "text-muted-600 hover:bg-surface-100 hover:text-brand-950";
 
-export function AdminSidebar() {
+// A pathname can match more than one sibling's href as a prefix (e.g.
+// "/admin/blog/topics" starts with both "/admin/blog/topics" and
+// "/admin/blog"). Only the most specific (longest matching href) sibling
+// should be highlighted, not every one that happens to match.
+function activeChildHref(children: NavChild[], pathname: string): string | null {
+  let best: string | null = null;
+  for (const child of children) {
+    if (pathname === child.href || pathname.startsWith(child.href + "/")) {
+      if (!best || child.href.length > best.length) best = child.href;
+    }
+  }
+  return best;
+}
+
+export function AdminSidebar({ role }: { role?: "ADMIN" | "EDITOR" }) {
   const pathname = usePathname();
-  const [openLabel, setOpenLabel] = useState<string | null>(
-    () => navItems.find((item) => "children" in item && pathname.startsWith("/admin/blog"))?.label ?? null
-  );
+  const navItems = buildNavItems(role);
+
+  function activeParentLabel() {
+    return (
+      navItems.find(
+        (item): item is ParentNavItem =>
+          "children" in item && activeChildHref(item.children, pathname) !== null
+      )?.label ?? null
+    );
+  }
+
+  const [openLabel, setOpenLabel] = useState<string | null>(activeParentLabel);
+  // AdminSidebar persists across client-side navigations (it doesn't remount),
+  // so re-derive which submenu should be open whenever the route changes —
+  // otherwise a submenu stays expanded forever once opened, even after
+  // navigating away. Adjusting state during render (rather than in an effect)
+  // avoids an extra commit for a value that's purely derived from `pathname`.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setOpenLabel(activeParentLabel());
+  }
 
   return (
     <aside className="hidden w-56 shrink-0 overflow-y-auto border-r border-muted-200 bg-surface-0 md:block">
@@ -74,7 +123,8 @@ export function AdminSidebar() {
 
           if ("children" in item) {
             const isOpen = openLabel === item.label;
-            const isParentActive = item.children.some((child) => pathname.startsWith(child.href));
+            const activeHref = activeChildHref(item.children, pathname);
+            const isParentActive = activeHref !== null;
             return (
               <div key={item.label}>
                 <button
@@ -96,21 +146,18 @@ export function AdminSidebar() {
                 </button>
                 {isOpen && (
                   <div className="ml-6 mt-1 space-y-1 border-l border-muted-200 pl-3">
-                    {item.children.map((child) => {
-                      const isTopicsChild = child.href === "/admin/blog/topics";
-                      const isChildActive = isTopicsChild
-                        ? pathname.startsWith("/admin/blog/topics")
-                        : pathname.startsWith("/admin/blog") && !pathname.startsWith("/admin/blog/topics");
-                      return (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className={cn(rowClassName, isChildActive ? activeClassName : inactiveClassName)}
-                        >
-                          {child.label}
-                        </Link>
-                      );
-                    })}
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          rowClassName,
+                          child.href === activeHref ? activeClassName : inactiveClassName
+                        )}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>

@@ -4,11 +4,13 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SubmitCouponForm } from "@/components/forms/SubmitCouponForm";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Submit a Coupon",
-  description: "Found a great deal? Submit a coupon code and help other shoppers save.",
-  path: "/submit",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Submit a Coupon",
+    description: "Found a great deal? Submit a coupon code and help other shoppers save.",
+    path: "/submit",
+  });
+}
 
 export default function SubmitCouponPage() {
   return (

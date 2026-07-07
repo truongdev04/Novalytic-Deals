@@ -5,8 +5,10 @@ import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
+import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
+import { getGeneralSettings } from "@/lib/data";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,25 +26,33 @@ const poppins = Poppins({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
-    template: "%s | NovalyticDeals",
-  },
-  description:
-    "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
-  openGraph: {
-    type: "website",
-    siteName: "NovalyticDeals",
-    title: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getGeneralSettings();
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: settings.title || "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+      template: "%s | NovalyticDeals",
+    },
     description:
-      "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands.",
-  },
-  twitter: {
-    card: "summary_large_image",
-  },
-};
+      settings.description ||
+      "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
+    icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+    openGraph: {
+      type: "website",
+      siteName: "NovalyticDeals",
+      title: settings.title || "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+      description:
+        settings.description ||
+        "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands.",
+      images: settings.ogImage ? [{ url: settings.ogImage }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+    },
+  };
+}
 
 export default function RootLayout({
   children,
@@ -61,6 +71,7 @@ export default function RootLayout({
           {children}
         </SiteChrome>
         <Toaster position="bottom-right" richColors />
+        <AnalyticsScripts />
       </body>
     </html>
   );

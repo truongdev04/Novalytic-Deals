@@ -10,11 +10,13 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = buildMetadata({
-  title: "Blog — Shopping Tips, Guides & Savings Advice",
-  description: "Tips, guides, and insights to help you save more on every purchase.",
-  path: "/blog",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Blog — Shopping Tips, Guides & Savings Advice",
+    description: "Tips, guides, and insights to help you save more on every purchase.",
+    path: "/blog",
+  });
+}
 
 export default async function BlogIndexPage({
   searchParams,

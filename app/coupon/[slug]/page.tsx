@@ -41,7 +41,7 @@ export async function generateMetadata({
   const coupon = await getCouponBySlug(slug);
   if (!coupon) return {};
   const store = await getStoreById(coupon.storeId);
-  return buildMetadata({
+  return await buildMetadata({
     title: `${coupon.title} — ${store?.name ?? ""} Coupon`,
     description: coupon.description,
     path: `/coupon/${coupon.slug}`,

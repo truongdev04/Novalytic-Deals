@@ -9,12 +9,14 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = buildMetadata({
-  title: "All Stores — Browse Verified Coupon Codes by Retailer",
-  description:
-    "Browse our complete directory of stores and find the newest verified coupon codes and deals.",
-  path: "/stores",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "All Stores — Browse Verified Coupon Codes by Retailer",
+    description:
+      "Browse our complete directory of stores and find the newest verified coupon codes and deals.",
+    path: "/stores",
+  });
+}
 
 export default async function StoresPage({
   searchParams,

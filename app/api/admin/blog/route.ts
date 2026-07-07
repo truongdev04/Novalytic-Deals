@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
-import { createBlogPost, getBlogPosts } from "@/lib/data";
+import { createBlogPost, getAllBlogPosts } from "@/lib/data";
 import { adminBlogPostSchema } from "@/lib/validators/admin/blog";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
 export async function GET() {
-  const posts = await getBlogPosts();
+  const posts = await getAllBlogPosts();
   return jsonOk(posts);
 }
 

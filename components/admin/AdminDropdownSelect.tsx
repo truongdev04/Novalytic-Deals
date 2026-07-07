@@ -54,10 +54,13 @@ export function AdminDropdownSelect({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: next }),
       });
-      if (!res.ok) throw new Error("update failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "update failed");
+      }
       router.refresh();
-    } catch {
-      toast.error("Failed to update.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update.");
     } finally {
       setIsPending(false);
     }

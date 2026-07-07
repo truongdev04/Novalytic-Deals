@@ -22,11 +22,12 @@ function toBlogPost(row: PrismaBlogPost): BlogPost {
     seo: row.seo as unknown as BlogSeo,
     isFeatured: row.isFeatured,
     isFirst: row.isFirst,
+    isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
   };
 }
 
-export const getBlogPosts = unstable_cache(
+const getAllBlogPostsCached = unstable_cache(
   async (): Promise<BlogPost[]> => {
     const rows = await prisma.blogPost.findMany();
     return rows
@@ -36,6 +37,17 @@ export const getBlogPosts = unstable_cache(
   ["blog:list"],
   { tags: ["blog:list"], revalidate: 300 }
 );
+
+// Unfiltered — includes posts toggled off ("Status") for admin management.
+// Public pages must use `getBlogPosts` instead.
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  return getAllBlogPostsCached();
+}
+
+export async function getBlogPosts(): Promise<BlogPost[]> {
+  const all = await getAllBlogPostsCached();
+  return all.filter((p) => p.isActive);
+}
 
 export const getFeaturedBlogPosts = unstable_cache(
   async (limit = 3): Promise<BlogPost[]> => {
@@ -50,7 +62,8 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefi
   return unstable_cache(
     async () => {
       const row = await prisma.blogPost.findUnique({ where: { slug } });
-      return row ? toBlogPost(row) : undefined;
+      if (!row || !row.isActive) return undefined;
+      return toBlogPost(row);
     },
     [`blog:${slug}`],
     { tags: [`blog:${slug}`], revalidate: 300 }
@@ -83,6 +96,16 @@ export async function setBlogPostFirst(id: string, isFirst: boolean): Promise<Bl
   const row = await prisma.blogPost.update({
     where: { id },
     data: { isFirst },
+  });
+  purgeTag("blog:list");
+  purgeTag(`blog:${row.slug}`);
+  return toBlogPost(row);
+}
+
+export async function setBlogPostActive(id: string, isActive: boolean): Promise<BlogPost> {
+  const row = await prisma.blogPost.update({
+    where: { id },
+    data: { isActive },
   });
   purgeTag("blog:list");
   purgeTag(`blog:${row.slug}`);

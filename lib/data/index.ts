@@ -8,3 +8,5 @@ export * from "./reviews";
 export * from "./newsletter";
 export * from "./submittedCoupons";
 export * from "./settings";
+export * from "./redirects";
+export * from "./users";

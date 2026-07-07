@@ -5,11 +5,13 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ContactForm } from "@/components/forms/ContactForm";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Contact Us",
-  description: "Get in touch with the NovalyticDeals team.",
-  path: "/contact",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Contact Us",
+    description: "Get in touch with the NovalyticDeals team.",
+    path: "/contact",
+  });
+}
 
 export default function ContactPage() {
   return (

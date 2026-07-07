@@ -3,6 +3,7 @@ import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
 import type { Store as PrismaStore } from "@prisma/client";
+import { syncCouponWithStoreEvent } from "./events";
 
 function throwIfSlugConflict(error: unknown): never {
   if (
@@ -133,6 +134,10 @@ export async function setStoreFeatured(id: string, isFeatured: boolean): Promise
   return toStore(row);
 }
 
+// Toggling a store's Status cascades to its coupons: hiding the store hides
+// every one of its coupons, reactivating it only reactivates coupons that
+// haven't expired (expiresAt null or in the future) — an expired coupon
+// stays Hidden even after its store comes back Active.
 export async function setStoreActive(id: string, isActive: boolean): Promise<Store> {
   const row = await prisma.store.update({
     where: { id },
@@ -140,6 +145,33 @@ export async function setStoreActive(id: string, isActive: boolean): Promise<Sto
   });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
+
+  const affectedCoupons = await prisma.coupon.findMany({
+    where: isActive
+      ? { storeId: id, OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] }
+      : { storeId: id },
+    select: { id: true, slug: true, exclusive: true },
+  });
+
+  if (affectedCoupons.length > 0) {
+    await prisma.coupon.updateMany({
+      where: { id: { in: affectedCoupons.map((c) => c.id) } },
+      data: { isActive },
+    });
+    purgeTag("coupons:list");
+    for (const coupon of affectedCoupons) {
+      purgeTag(`coupon:${coupon.slug}`);
+      if (isActive) {
+        await syncCouponWithStoreEvent({
+          id: coupon.id,
+          storeId: id,
+          exclusive: coupon.exclusive,
+          isActive: true,
+        });
+      }
+    }
+  }
+
   return toStore(row);
 }
 
@@ -155,10 +187,36 @@ export async function incrementStoreClickCount(id: string): Promise<Store | unde
   }
 }
 
+// Coupon/Review rows cascade-delete at the DB level (see prisma/schema.prisma
+// onDelete: Cascade), so nothing to do there — but their cache tags and any
+// stale references left in Event.couponId (a denormalized String[], not a
+// real FK) aren't covered by that cascade and must be cleaned up here.
 export async function deleteStore(id: string): Promise<void> {
+  const coupons = await prisma.coupon.findMany({
+    where: { storeId: id },
+    select: { id: true, slug: true },
+  });
+
   const row = await prisma.store.delete({ where: { id } });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
+
+  if (coupons.length === 0) return;
+
+  purgeTag("coupons:list");
+  const couponIds = coupons.map((c) => c.id);
+  for (const coupon of coupons) purgeTag(`coupon:${coupon.slug}`);
+
+  const events = await prisma.event.findMany({
+    where: { couponId: { hasSome: couponIds } },
+    select: { id: true, slug: true, couponId: true },
+  });
+  for (const event of events) {
+    const remaining = event.couponId.filter((cid) => !couponIds.includes(cid));
+    await prisma.event.update({ where: { id: event.id }, data: { couponId: remaining } });
+    purgeTag(`event:${event.slug}`);
+  }
+  if (events.length > 0) purgeTag("events:list");
 }
 
 export interface AdminStoreFields {

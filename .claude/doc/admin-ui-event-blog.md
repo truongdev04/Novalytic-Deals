@@ -52,8 +52,45 @@ Hoàn thiện admin CRUD cho Event (form, danh sách, Featured Coupons) và Blog
 - Có 1 hydration warning không liên quan phát hiện tình cờ ở `CouponTable.tsx` (định dạng ngày lệch giữa server/client) — chưa fix, ngoài phạm vi các yêu cầu trong session này.
 - Trang public `/blog`'s phần "Topics" hiện vẫn dựa trên field `tags` (tự do), CHƯA nối với model `BlogTopic` mới — theo đúng quyết định giữ nguyên phạm vi ban đầu.
 
-## 4. Bước tiếp theo
+## 4. Bước tiếp theo (tính đến hết session 2026-07-06)
 
 a. User cần tự đăng nhập `/admin` và xác nhận trực tiếp trên UI thật các flow đã sửa trong session (đặc biệt: Featured Coupons dropdown, auto-seed exclusive coupon, Blog Topics CRUD + sidebar submenu, Author Avatar/Name behavior) — nhiều thay đổi mới chỉ được xác minh qua typecheck/lint/curl, chưa qua thao tác tay thật.
 b. Nếu muốn "Topics" công khai trên `/blog` phản ánh đúng `BlogTopic` mới thay vì `tags` tự do — cần một task riêng (ngoài phạm vi đã làm).
 c. Hydration warning ở `CouponTable.tsx` (ngày tạo lệch server/client) — có thể fix riêng nếu cần, hiện chưa động tới.
+
+## 5. Session update — 2026-07-07
+
+**Blog Body — rich-text toolbar (skill `rich-text-toolbar`), giữ hành vi "## Heading"**
+- `components/admin/RichTextEditor.tsx` (component dùng chung với Store's Description/About Store/How To Apply): tắt input-rule mặc định của Tiptap Heading (`StarterKit.configure({ heading: false })` + `Heading.configure({ levels: [1,2,3,4] }).extend({ addInputRules: () => [] })`, thêm `@tiptap/extension-heading` làm dependency trực tiếp trong `package.json`) — gõ `"## "` không còn tự nhảy thành heading thật, chữ `##` ở lại làm text thường; nút Heading dropdown trên toolbar vẫn hoạt động bình thường (chỉ mất gõ tắt).
+- `lib/blog.ts`: viết lại `parseBlogSections()` để nhận cả 2 dạng input — HTML thật (Tiptap, bài mới) và plain text cũ (8 bài đã seed từ `data/blog.json`). Cả hai đều theo đúng 1 quy tắc: block nào có text bắt đầu bằng `"## "` → section/Table-of-Contents mới, **độc lập hoàn toàn với heading style thật** (một `<h3>` thật xen giữa không bị tính là mục lục). `BlogSection.paragraphs: string[]` đổi thành `bodyHtml: string` để giữ nguyên format/ảnh/bảng/list lồng nhau trong mỗi section. Có bộ quét block-level top-level tự viết (đếm độ sâu theo tên tag, xử lý đúng list lồng list) — không thêm dependency HTML-parser ngoài.
+- `app/blog/[slug]/page.tsx`: render mỗi section bằng `<RichHtml html={section.bodyHtml} />` thay vì map từng đoạn văn plain text; `TableOfContents.tsx` không đổi (chỉ dùng `id`/`heading`).
+- `components/admin/BlogForm.tsx`: Body đổi từ `<textarea>` sang `Controller` + `RichTextEditor` (mirror Store), gọi `resolveRichTextImages(data.body)` trong `onSubmit` để upload ảnh chèn/dán lên Cloudinary lúc Create/Update Post.
+- Verify: test script mô phỏng HTML Tiptap thật chạy qua `parseBlogSections` (nested `<ul>`, `<table>`, ảnh, `<h3>` thật xen giữa) — tất cả assertion pass; curl 1 bài cũ đã seed xác nhận backward-compat 100% (không cần sửa tay).
+
+**Blog Status (`isActive`) — mirror pattern Store/Coupon**
+- Thêm `isActive Boolean @default(true)` vào `BlogPost` (`prisma/schema.prisma` + migration `20260707041129_blog_post_is_active`, đã `prisma migrate deploy` lên Supabase thật, kèm index).
+- `lib/data/blog.ts`: tách `getAllBlogPosts()` (không lọc — cho admin) / `getBlogPosts()` (lọc `isActive` — cho public), đúng pattern `getAllStores`/`getStores` và `getAllCoupons`/`getCoupons` đã có sẵn trong repo. `getBlogPostBySlug` trả `undefined` (→ 404) nếu bài đang Hidden. Thêm `setBlogPostActive(id, isActive)`.
+- `app/api/admin/blog/[id]/route.ts` PATCH nhận thêm `{isActive}`; `app/admin/blog/page.tsx` và `app/api/admin/blog/route.ts` (GET) đổi sang gọi `getAllBlogPosts()` để admin luôn thấy cả bài Hidden.
+- `types/blog.ts` thêm `isActive: boolean`.
+- `BlogTable.tsx`: thêm cột **Status** (Active/Hidden) ngay sau cột **First**, dùng đúng màu (`brand`/`red`) và `triggerClassName="w-20"` như Store/Coupon.
+- Bug phát hiện lúc test (đã fix, chỉ ảnh hưởng máy dev): cache đĩa của `unstable_cache` (`.next/dev/cache/fetch-cache`) giữ nguyên dữ liệu blog tính toán từ trước khi có cột `isActive` → `/api/blog` trả về rỗng dù DB đúng (object cũ thiếu field `isActive` nên `.filter(p => p.isActive)` loại hết). Khắc phục bằng xoá thư mục cache + restart dev server sau mỗi lần đổi schema — không phải bug logic.
+- Verify: set trực tiếp `isActive=false` qua DB cho 1 bài → trang detail 404 + biến mất khỏi `/api/blog` (9→8); bật lại → khôi phục đúng 200/9 bài.
+
+**BlogTable — filter, bỏ ghim, fix bug không cuộn được**
+- Thêm 3 dropdown filter Featured/First/Status cạnh ô search (mirror đúng `selectClassName`/`BOOL_FILTER_ALL` pattern của `CouponTable.tsx`).
+- `app/admin/blog/page.tsx`: bỏ logic ghim Featured/First lên đầu — giờ danh sách admin chỉ sort theo `createdAt desc` (bài mới tạo lên đầu).
+- Fix bug không cuộn/không thấy hết dropdown khi đổi Status/Featured/First ở các dòng gần cuối bảng: div bọc `<table>` trong `BlogTable.tsx` đang dùng `overflow-hidden` (cắt mất phần dropdown menu tràn xuống dưới khung bảng) trong khi `StoreTable.tsx`/`CouponTable.tsx` đều dùng `overflow-x-auto` — đổi lại cho khớp.
+
+**Sidebar — Blog không tự thu gọn khi rời trang**
+- `AdminSidebar.tsx`: `openLabel` (điều khiển submenu Blog mở/đóng) trước đó chỉ tính một lần lúc mount qua `useState(() => ...)`; do sidebar không remount khi chuyển route (chỉ `pathname` đổi), Blog cứ giữ mở dù đã sang trang khác (Coupons, Submissions, ...).
+- Fix bằng pattern React "adjust state during render" — so `pathname` hiện tại với `prevPathname` lưu trong state ngay trong thân hàm component, khác thì `setOpenLabel(activeParentLabel())` lại ngay lúc render. Cố tình **không** dùng `useEffect` vì lint rule `react-hooks/set-state-in-effect` chặn gọi setState trực tiếp trong effect cho giá trị derive thuần từ prop khác (gây thêm 1 lần render/commit thừa không cần thiết).
+- Việc tự bấm chevron mở/đóng thủ công vẫn hoạt động bình thường (không bị ghi đè) vì logic reset chỉ chạy khi `pathname` thực sự đổi.
+
+**Trạng thái hiện tại (cập nhật)**
+- `npm run typecheck` và `npm run lint` sạch xuyên suốt (chỉ còn đúng 1 warning cũ không liên quan, như session trước).
+- 1 migration mới đã áp dụng lên Supabase thật (`20260707041129_blog_post_is_active`), theo đúng quy trình `prisma migrate deploy` (không dùng `migrate dev`) đã thiết lập từ session trước.
+- Toàn bộ thay đổi trong session này (rich-text Body, Status column, filter dropdowns, sort mới, fix sidebar) mới chỉ verify qua typecheck/lint/curl/test script + toggle trực tiếp DB — **chưa** qua thao tác tay thật trên UI (không có session đăng nhập NextAuth qua curl, môi trường không có tool điều khiển browser).
+
+**Bước tiếp theo (session 2026-07-07)**
+d. User cần tự đăng nhập `/admin/blog` và xác nhận bằng tay: gõ `## Heading` trong Body không tự nhảy thành heading thật, format/chèn ảnh/bảng qua toolbar mới hoạt động đúng; dropdown Status/Featured/First đổi được và không còn bị cắt ở các dòng cuối bảng; 3 filter mới lọc đúng; danh sách sort theo ngày tạo (không còn ghim Featured/First); vào Blog rồi chuyển sang trang khác thấy submenu tự thu gọn.
+e. Các mục (b) và (c) ở Bước tiếp theo của session 2026-07-06 vẫn còn nguyên, chưa làm.

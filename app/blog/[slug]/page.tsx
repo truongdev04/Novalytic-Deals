@@ -8,6 +8,7 @@ import { TableOfContents } from "@/components/blog/TableOfContents";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { Badge } from "@/components/ui/Badge";
+import { RichHtml } from "@/components/ui/RichHtml";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { articleJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -31,7 +32,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);
   if (!post) return {};
-  return buildMetadata({
+  return await buildMetadata({
     title: post.seo.title,
     description: post.seo.description,
     path: `/blog/${post.slug}`,
@@ -85,11 +86,10 @@ export default async function BlogPostPage({
             {sections.map((section) => (
               <section key={section.id} id={section.id} className="scroll-mt-24">
                 <h2 className="font-heading text-xl font-semibold text-brand-950">{section.heading}</h2>
-                <div className="mt-3 space-y-4 text-muted-700 leading-relaxed">
-                  {section.paragraphs.map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
-                </div>
+                <RichHtml
+                  html={section.bodyHtml}
+                  className="mt-3 space-y-4 text-muted-700 leading-relaxed"
+                />
               </section>
             ))}
           </div>

@@ -66,8 +66,18 @@ export async function PATCH(
     return jsonOk(coupon);
   }
   if (typeof body?.isActive === "boolean") {
-    const coupon = await setCouponActive(id, body.isActive);
-    return jsonOk(coupon);
+    try {
+      const coupon = await setCouponActive(id, body.isActive);
+      return jsonOk(coupon);
+    } catch (error) {
+      if (error instanceof Error && error.message === "COUPON_EXPIRED") {
+        return jsonError(409, "Cannot activate: this coupon has already expired.");
+      }
+      if (error instanceof Error && error.message === "STORE_INACTIVE") {
+        return jsonError(409, "Cannot activate: the store is currently inactive.");
+      }
+      return jsonError(500, "Failed to update coupon");
+    }
   }
   return jsonError(400, "Invalid coupon data");
 }

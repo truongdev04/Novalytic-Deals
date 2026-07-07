@@ -3,11 +3,13 @@ import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Privacy Policy",
-  description: "How NovalyticDeals collects, uses, and protects your information.",
-  path: "/privacy",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Privacy Policy",
+    description: "How NovalyticDeals collects, uses, and protects your information.",
+    path: "/privacy",
+  });
+}
 
 const sections = [
   {

@@ -33,7 +33,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
   if (!category) return {};
-  return buildMetadata({
+  return await buildMetadata({
     title: category.seo.title,
     description: category.seo.description,
     path: `/categories/${category.slug}`,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Tag } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Newsletter } from "@/components/ui/Newsletter";
+import { getGeneralSettings } from "@/lib/data";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -27,17 +28,28 @@ const quickLinks = [
   { name: "Deals", href: "/deals" },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const settings = await getGeneralSettings();
+
   return (
     <footer className="bg-brand-950 text-brand-100">
       <Container className="grid grid-cols-2 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="col-span-2 lg:col-span-1">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Tag className="h-5 w-5" />
-            </span>
+            {settings.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
+              <img
+                src={settings.logoUrl}
+                alt={settings.title}
+                className="h-9 w-9 rounded-lg object-contain"
+              />
+            ) : (
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+                <Tag className="h-5 w-5" />
+              </span>
+            )}
             <span className="font-heading text-lg font-semibold text-white">
-              NovalyticDeals
+              {settings.title || "NovalyticDeals"}
             </span>
           </Link>
           <p className="mt-4 max-w-xs text-sm text-brand-200">

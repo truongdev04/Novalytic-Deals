@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Tag } from "lucide-react";
-import { getEvents, getStores, getCategories } from "@/lib/data";
+import { getEvents, getStores, getCategories, getGeneralSettings } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { EventsDropdown } from "@/components/layout/EventsDropdown";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -15,10 +15,11 @@ const navLinks = [
 ];
 
 export async function Header() {
-  const [events, stores, categories] = await Promise.all([
+  const [events, stores, categories, settings] = await Promise.all([
     getEvents(),
     getStores(),
     getCategories(),
+    getGeneralSettings(),
   ]);
   const suggestions = [
     ...stores.map((s) => s.name),
@@ -29,11 +30,20 @@ export async function Header() {
     <header className="sticky top-0 z-30 border-b border-muted-200 bg-surface-0/95 backdrop-blur">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <Tag className="h-5 w-5" />
-          </span>
+          {settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
+            <img
+              src={settings.logoUrl}
+              alt={settings.title}
+              className="h-9 w-9 rounded-lg object-contain"
+            />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+              <Tag className="h-5 w-5" />
+            </span>
+          )}
           <span className="font-heading text-lg font-semibold text-brand-950">
-            NovalyticDeals
+            {settings.title || "NovalyticDeals"}
           </span>
         </Link>
 

@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-50">
-      <AdminSidebar />
+      <AdminSidebar role={session.user?.role} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <AdminTopbar email={session.user?.email ?? ""} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

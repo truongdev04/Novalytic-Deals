@@ -5,3 +5,4 @@ export * from "./blog";
 export * from "./blogTopic";
 export * from "./event";
 export * from "./review";
+export * from "./settings";

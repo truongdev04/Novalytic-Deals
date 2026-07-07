@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import { slugify } from "@/lib/utils";
 import type { BlogPost, BlogTopic, Category } from "@/types";
 
@@ -104,9 +106,10 @@ export function BlogForm({
 
   async function onSubmit(data: AdminBlogPostInput) {
     try {
-      const [coverImage, authorAvatarUrl] = await Promise.all([
+      const [coverImage, authorAvatarUrl, body] = await Promise.all([
         uploadIfPending(data.coverImage, pendingCoverFile, pendingCoverProvider, "cover image"),
         uploadIfPending(data.authorAvatarUrl, pendingAvatarFile, pendingAvatarProvider, "author avatar"),
+        resolveRichTextImages(data.body),
       ]);
       if ((pendingCoverFile && coverImage === null) || (pendingAvatarFile && authorAvatarUrl === null)) {
         return;
@@ -116,7 +119,7 @@ export function BlogForm({
       const res = await fetch(endpoint, {
         method: post ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, coverImage, authorAvatarUrl }),
+        body: JSON.stringify({ ...data, coverImage, authorAvatarUrl, body }),
       });
       if (!res.ok) throw new Error("save failed");
       toast.success(post ? "Blog post updated." : "Blog post created.");
@@ -276,13 +279,26 @@ export function BlogForm({
           </div>
 
           <div>
-            <label htmlFor="body" className="mb-1.5 block text-sm font-medium text-brand-950">
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">
               Body{requiredMark()}
-            </label>
+            </span>
             <p className="mb-1.5 text-xs text-muted-400">
-              Use <code>## Heading</code> lines with blank lines between paragraphs.
+              A line starting with <code>## </code> starts a new Table of Contents section —
+              this is independent of the Heading style button on the toolbar.
             </p>
-            <textarea id="body" rows={16} className={fieldClassName} {...register("body")} />
+            <Controller
+              control={control}
+              name="body"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder={"## Section title\n\nWrite the section content here."}
+                  minHeightClassName="min-h-64"
+                  maxHeightClassName="max-h-[32rem]"
+                />
+              )}
+            />
             {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
           </div>
 

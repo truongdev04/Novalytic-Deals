@@ -6,6 +6,7 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
+import Heading from "@tiptap/extension-heading";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
@@ -466,7 +467,15 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ heading: false }),
+      // Blog's Body field detects `## ` typed at the start of a line as its
+      // own Table-of-Contents section marker (see lib/blog.ts), separate
+      // from this toolbar's Heading dropdown. StarterKit's default Heading
+      // extension has an input rule that eats "## " and converts it into a
+      // real heading node before that text can ever be read back — dropping
+      // just the input rule here (keeping toggleHeading for the dropdown)
+      // lets "##" stay as plain visible text.
+      Heading.configure({ levels: [1, 2, 3, 4] }).extend({ addInputRules: () => [] }),
       Underline,
       TextAlign.configure({ types: ["paragraph", "heading"] }),
       Link.configure({ openOnClick: false, autolink: true }),

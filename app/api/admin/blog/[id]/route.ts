@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import {
   deleteBlogPost,
   getBlogPostById,
+  setBlogPostActive,
   setBlogPostFeatured,
   setBlogPostFirst,
   updateBlogPost,
@@ -54,6 +55,11 @@ export async function PATCH(
 
   if (typeof body?.isFirst === "boolean") {
     const post = await setBlogPostFirst(id, body.isFirst);
+    return jsonOk(post);
+  }
+
+  if (typeof body?.isActive === "boolean") {
+    const post = await setBlogPostActive(id, body.isActive);
     return jsonOk(post);
   }
 

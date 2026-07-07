@@ -7,12 +7,14 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = buildMetadata({
-  title: "Seasonal Events & Sales — NovalyticDeals",
-  description:
-    "Black Friday, Cyber Monday, Christmas, and every major sales event — curated coupons in one place.",
-  path: "/events",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Seasonal Events & Sales — NovalyticDeals",
+    description:
+      "Black Friday, Cyber Monday, Christmas, and every major sales event — curated coupons in one place.",
+    path: "/events",
+  });
+}
 
 export default async function EventsPage() {
   const events = await getEvents();

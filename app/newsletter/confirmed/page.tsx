@@ -5,11 +5,13 @@ import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Subscription confirmed",
-  description: "Your NovalyticDeals newsletter subscription is confirmed.",
-  path: "/newsletter/confirmed",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Subscription confirmed",
+    description: "Your NovalyticDeals newsletter subscription is confirmed.",
+    path: "/newsletter/confirmed",
+  });
+}
 
 export default function NewsletterConfirmedPage() {
   return (

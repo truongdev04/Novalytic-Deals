@@ -44,6 +44,11 @@ enum SubmissionStatus {
   REJECTED
 }
 
+enum RedirectType {
+  PERMANENT
+  TEMPORARY
+}
+
 model Store {
   id               String   @id
   slug             String   @unique
@@ -156,12 +161,14 @@ model BlogPost {
   seo             Json
   isFeatured      Boolean    @default(false)
   isFirst         Boolean    @default(false)
+  isActive        Boolean    @default(true)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
   @@index([categoryId])
   @@index([topicId])
   @@index([publishedAt])
+  @@index([isActive])
   @@map("blog_posts")
 }
 
@@ -262,4 +269,16 @@ model User {
   updatedAt      DateTime  @updatedAt
 
   @@map("users")
+}
+
+model RedirectRule {
+  id          String       @id @default(cuid())
+  source      String       @unique
+  destination String
+  type        RedirectType @default(PERMANENT)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("redirect_rules")
 }

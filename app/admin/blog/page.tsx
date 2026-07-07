@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { getBlogPosts } from "@/lib/data";
+import { getAllBlogPosts } from "@/lib/data";
 import { BlogTable } from "@/components/admin/BlogTable";
 
 export default async function AdminBlogPage() {
-  const posts = await getBlogPosts();
+  const posts = await getAllBlogPosts();
   // Public pages want getBlogPosts()'s publish-date order; the admin list
-  // wants Featured/First posts pinned to the top, newest-created first
-  // within each group, so re-sort a copy here instead of changing the
-  // shared cached order.
-  const postsForAdmin = [...posts].sort((a, b) => {
-    const aPriority = a.isFeatured || a.isFirst ? 1 : 0;
-    const bPriority = b.isFeatured || b.isFirst ? 1 : 0;
-    if (aPriority !== bPriority) return bPriority - aPriority;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  // wants newest-created posts first instead, so re-sort a copy here rather
+  // than changing the shared cached order.
+  const postsForAdmin = [...posts].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return (
     <div>

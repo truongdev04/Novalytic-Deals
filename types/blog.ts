@@ -20,5 +20,6 @@ export interface BlogPost {
   seo: BlogSeo;
   isFeatured: boolean;
   isFirst: boolean;
+  isActive: boolean;
   createdAt: string;
 }

@@ -34,7 +34,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const store = await getStoreBySlug(slug);
   if (!store) return {};
-  return buildMetadata({
+  return await buildMetadata({
     title: store.seo.title,
     description: store.seo.description,
     path: `/store/${store.slug}`,

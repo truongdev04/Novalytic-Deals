@@ -22,11 +22,13 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { buildQueryUrl } from "@/lib/utils";
 import type { CouponFilters } from "@/lib/data/coupons";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Search Coupons, Deals & Stores",
-  description: "Search thousands of verified coupon codes, deals, and stores.",
-  path: "/search",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Search Coupons, Deals & Stores",
+    description: "Search thousands of verified coupon codes, deals, and stores.",
+    path: "/search",
+  });
+}
 
 const PAGE_SIZE = 9;
 const SORT_VALUES: CouponFilters["sort"][] = ["relevance", "expiring", "newest", "discount"];

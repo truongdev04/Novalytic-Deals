@@ -4,11 +4,13 @@ import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = buildMetadata({
-  title: "About Us",
-  description: "Learn more about NovalyticDeals and our mission to help you save more.",
-  path: "/about",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "About Us",
+    description: "Learn more about NovalyticDeals and our mission to help you save more.",
+    path: "/about",
+  });
+}
 
 const values = [
   {
