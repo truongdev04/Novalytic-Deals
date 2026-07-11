@@ -3,6 +3,7 @@ import {
   filterCoupons,
   getCategories,
   getCategoryBySlug,
+  getContentConfigSettings,
   getCoupons,
   getStores,
   getStoreBySlug,
@@ -30,7 +31,6 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const PAGE_SIZE = 9;
 const SORT_VALUES: CouponFilters["sort"][] = ["relevance", "expiring", "newest", "discount"];
 
 function parseSort(value?: string): CouponFilters["sort"] {
@@ -53,14 +53,16 @@ export default async function SearchPage({
   const params = await searchParams;
   const query = params.q ?? "";
 
-  const [categories, stores, category, store, matchingStores, allCoupons] = await Promise.all([
-    getCategories(),
-    getStores(),
-    params.category ? getCategoryBySlug(params.category) : undefined,
-    params.store ? getStoreBySlug(params.store) : undefined,
-    query ? searchStores(query) : Promise.resolve([]),
-    getCoupons(),
-  ]);
+  const [categories, stores, category, store, matchingStores, allCoupons, config] =
+    await Promise.all([
+      getCategories(),
+      getStores(),
+      params.category ? getCategoryBySlug(params.category) : undefined,
+      params.store ? getStoreBySlug(params.store) : undefined,
+      query ? searchStores(query) : Promise.resolve([]),
+      getCoupons(),
+      getContentConfigSettings(),
+    ]);
   const couponCountByStore = new Map<string, number>();
   for (const coupon of allCoupons) {
     couponCountByStore.set(coupon.storeId, (couponCountByStore.get(coupon.storeId) ?? 0) + 1);
@@ -73,9 +75,10 @@ export default async function SearchPage({
     sort: parseSort(params.sort),
   });
 
+  const pageSize = config.pagination.searchPageSize;
   const currentPage = Math.max(1, Number(params.page) || 1);
-  const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
-  const pageItems = allFiltered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(allFiltered.length / pageSize));
+  const pageItems = allFiltered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const storeById = new Map(stores.map((s) => [s.id, s]));
 
   const activeFilters: ActiveFilter[] = [];

@@ -22,6 +22,7 @@ import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { couponOfferJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { stripHtml } from "@/lib/utils";
+import { resolveCouponContent } from "@/lib/content/defaults";
 
 export const revalidate = 300;
 
@@ -38,9 +39,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const coupon = await getCouponBySlug(slug);
-  if (!coupon) return {};
-  const store = await getStoreById(coupon.storeId);
+  const rawCoupon = await getCouponBySlug(slug);
+  if (!rawCoupon) return {};
+  const store = await getStoreById(rawCoupon.storeId);
+  const coupon = await resolveCouponContent(rawCoupon, store?.name ?? "");
   return await buildMetadata({
     title: `${coupon.title} — ${store?.name ?? ""} Coupon`,
     description: coupon.description,
@@ -55,11 +57,12 @@ export default async function CouponPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const coupon = await getCouponBySlug(slug);
-  if (!coupon) notFound();
+  const rawCoupon = await getCouponBySlug(slug);
+  if (!rawCoupon) notFound();
 
-  const store = await getStoreById(coupon.storeId);
+  const store = await getStoreById(rawCoupon.storeId);
   if (!store) notFound();
+  const coupon = await resolveCouponContent(rawCoupon, store.name);
 
   const relatedCoupons = await getRelatedCoupons(coupon, 4);
 

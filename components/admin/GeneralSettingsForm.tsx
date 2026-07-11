@@ -110,6 +110,50 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
         )}
       </div>
 
+      <div>
+        <label htmlFor="slogan" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Slogan <span className="text-muted-400">(optional)</span>
+        </label>
+        <input
+          id="slogan"
+          placeholder="e.g. Save more, shop smarter"
+          className={fieldClassName}
+          {...register("slogan")}
+        />
+        <p className="mt-1 text-xs text-muted-500">Shown under the site title in the header.</p>
+      </div>
+
+      <div>
+        <label htmlFor="topDescription" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Top Description <span className="text-muted-400">(optional)</span>
+        </label>
+        <textarea
+          id="topDescription"
+          rows={2}
+          className={fieldClassName}
+          {...register("topDescription")}
+        />
+        <p className="mt-1 text-xs text-muted-500">Shown under the Slogan in the header.</p>
+      </div>
+
+      <div>
+        <label
+          htmlFor="bottomDescription"
+          className="mb-1.5 block text-sm font-medium text-brand-950"
+        >
+          Bottom Description <span className="text-muted-400">(optional)</span>
+        </label>
+        <textarea
+          id="bottomDescription"
+          rows={2}
+          className={fieldClassName}
+          {...register("bottomDescription")}
+        />
+        <p className="mt-1 text-xs text-muted-500">
+          Shown under the logo in the footer, replacing the default tagline.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <Controller
           key={`logo-${imagesVersion}`}
@@ -168,6 +212,67 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
             />
           )}
         />
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-muted-200 p-4">
+        <h3 className="font-heading text-sm font-semibold text-brand-950">Company info</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="companyName"
+              className="mb-1.5 block text-sm font-medium text-brand-950"
+            >
+              Company name <span className="text-muted-400">(optional)</span>
+            </label>
+            <input id="companyName" className={fieldClassName} {...register("companyName")} />
+          </div>
+          <div>
+            <label htmlFor="hotline" className="mb-1.5 block text-sm font-medium text-brand-950">
+              Hotline <span className="text-muted-400">(optional)</span>
+            </label>
+            <input id="hotline" className={fieldClassName} {...register("hotline")} />
+          </div>
+          <div>
+            <label htmlFor="address" className="mb-1.5 block text-sm font-medium text-brand-950">
+              Address <span className="text-muted-400">(optional)</span>
+            </label>
+            <input id="address" className={fieldClassName} {...register("address")} />
+          </div>
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-brand-950">
+              Email <span className="text-muted-400">(optional)</span>
+            </label>
+            <input id="email" className={fieldClassName} {...register("email")} />
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+          </div>
+        </div>
+        <div>
+          <label htmlFor="copyright" className="mb-1.5 block text-sm font-medium text-brand-950">
+            Copyright <span className="text-muted-400">(optional)</span>
+          </label>
+          <input
+            id="copyright"
+            placeholder="© {year} Your Company. All rights reserved."
+            className={fieldClassName}
+            {...register("copyright")}
+          />
+          <p className="mt-1 text-xs text-muted-500">
+            Leave blank to auto-generate from Company name. Use <code>{"{year}"}</code> as a
+            placeholder for the current year.
+          </p>
+        </div>
+        <div>
+          <label htmlFor="contactIntro" className="mb-1.5 block text-sm font-medium text-brand-950">
+            Contact page intro <span className="text-muted-400">(optional)</span>
+          </label>
+          <textarea
+            id="contactIntro"
+            rows={3}
+            className={fieldClassName}
+            {...register("contactIntro")}
+          />
+          <p className="mt-1 text-xs text-muted-500">Shown above the contact form on /contact.</p>
+        </div>
       </div>
 
       <div className="space-y-2 rounded-lg border border-muted-200 p-4">

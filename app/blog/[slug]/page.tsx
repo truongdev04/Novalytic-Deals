@@ -14,8 +14,12 @@ import { articleJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { parseBlogSections } from "@/lib/blog";
 import { formatDate } from "@/lib/utils";
+import { resolveBlogContent } from "@/lib/content/defaults";
 
-export const revalidate = 300;
+// "Permanent" — cached until an admin edit purges it (purgeTag("blog:${slug}")
+// in lib/data/blog.ts), not on a time-based schedule. A published post rarely
+// changes on its own.
+export const revalidate = false;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
@@ -30,8 +34,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getBlogPostBySlug(slug);
-  if (!post) return {};
+  const rawPost = await getBlogPostBySlug(slug);
+  if (!rawPost) return {};
+  const post = await resolveBlogContent(rawPost);
   return await buildMetadata({
     title: post.seo.title,
     description: post.seo.description,
@@ -46,10 +51,11 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = await getBlogPostBySlug(slug);
-  if (!post) notFound();
+  const rawPost = await getBlogPostBySlug(slug);
+  if (!rawPost) notFound();
+  const post = await resolveBlogContent(rawPost);
 
-  const relatedPosts = await getRelatedBlogPosts(post, 3);
+  const relatedPosts = await getRelatedBlogPosts(rawPost, 3);
   const sections = parseBlogSections(post.body);
 
   return (

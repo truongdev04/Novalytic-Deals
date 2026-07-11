@@ -5,6 +5,7 @@ import {
   getFeaturedBlogPosts,
   getTrendingDeals,
   getCoupons,
+  getContentConfigSettings,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -17,24 +18,28 @@ import { DealCard } from "@/components/coupon/DealCard";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { Newsletter } from "@/components/ui/Newsletter";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { getSeoSettings } from "@/lib/data";
 
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeoSettings();
   return buildMetadata({
-    title: "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
+    title: seo.homepageTitle || "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
     description:
+      seo.homepageDescription ||
       "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
     path: "/",
   });
 }
 
 export default async function HomePage() {
+  const config = await getContentConfigSettings();
   const [stores, categories, deals, posts, coupons] = await Promise.all([
-    getFeaturedStores(8),
-    getFeaturedCategories(8),
-    getTrendingDeals(3),
-    getFeaturedBlogPosts(3),
+    getFeaturedStores(config.pagination.featuredStoresCount),
+    getFeaturedCategories(config.pagination.featuredCategoriesCount),
+    getTrendingDeals(config.pagination.trendingDealsCount),
+    getFeaturedBlogPosts(config.pagination.featuredBlogCount),
     getCoupons(),
   ]);
 

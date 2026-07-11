@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       logoUrl: parsed.data.logoUrl,
       bannerUrl: parsed.data.bannerUrl || null,
       website: parsed.data.website,
-      description: parsed.data.description,
-      aboutStore: parsed.data.aboutStore,
+      description: parsed.data.description || "",
+      aboutStore: parsed.data.aboutStore || "",
       howToApply: parsed.data.howToApply || null,
       // Region/rating aren't collected from the admin form anymore — every new
       // store starts global with a fresh 5.0 rating and a plausible seed count.
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       affiliateNetwork: parsed.data.affiliateNetwork,
       categoryIds: parsed.data.categoryIds,
       isFeatured: parsed.data.isFeatured,
-      seo: { title: parsed.data.seoTitle, description: parsed.data.seoDescription },
+      seo: { title: parsed.data.seoTitle || "", description: parsed.data.seoDescription || "" },
       faq: parsed.data.faq,
     });
 

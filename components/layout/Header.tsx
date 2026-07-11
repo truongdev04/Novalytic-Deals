@@ -28,56 +28,69 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-muted-200 bg-surface-0/95 backdrop-blur">
-      <Container className="flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          {settings.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
-            <img
-              src={settings.logoUrl}
-              alt={settings.title}
-              className="h-9 w-9 rounded-lg object-contain"
-            />
-          ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Tag className="h-5 w-5" />
+      <Container>
+        <div className="flex min-h-16 items-center justify-between gap-4 py-2">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            {settings.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
+              <img
+                src={settings.logoUrl}
+                alt={settings.title}
+                className="h-9 w-9 rounded-lg object-contain"
+              />
+            ) : (
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+                <Tag className="h-5 w-5" />
+              </span>
+            )}
+            <span className="flex flex-col leading-tight">
+              <span className="font-heading text-lg font-semibold text-brand-950">
+                {settings.title || "NovalyticDeals"}
+              </span>
+              {settings.slogan && (
+                <span className="text-xs font-normal text-muted-500">{settings.slogan}</span>
+              )}
             </span>
-          )}
-          <span className="font-heading text-lg font-semibold text-brand-950">
-            {settings.title || "NovalyticDeals"}
-          </span>
-        </Link>
-
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
-          <Link
-            href="/"
-            className="rounded-full px-3 py-2 text-sm font-medium text-muted-700 hover:bg-surface-100 hover:text-brand-800"
-          >
-            Home
           </Link>
-          {navLinks.map((link) => (
+
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
             <Link
-              key={link.href}
-              href={link.href}
+              href="/"
               className="rounded-full px-3 py-2 text-sm font-medium text-muted-700 hover:bg-surface-100 hover:text-brand-800"
             >
-              {link.name}
+              Home
             </Link>
-          ))}
-          <EventsDropdown events={events} />
-        </nav>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full px-3 py-2 text-sm font-medium text-muted-700 hover:bg-surface-100 hover:text-brand-800"
+              >
+                {link.name}
+              </Link>
+            ))}
+            <EventsDropdown events={events} />
+          </nav>
 
-        <div className="hidden flex-1 items-center justify-end gap-3 md:flex">
-          <SearchAutocomplete
-            id="header-search-suggestions"
-            suggestions={suggestions}
-            className="max-w-xs"
-          />
-          <Button asChild size="md" className="shrink-0">
-            <Link href="/deals">Browse Deals</Link>
-          </Button>
+          <div className="hidden flex-1 items-center justify-end gap-3 md:flex">
+            <SearchAutocomplete
+              id="header-search-suggestions"
+              suggestions={suggestions}
+              className="max-w-xs"
+            />
+            <Button asChild size="md" className="shrink-0">
+              <Link href="/deals">Browse Deals</Link>
+            </Button>
+          </div>
+
+          <MobileNav events={events} />
         </div>
 
-        <MobileNav events={events} />
+        {settings.topDescription && (
+          <p className="hidden border-t border-muted-100 py-2 text-xs text-muted-500 sm:block">
+            {settings.topDescription}
+          </p>
+        )}
       </Container>
     </header>
   );

@@ -31,6 +31,9 @@ export interface Store {
   clickCount: number;
   seo: StoreSeo;
   faq: StoreFaqItem[];
+  /** Monthly-frozen SEO discount snapshot — see lib/content/storeSeoSnapshot.ts. Not admin-editable. */
+  seoDiscountSnapshot?: string | null;
+  seoDiscountSnapshotPeriod?: string | null;
   createdAt: string;
   updatedAt: string;
 }

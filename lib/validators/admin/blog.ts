@@ -3,7 +3,7 @@ import { z } from "zod";
 export const adminBlogPostSchema = z.object({
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Lowercase kebab-case only"),
   title: z.string().min(1, "Title is required"),
-  excerpt: z.string().min(1, "Excerpt is required"),
+  excerpt: z.string().optional().or(z.literal("")),
   coverImage: z.string().min(1, "Cover image is required"),
   authorName: z.string().optional().or(z.literal("")),
   authorAvatarUrl: z.string().optional().or(z.literal("")),
@@ -15,8 +15,8 @@ export const adminBlogPostSchema = z.object({
   publishedAt: z.string().min(1, "Published date is required"),
   isFeatured: z.boolean(),
   isFirst: z.boolean(),
-  seoTitle: z.string().min(1, "SEO title is required"),
-  seoDescription: z.string().min(1, "SEO description is required"),
+  seoTitle: z.string().optional().or(z.literal("")),
+  seoDescription: z.string().optional().or(z.literal("")),
 });
 
 export type AdminBlogPostInput = z.infer<typeof adminBlogPostSchema>;

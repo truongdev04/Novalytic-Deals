@@ -40,8 +40,8 @@ export async function PATCH(
         logoUrl: fullUpdate.data.logoUrl,
         bannerUrl: fullUpdate.data.bannerUrl || null,
         website: fullUpdate.data.website,
-        description: fullUpdate.data.description,
-        aboutStore: fullUpdate.data.aboutStore,
+        description: fullUpdate.data.description || "",
+        aboutStore: fullUpdate.data.aboutStore || "",
         howToApply: fullUpdate.data.howToApply || null,
         rating: existing.rating,
         ratingCount: existing.ratingCount,
@@ -49,7 +49,10 @@ export async function PATCH(
         affiliateNetwork: fullUpdate.data.affiliateNetwork,
         categoryIds: fullUpdate.data.categoryIds,
         isFeatured: fullUpdate.data.isFeatured,
-        seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
+        seo: {
+          title: fullUpdate.data.seoTitle || "",
+          description: fullUpdate.data.seoDescription || "",
+        },
         faq: fullUpdate.data.faq,
       });
       await setStoreEvent(id, fullUpdate.data.eventId);

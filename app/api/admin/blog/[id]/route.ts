@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import {
   deleteBlogPost,
+  getDefaultAuthor,
   getBlogPostById,
   setBlogPostActive,
   setBlogPostFeatured,
@@ -28,13 +29,15 @@ export async function PATCH(
   // edit form sends the complete adminBlogPostSchema shape.
   const fullUpdate = adminBlogPostSchema.safeParse(body);
   if (fullUpdate.success) {
+    const author = await getDefaultAuthor();
     const post = await updateBlogPost(id, {
       slug: fullUpdate.data.slug,
       title: fullUpdate.data.title,
-      excerpt: fullUpdate.data.excerpt,
+      excerpt: fullUpdate.data.excerpt || "",
       coverImage: fullUpdate.data.coverImage,
-      authorName: fullUpdate.data.authorName || "NovalyticDeals",
-      authorAvatarUrl: fullUpdate.data.authorAvatarUrl || "/images/logo/logo/app-icon.png",
+      authorName: fullUpdate.data.authorName || author?.name || "NovalyticDeals",
+      authorAvatarUrl:
+        fullUpdate.data.authorAvatarUrl || author?.avatarUrl || "/images/logo/logo/app-icon.png",
       tags: fullUpdate.data.tags,
       categoryId: fullUpdate.data.categoryId || null,
       topicId: fullUpdate.data.topicId || null,
@@ -43,7 +46,10 @@ export async function PATCH(
       publishedAt: new Date(fullUpdate.data.publishedAt),
       isFeatured: fullUpdate.data.isFeatured,
       isFirst: fullUpdate.data.isFirst,
-      seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
+      seo: {
+        title: fullUpdate.data.seoTitle || "",
+        description: fullUpdate.data.seoDescription || "",
+      },
     });
     return jsonOk(post);
   }

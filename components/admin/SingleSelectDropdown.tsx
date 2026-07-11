@@ -51,27 +51,6 @@ export function SingleSelectDropdown({
     if (open && searchable) searchInputRef.current?.focus();
   }, [open, searchable]);
 
-  // Lock page scroll while the dropdown is open so only the option list
-  // scrolls — reverts the moment it closes. The admin layout scrolls its
-  // <main> panel, not <body>, but html/body are locked too as a safety net
-  // (e.g. macOS trackpad momentum scroll can otherwise bleed through).
-  useEffect(() => {
-    if (!open) return;
-    const main = document.querySelector("main") as HTMLElement | null;
-    const targets = [main, document.body, document.documentElement].filter(
-      (el): el is HTMLElement => el !== null
-    );
-    const previousOverflows = targets.map((el) => el.style.overflow);
-    targets.forEach((el) => {
-      el.style.overflow = "hidden";
-    });
-    return () => {
-      targets.forEach((el, i) => {
-        el.style.overflow = previousOverflows[i];
-      });
-    };
-  }, [open]);
-
   const selected = options.find((o) => o.value === value);
   const rowHeightPx = 32;
 

@@ -18,8 +18,9 @@ import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { formatDiscount, isExpired } from "@/lib/utils";
+import { resolveStoreContent } from "@/lib/content/defaults";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   const stores = await getStores();
@@ -32,8 +33,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const store = await getStoreBySlug(slug);
-  if (!store) return {};
+  const rawStore = await getStoreBySlug(slug);
+  if (!rawStore) return {};
+  const store = await resolveStoreContent(rawStore);
   return await buildMetadata({
     title: store.seo.title,
     description: store.seo.description,
@@ -48,8 +50,9 @@ export default async function StorePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const store = await getStoreBySlug(slug);
-  if (!store) notFound();
+  const rawStore = await getStoreBySlug(slug);
+  if (!rawStore) notFound();
+  const store = await resolveStoreContent(rawStore);
 
   const [coupons, relatedStores] = await Promise.all([
     getCouponsByStore(store.id),

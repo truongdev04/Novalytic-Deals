@@ -3,6 +3,7 @@ import {
   filterCoupons,
   getCategories,
   getCategoryBySlug,
+  getContentConfigSettings,
   getStores,
   getStoreBySlug,
 } from "@/lib/data";
@@ -37,8 +38,6 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const PAGE_SIZE = 9;
-
 export default async function DealsPage({
   searchParams,
 }: {
@@ -51,11 +50,12 @@ export default async function DealsPage({
   }>;
 }) {
   const params = await searchParams;
-  const [categories, stores, category, store] = await Promise.all([
+  const [categories, stores, category, store, config] = await Promise.all([
     getCategories(),
     getStores(),
     params.category ? getCategoryBySlug(params.category) : undefined,
     params.store ? getStoreBySlug(params.store) : undefined,
+    getContentConfigSettings(),
   ]);
 
   const allFiltered = await filterCoupons({
@@ -65,9 +65,10 @@ export default async function DealsPage({
     sort: parseSort(params.sort),
   });
 
+  const pageSize = config.pagination.dealsPageSize;
   const currentPage = Math.max(1, Number(params.page) || 1);
-  const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
-  const pageItems = allFiltered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(allFiltered.length / pageSize));
+  const pageItems = allFiltered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const storeById = new Map(stores.map((s) => [s.id, s]));
 

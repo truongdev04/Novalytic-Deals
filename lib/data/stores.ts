@@ -38,6 +38,8 @@ function toStore(row: PrismaStore): Store {
     clickCount: row.clickCount,
     seo: row.seo as unknown as StoreSeo,
     faq: row.faq as unknown as StoreFaqItem[],
+    seoDiscountSnapshot: row.seoDiscountSnapshot,
+    seoDiscountSnapshotPeriod: row.seoDiscountSnapshotPeriod,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -80,8 +82,27 @@ export async function getStoreBySlug(slug: string): Promise<Store | undefined> {
       return toStore(row);
     },
     [`store:${slug}`],
-    { tags: [`store:${slug}`], revalidate: 300 }
+    { tags: [`store:${slug}`], revalidate: 86400 }
   )();
+}
+
+// Narrow write for the monthly-frozen SEO discount snapshot (see
+// lib/content/storeSeoSnapshot.ts) — touches only these 2 columns, never
+// exposed through the admin edit form/AdminStoreFields. Not purged via
+// purgeTag: only the store page reads these fields (through getStoreBySlug),
+// and that page only re-renders when its own ISR cache is stale/purged by an
+// actual admin edit — this write doesn't need to force an extra refresh.
+export async function updateStoreSeoDiscountSnapshot(
+  id: string,
+  snapshot: { discountLabel: string | null; period: string }
+): Promise<void> {
+  await prisma.store.update({
+    where: { id },
+    data: {
+      seoDiscountSnapshot: snapshot.discountLabel,
+      seoDiscountSnapshotPeriod: snapshot.period,
+    },
+  });
 }
 
 // Unfiltered lookup by id — used by admin editing and internal flows
@@ -172,6 +193,21 @@ export async function setStoreActive(id: string, isActive: boolean): Promise<Sto
     }
   }
 
+  // Deals have no expiry concept, so unlike coupons the cascade is
+  // unconditional: hiding the store hides all its deals, reactivating it
+  // reactivates all of them.
+  const affectedDeals = await prisma.deal.findMany({
+    where: { storeId: id },
+    select: { id: true },
+  });
+  if (affectedDeals.length > 0) {
+    await prisma.deal.updateMany({
+      where: { id: { in: affectedDeals.map((d) => d.id) } },
+      data: { isActive },
+    });
+    purgeTag("deals:list");
+  }
+
   return toStore(row);
 }
 
@@ -196,10 +232,16 @@ export async function deleteStore(id: string): Promise<void> {
     where: { storeId: id },
     select: { id: true, slug: true },
   });
+  const dealCount = await prisma.deal.count({ where: { storeId: id } });
 
   const row = await prisma.store.delete({ where: { id } });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
+
+  // Deal rows cascade-delete at the DB level (onDelete: Cascade) with no
+  // denormalized array to clean up (unlike Event.couponId below), so all
+  // that's left is invalidating the list cache.
+  if (dealCount > 0) purgeTag("deals:list");
 
   if (coupons.length === 0) return;
 

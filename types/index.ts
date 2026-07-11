@@ -1,5 +1,6 @@
 export * from "./store";
 export * from "./coupon";
+export * from "./deal";
 export * from "./category";
 export * from "./blog";
 export * from "./blogTopic";

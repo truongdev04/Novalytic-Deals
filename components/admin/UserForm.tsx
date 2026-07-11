@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/Toast";
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
-const BACK_HREF = "/admin/settings/users";
+const BACK_HREF = "/admin/users";
 
 function requiredMark() {
   return <span className="text-red-600"> *</span>;

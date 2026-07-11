@@ -6,6 +6,7 @@ import {
   getBlogPosts,
   getEvents,
   getGeneralSettings,
+  getFooterPages,
 } from "@/lib/data";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
@@ -14,12 +15,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getGeneralSettings();
   if (!settings.sitemapEnabled) return [];
 
-  const [stores, coupons, categories, posts, events] = await Promise.all([
+  const [stores, coupons, categories, posts, events, pages] = await Promise.all([
     getStores(),
     getCoupons(),
     getCategories(),
     getBlogPosts(),
     getEvents(),
+    getFooterPages(),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -30,15 +32,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/events",
     "/blog",
     "/search",
-    "/about",
     "/contact",
-    "/privacy",
-    "/terms",
     "/submit",
   ].map((path) => ({
     url: `${siteUrl}${path}`,
     changeFrequency: path === "" ? "daily" : "weekly",
     priority: path === "" ? 1 : 0.6,
+  }));
+
+  const pageRoutes: MetadataRoute.Sitemap = pages.map((page) => ({
+    url: `${siteUrl}/${page.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.5,
   }));
 
   const storeRoutes: MetadataRoute.Sitemap = stores.map((store) => ({
@@ -76,6 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
+    ...pageRoutes,
     ...storeRoutes,
     ...couponRoutes,
     ...categoryRoutes,

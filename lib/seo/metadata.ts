@@ -3,7 +3,7 @@ import { getGeneralSettings } from "@/lib/data";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
-function resolveImageUrl(image: string): string {
+export function resolveImageUrl(image: string): string {
   return image.startsWith("http") ? image : `${siteUrl}${image}`;
 }
 

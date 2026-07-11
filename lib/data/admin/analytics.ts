@@ -8,7 +8,7 @@ export async function getOverviewCounts() {
   const [stores, coupons, deals, categories, blogPosts, subscribers] = await Promise.all([
     prisma.store.count(),
     prisma.coupon.count(),
-    prisma.coupon.count({ where: { type: "DEAL" } }),
+    prisma.deal.count(),
     prisma.category.count(),
     prisma.blogPost.count(),
     prisma.newsletterSubscriber.count({ where: { unsubscribedAt: null } }),

@@ -7,12 +7,14 @@ import {
   LayoutDashboard,
   Store,
   Ticket,
+  Tags,
   FolderTree,
   CalendarDays,
   Newspaper,
   MessageSquare,
   Mail,
   Inbox,
+  Users,
   Settings,
   ChevronDown,
   type LucideIcon,
@@ -42,6 +44,7 @@ function buildNavItems(role?: "ADMIN" | "EDITOR"): (FlatNavItem | ParentNavItem)
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/admin/stores", label: "Stores", icon: Store },
     { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+    { href: "/admin/deals", label: "Deals", icon: Tags },
     { href: "/admin/categories", label: "Categories", icon: FolderTree },
     { href: "/admin/events", label: "Events", icon: CalendarDays },
     {
@@ -55,6 +58,9 @@ function buildNavItems(role?: "ADMIN" | "EDITOR"): (FlatNavItem | ParentNavItem)
     { href: "/admin/reviews", label: "Reviews", icon: MessageSquare },
     { href: "/admin/submissions", label: "Submissions", icon: Inbox },
     { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
+    ...(role === "ADMIN"
+      ? [{ href: "/admin/users", label: "User Management", icon: Users }]
+      : []),
     {
       label: "Settings",
       icon: Settings,
@@ -62,7 +68,15 @@ function buildNavItems(role?: "ADMIN" | "EDITOR"): (FlatNavItem | ParentNavItem)
         { href: "/admin/settings", label: "General" },
         { href: "/admin/settings/integrations", label: "Integrations" },
         { href: "/admin/settings/affiliate", label: "Affiliate & Redirects" },
-        ...(role === "ADMIN" ? [{ href: "/admin/settings/users", label: "Users" }] : []),
+        ...(role === "ADMIN"
+          ? [
+              { href: "/admin/settings/author", label: "Author" },
+              { href: "/admin/settings/social", label: "Social Network" },
+              { href: "/admin/settings/seo", label: "SEO" },
+              { href: "/admin/settings/content", label: "Content Configuration" },
+              { href: "/admin/settings/footer", label: "Footer" },
+            ]
+          : []),
       ],
     },
   ];

@@ -28,13 +28,13 @@ export const adminStoreSchema = z.object({
   affiliateNetwork: urlField("Affiliate link is required"),
   categoryIds: z.array(z.string()).length(1, "Select a category"),
   eventId: z.string().nullable(),
-  description: z.string().min(1, "Description is required"),
-  aboutStore: z.string().min(1, "About Store is required"),
+  description: z.string().optional().or(z.literal("")),
+  aboutStore: z.string().optional().or(z.literal("")),
   howToApply: z.string().optional().or(z.literal("")),
   faq: z.array(storeFaqItemSchema),
   isFeatured: z.boolean(),
-  seoTitle: z.string().min(1, "SEO title is required"),
-  seoDescription: z.string().min(1, "SEO description is required"),
+  seoTitle: z.string().optional().or(z.literal("")),
+  seoDescription: z.string().optional().or(z.literal("")),
 });
 
 export type AdminStoreInput = z.infer<typeof adminStoreSchema>;

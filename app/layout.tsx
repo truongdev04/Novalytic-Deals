@@ -8,7 +8,12 @@ import { BackToTop } from "@/components/ui/BackToTop";
 import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
-import { getGeneralSettings } from "@/lib/data";
+import {
+  getGeneralSettings,
+  getSeoSettings,
+  getEffectiveGoogleSiteVerification,
+  getEffectiveBingSiteVerification,
+} from "@/lib/data";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,34 +32,43 @@ const poppins = Poppins({
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getGeneralSettings();
+  const [settings, seo, googleSiteVerification, bingSiteVerification] = await Promise.all([
+    getGeneralSettings(),
+    getSeoSettings(),
+    getEffectiveGoogleSiteVerification(),
+    getEffectiveBingSiteVerification(),
+  ]);
+  const fallbackDescription =
+    "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.";
+  const description = settings.description || seo.defaultMetaDescription || fallbackDescription;
 
   return {
     metadataBase: new URL(siteUrl),
     title: {
       default: settings.title || "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
-      template: "%s | NovalyticDeals",
+      template: seo.titleTemplate || "%s | NovalyticDeals",
     },
-    description:
-      settings.description ||
-      "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands across the US & Europe.",
+    description,
+    keywords: seo.defaultKeywords || undefined,
     icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
     openGraph: {
       type: "website",
       siteName: "NovalyticDeals",
       title: settings.title || "NovalyticDeals — Verified Coupon Codes & Exclusive Deals",
-      description:
-        settings.description ||
-        "Save more with verified coupon codes, exclusive deals, and cashback offers from thousands of trusted brands.",
+      description,
       images: settings.ogImage ? [{ url: settings.ogImage }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
     },
+    verification: {
+      google: googleSiteVerification,
+      other: bingSiteVerification ? { "msvalidate.01": bingSiteVerification } : undefined,
+    },
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -65,8 +79,8 @@ export default function RootLayout({
       className={`${inter.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-surface-50 text-foreground">
-        <JsonLd data={organizationJsonLd()} />
-        <JsonLd data={websiteJsonLd()} />
+        <JsonLd data={await organizationJsonLd()} />
+        <JsonLd data={await websiteJsonLd()} />
         <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>
           {children}
         </SiteChrome>

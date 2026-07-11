@@ -18,7 +18,12 @@ const fieldClassName =
 
 type NonSecretFields = Pick<
   AdminIntegrationsSettingsInput,
-  "contactInboxEmail" | "gaId" | "plausibleDomain"
+  | "contactInboxEmail"
+  | "gaId"
+  | "gtmId"
+  | "plausibleDomain"
+  | "googleSiteVerification"
+  | "bingSiteVerification"
 >;
 
 export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsView }) {
@@ -34,15 +39,23 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<NonSecretFields>({
-    resolver: zodResolver(adminIntegrationsSettingsSchema.pick({
-      contactInboxEmail: true,
-      gaId: true,
-      plausibleDomain: true,
-    })),
+    resolver: zodResolver(
+      adminIntegrationsSettingsSchema.pick({
+        contactInboxEmail: true,
+        gaId: true,
+        gtmId: true,
+        plausibleDomain: true,
+        googleSiteVerification: true,
+        bingSiteVerification: true,
+      })
+    ),
     defaultValues: {
       contactInboxEmail: view.contactInboxEmail ?? "",
       gaId: view.gaId ?? "",
+      gtmId: view.gtmId ?? "",
       plausibleDomain: view.plausibleDomain ?? "",
+      googleSiteVerification: view.googleSiteVerification ?? "",
+      bingSiteVerification: view.bingSiteVerification ?? "",
     },
   });
 
@@ -81,24 +94,27 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mx-auto w-full space-y-5 md:w-4/5">
-      <SecretField
-        id="resendApiKey"
-        label="Resend API key"
-        view={view.resendApiKey}
-        value={resendApiKey}
-        onChange={setResendApiKey}
-        cleared={clearFields.has("resendApiKey")}
-        onToggleClear={() => toggleClear("resendApiKey")}
-      />
-
-      <div>
-        <label htmlFor="contactInboxEmail" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Contact inbox &quot;from&quot; email
-        </label>
-        <input id="contactInboxEmail" className={fieldClassName} {...register("contactInboxEmail")} />
+      <div className="space-y-4 rounded-lg border border-muted-200 p-4">
+        <h3 className="font-heading text-sm font-semibold text-brand-950">Email Service</h3>
+        <SecretField
+          id="resendApiKey"
+          label="Resend API key"
+          view={view.resendApiKey}
+          value={resendApiKey}
+          onChange={setResendApiKey}
+          cleared={clearFields.has("resendApiKey")}
+          onToggleClear={() => toggleClear("resendApiKey")}
+        />
+        <div>
+          <label htmlFor="contactInboxEmail" className="mb-1.5 block text-sm font-medium text-brand-950">
+            Contact inbox &quot;from&quot; email
+          </label>
+          <input id="contactInboxEmail" className={fieldClassName} {...register("contactInboxEmail")} />
+        </div>
       </div>
 
-      <div className="border-t border-muted-200 pt-5">
+      <div className="space-y-4 rounded-lg border border-muted-200 p-4">
+        <h3 className="font-heading text-sm font-semibold text-brand-950">Security & Captcha</h3>
         <SecretField
           id="turnstileSecretKey"
           label="Turnstile secret key"
@@ -115,24 +131,59 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
         </p>
       </div>
 
-      <div className="border-t border-muted-200 pt-5">
+      <div className="space-y-4 rounded-lg border border-muted-200 p-4">
+        <h3 className="font-heading text-sm font-semibold text-brand-950">Analytics & SEO Tracking</h3>
         <div>
           <label htmlFor="gaId" className="mb-1.5 block text-sm font-medium text-brand-950">
             Google Analytics ID
           </label>
           <input id="gaId" placeholder="G-XXXXXXXXXX" className={fieldClassName} {...register("gaId")} />
         </div>
-        <div className="mt-4">
+        <div>
+          <label htmlFor="gtmId" className="mb-1.5 block text-sm font-medium text-brand-950">
+            Google Tag Manager ID
+          </label>
+          <input id="gtmId" placeholder="GTM-XXXXXXX" className={fieldClassName} {...register("gtmId")} />
+        </div>
+        <div>
           <label htmlFor="plausibleDomain" className="mb-1.5 block text-sm font-medium text-brand-950">
             Plausible domain
           </label>
           <input id="plausibleDomain" className={fieldClassName} {...register("plausibleDomain")} />
         </div>
+        <div>
+          <label
+            htmlFor="googleSiteVerification"
+            className="mb-1.5 block text-sm font-medium text-brand-950"
+          >
+            Google Search Console verification code
+          </label>
+          <input
+            id="googleSiteVerification"
+            className={fieldClassName}
+            {...register("googleSiteVerification")}
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bingSiteVerification"
+            className="mb-1.5 block text-sm font-medium text-brand-950"
+          >
+            Bing Webmaster verification code
+          </label>
+          <input
+            id="bingSiteVerification"
+            className={fieldClassName}
+            {...register("bingSiteVerification")}
+          />
+        </div>
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving..." : "Save settings"}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save settings"}
+        </Button>
+      </div>
     </form>
   );
 }

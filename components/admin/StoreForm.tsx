@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { useForm, useWatch, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ClipboardPaste, Plus, Trash2 } from "lucide-react";
@@ -15,7 +15,14 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { FaqPasteModal } from "@/components/admin/FaqPasteModal";
 import { slugify } from "@/lib/utils";
 import { resolveRichTextImages } from "@/lib/richTextImageUpload";
-import type { Category, Event, Store } from "@/types";
+import {
+  applyTemplate,
+  applyTemplateVars,
+  pickRandomBlock,
+  flattenBlock,
+  getUtcMonthName,
+} from "@/lib/content/template";
+import type { Category, ContentConfigTemplates, Event, Store } from "@/types";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -28,10 +35,15 @@ export function StoreForm({
   store,
   categories,
   events,
+  templates,
+  discountLabel = null,
 }: {
   store?: Store;
   categories: Category[];
   events: Event[];
+  templates: ContentConfigTemplates;
+  /** Real, frozen-for-the-month {discount} value (server-computed) — null for a new store (no coupons yet) or a store with no qualifying coupon this period. */
+  discountLabel?: string | null;
 }) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -103,6 +115,48 @@ export function StoreForm({
 
   const faqArray = useFieldArray({ control, name: "faq" });
 
+  const nameValue = useWatch({ control, name: "name" }) || "";
+  // Picked once per mount (not recomputed every keystroke) so the Description
+  // preview doesn't flicker between different random blocks as the admin
+  // types the store name — matches the actual auto-fill.
+  const [descriptionBlock] = useState(() => pickRandomBlock(templates.storeDescriptionTemplate));
+  // SEO title/description are now one fixed structure (no random pick) with
+  // {name}/{discount}/{month}/{year} — {discount} uses the real,
+  // server-computed monthly-frozen value (discountLabel prop) when available
+  // (edit page), same as the actual public auto-fill; a new store has no
+  // coupons yet so discountLabel is null and the fallback structure previews
+  // instead, matching what would actually render.
+  const now = new Date();
+  const hasDiscount = discountLabel !== null;
+  const seoVars = {
+    name: nameValue,
+    discount: discountLabel ?? "",
+    month: getUtcMonthName(now),
+    year: String(now.getUTCFullYear()),
+  };
+  const seoTitleTemplate = hasDiscount
+    ? templates.storeSeoTitleTemplate
+    : templates.storeSeoTitleFallbackTemplate;
+  const seoDescriptionTemplate = hasDiscount
+    ? templates.storeSeoDescriptionTemplate
+    : templates.storeSeoDescriptionFallbackTemplate;
+  const seoTitlePlaceholder =
+    (nameValue && flattenBlock(applyTemplateVars(seoTitleTemplate, seoVars))) ||
+    "e.g. Amazon Coupons & Promo Codes — Up to 20% Off";
+  const seoDescriptionPlaceholder =
+    (nameValue && flattenBlock(applyTemplateVars(seoDescriptionTemplate, seoVars))) ||
+    "Meta description shown in Google search results";
+  const descriptionPlaceholder =
+    flattenBlock(applyTemplate(descriptionBlock, nameValue)) ||
+    "Short blurb shown on store cards and listings";
+  const howToApplyPlaceholder =
+    applyTemplate(templates.storeHowToApplyTemplate, nameValue) ||
+    "Steps shoppers should follow to redeem a coupon at checkout";
+  const faqTemplatePreview = (templates.storeFaqTemplate ?? []).map((item) => ({
+    question: applyTemplate(item.question, nameValue),
+    answer: applyTemplate(item.answer, nameValue),
+  }));
+
   async function onSubmit(data: AdminStoreInput) {
     try {
       // Images inserted into the rich-text fields, plus the Logo/Banner
@@ -110,8 +164,8 @@ export function StoreForm({
       // before saving so a draft that's never submitted never orphans an
       // image on Cloudinary/Supabase.
       const [description, aboutStore, howToApply, logoUrl, bannerUrl] = await Promise.all([
-        resolveRichTextImages(data.description),
-        resolveRichTextImages(data.aboutStore),
+        resolveRichTextImages(data.description ?? ""),
+        resolveRichTextImages(data.aboutStore ?? ""),
         data.howToApply ? resolveRichTextImages(data.howToApply) : Promise.resolve(data.howToApply),
         pendingLogoFile
           ? uploadPendingImage(pendingLogoFile, pendingLogoProvider)
@@ -310,21 +364,24 @@ export function StoreForm({
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-brand-950">
-              Description{requiredMark()}
+              Description <span className="text-muted-400">(optional)</span>
             </span>
             <Controller
               control={control}
               name="description"
               render={({ field }) => (
                 <RichTextEditor
-                  value={field.value}
+                  value={field.value ?? ""}
                   onChange={field.onChange}
-                  placeholder="Short blurb shown on store cards and listings"
+                  placeholder={descriptionPlaceholder}
                   minHeightClassName="min-h-20"
                   maxHeightClassName="max-h-40"
                 />
               )}
             />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.description && (
               <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>
             )}
@@ -332,14 +389,14 @@ export function StoreForm({
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-brand-950">
-              About Store{requiredMark()}
+              About Store <span className="text-muted-400">(optional)</span>
             </span>
             <Controller
               control={control}
               name="aboutStore"
               render={({ field }) => (
                 <RichTextEditor
-                  value={field.value}
+                  value={field.value ?? ""}
                   onChange={field.onChange}
                   placeholder="Tell shoppers about this store, what it sells, and why it's worth checking out"
                   minHeightClassName="min-h-56"
@@ -363,7 +420,7 @@ export function StoreForm({
                 <RichTextEditor
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  placeholder="Steps shoppers should follow to redeem a coupon at checkout"
+                  placeholder={howToApplyPlaceholder}
                   minHeightClassName="min-h-40"
                   maxHeightClassName="max-h-80"
                 />
@@ -395,6 +452,9 @@ export function StoreForm({
                 </button>
               </div>
             </div>
+            <p className="mb-2 text-xs text-muted-500">
+              Leave empty to auto-fill from Content Configuration defaults.
+            </p>
             <div className="space-y-3">
               {faqArray.fields.map((item, index) => (
                 <div key={item.id} className="rounded-lg border border-muted-200 p-3">
@@ -428,22 +488,38 @@ export function StoreForm({
                   )}
                 </div>
               ))}
-              {faqArray.fields.length === 0 && (
+              {faqArray.fields.length === 0 && faqTemplatePreview.length === 0 && (
                 <p className="text-xs text-muted-400">No FAQs added yet.</p>
+              )}
+              {faqArray.fields.length === 0 && faqTemplatePreview.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-dashed border-muted-300 p-3">
+                  <p className="text-xs text-muted-500">
+                    Auto-filled publicly from Content Configuration since none are set here:
+                  </p>
+                  {faqTemplatePreview.map((item, index) => (
+                    <div key={index} className="text-sm text-muted-400">
+                      <p className="font-medium italic">{item.question}</p>
+                      <p className="italic">{item.answer}</p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
           <div>
             <label htmlFor="seoTitle" className="mb-1.5 block text-sm font-medium text-brand-950">
-              SEO Title{requiredMark()}
+              SEO Title <span className="text-muted-400">(optional)</span>
             </label>
             <input
               id="seoTitle"
-              placeholder="e.g. Amazon Coupons & Promo Codes — Up to 20% Off"
+              placeholder={seoTitlePlaceholder}
               className={fieldClassName}
               {...register("seoTitle")}
             />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.seoTitle && <p className="mt-1 text-xs text-red-600">{errors.seoTitle.message}</p>}
           </div>
 
@@ -452,15 +528,18 @@ export function StoreForm({
               htmlFor="seoDescription"
               className="mb-1.5 block text-sm font-medium text-brand-950"
             >
-              SEO Description{requiredMark()}
+              SEO Description <span className="text-muted-400">(optional)</span>
             </label>
             <textarea
               id="seoDescription"
               rows={4}
-              placeholder="Meta description shown in Google search results"
+              placeholder={seoDescriptionPlaceholder}
               className={fieldClassName}
               {...register("seoDescription")}
             />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.seoDescription && (
               <p className="mt-1 text-xs text-red-600">{errors.seoDescription.message}</p>
             )}

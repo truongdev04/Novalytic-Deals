@@ -11,7 +11,8 @@ import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
-import type { Coupon, CouponType, DiscountType, Store } from "@/types";
+import { applyTemplate, pickRandomLine, pickRandomBlock } from "@/lib/content/template";
+import type { ContentConfigTemplates, Coupon, CouponType, DiscountType, Store } from "@/types";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -19,35 +20,6 @@ const fieldClassName =
 const COUPON_TYPES: CouponType[] = ["CODE", "DEAL", "FREESHIP"];
 const DISCOUNT_TYPES: DiscountType[] = ["PERCENT", "AMOUNT", "OTHER"];
 const CURRENCY_OPTIONS = ["$", "€", "£", "CHF"];
-
-function buildAutoDescription({
-  storeName,
-  type,
-  discountType,
-  discountValue,
-  currency,
-}: {
-  storeName?: string;
-  type: CouponType;
-  discountType: DiscountType;
-  discountValue: number;
-  currency: string;
-}): string {
-  if (!storeName) return "";
-
-  if (type === "FREESHIP") return `Enjoy free shipping on your order at ${storeName}.`;
-
-  const amount =
-    discountType === "PERCENT"
-      ? `${discountValue}%`
-      : discountType === "AMOUNT"
-        ? `${currency}${discountValue}`
-        : "an exclusive discount";
-
-  return type === "CODE"
-    ? `Use this code to save ${amount} at ${storeName}.`
-    : `Save ${amount} at ${storeName} with this deal.`;
-}
 
 function requiredMark() {
   return <span className="text-red-600"> *</span>;
@@ -63,10 +35,17 @@ function toDateInput(iso?: string) {
   return iso ? iso.slice(0, 10) : "";
 }
 
-export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[] }) {
+export function CouponForm({
+  coupon,
+  stores,
+  templates,
+}: {
+  coupon?: Coupon;
+  stores: Store[];
+  templates: ContentConfigTemplates;
+}) {
   const router = useRouter();
   const [slugTouched, setSlugTouched] = useState(Boolean(coupon));
-  const [descriptionTouched, setDescriptionTouched] = useState(Boolean(coupon));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const {
@@ -75,7 +54,6 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
     control,
     setValue,
     setError,
-    getValues,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<AdminCouponInput>({
     resolver: zodResolver(adminCouponSchema),
@@ -120,38 +98,33 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
   });
 
   const discountType = useWatch({ control, name: "discountType" });
-
-  function applyAutoDescription(overrides: {
-    storeId?: string;
-    type?: CouponType;
-    discountType?: DiscountType;
-    discountValue?: number;
-    currency?: string;
-  }) {
-    if (descriptionTouched) return;
-    const values = getValues();
-    const storeId = overrides.storeId ?? values.storeId;
-    const storeName = stores.find((s) => s.id === storeId)?.name;
-    setValue(
-      "description",
-      buildAutoDescription({
-        storeName,
-        type: overrides.type ?? values.type,
-        discountType: overrides.discountType ?? values.discountType,
-        discountValue: overrides.discountValue ?? values.discountValue,
-        currency: overrides.currency ?? values.currency,
-      }),
-      { shouldDirty: true }
-    );
-  }
+  const selectedStoreId = useWatch({ control, name: "storeId" });
+  const selectedStoreName = stores.find((s) => s.id === selectedStoreId)?.name ?? "";
+  // Picked once per mount (not re-randomized on submit) so the placeholder
+  // preview and the value actually saved when creating a coupon match
+  // exactly — no surprise mismatch between what the admin saw and what got
+  // written to the DB.
+  const [descriptionPick] = useState(() => pickRandomLine(templates.couponDescriptionTemplate));
+  const [termsPick] = useState(() => pickRandomBlock(templates.couponTermsTemplate));
+  const descriptionPlaceholder = applyTemplate(descriptionPick, selectedStoreName);
+  const termsPlaceholder = applyTemplate(termsPick, selectedStoreName);
 
   async function onSubmit(data: AdminCouponInput) {
     try {
+      // Only for a brand-new coupon: a field left blank gets filled in for
+      // real with a random template from Content Configuration and saved —
+      // unlike Store, this isn't resolved lazily on the public page.
+      // Editing an existing coupon never overrides a blank field this way.
+      const storeName = stores.find((s) => s.id === data.storeId)?.name ?? "";
+      const description =
+        !coupon && !data.description ? applyTemplate(descriptionPick, storeName) : data.description;
+      const terms = !coupon && !data.terms ? applyTemplate(termsPick, storeName) : data.terms;
+
       const endpoint = coupon ? `/api/admin/coupons/${coupon.id}` : "/api/admin/coupons";
       const res = await fetch(endpoint, {
         method: coupon ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, description, terms }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -212,7 +185,6 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
                         });
                       }
                     }
-                    applyAutoDescription({ storeId: value });
                   }}
                   placeholder="Select a store..."
                   searchable
@@ -251,14 +223,19 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
 
           <div>
             <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Description <span className="text-muted-400">(optional — auto-generated)</span>
+              Description <span className="text-muted-400">(optional)</span>
             </label>
             <textarea
               id="description"
               rows={3}
+              placeholder={descriptionPlaceholder}
               className={fieldClassName}
-              {...register("description", { onChange: () => setDescriptionTouched(true) })}
+              {...register("description")}
             />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank — a random Coupon Description template is filled in and saved when you
+              create this coupon.
+            </p>
             {errors.description && (
               <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>
             )}
@@ -269,12 +246,7 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
               <span className="mb-1.5 block text-sm font-medium text-brand-950">
                 Type{requiredMark()}
               </span>
-              <select
-                className={fieldClassName}
-                {...register("type", {
-                  onChange: (e) => applyAutoDescription({ type: e.target.value as CouponType }),
-                })}
-              >
+              <select className={fieldClassName} {...register("type")}>
                 {COUPON_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -301,13 +273,7 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
               <span className="mb-1.5 block text-sm font-medium text-brand-950">
                 Discount Type{requiredMark()}
               </span>
-              <select
-                className={fieldClassName}
-                {...register("discountType", {
-                  onChange: (e) =>
-                    applyAutoDescription({ discountType: e.target.value as DiscountType }),
-                })}
-              >
+              <select className={fieldClassName} {...register("discountType")}>
                 {DISCOUNT_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -328,10 +294,7 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
                 type="text"
                 inputMode="decimal"
                 className={fieldClassName}
-                {...register("discountValue", {
-                  valueAsNumber: true,
-                  onChange: (e) => applyAutoDescription({ discountValue: Number(e.target.value) }),
-                })}
+                {...register("discountValue", { valueAsNumber: true })}
               />
               {errors.discountValue && (
                 <p className="mt-1 text-xs text-red-600">{errors.discountValue.message}</p>
@@ -348,9 +311,7 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
                   list="currency-options"
                   placeholder="e.g. $"
                   className={fieldClassName}
-                  {...register("currency", {
-                    onChange: (e) => applyAutoDescription({ currency: e.target.value }),
-                  })}
+                  {...register("currency")}
                 />
                 <datalist id="currency-options">
                   {CURRENCY_OPTIONS.map((symbol) => (
@@ -381,7 +342,17 @@ export function CouponForm({ coupon, stores }: { coupon?: Coupon; stores: Store[
             <label htmlFor="terms" className="mb-1.5 block text-sm font-medium text-brand-950">
               Terms <span className="text-muted-400">(optional)</span>
             </label>
-            <textarea id="terms" rows={3} className={fieldClassName} {...register("terms")} />
+            <p className="mb-1.5 text-xs text-muted-500">
+              Leave blank — a random Coupon Terms template is filled in and saved when you create
+              this coupon.
+            </p>
+            <textarea
+              id="terms"
+              rows={3}
+              placeholder={termsPlaceholder}
+              className={fieldClassName}
+              {...register("terms")}
+            />
             {errors.terms && <p className="mt-1 text-xs text-red-600">{errors.terms.message}</p>}
           </div>
 

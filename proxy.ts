@@ -5,9 +5,14 @@ import { redis } from "@/lib/server/cache/redis";
 
 const ADMIN_ONLY_PREFIXES = [
   "/api/admin/users",
-  "/admin/settings/users",
+  "/admin/users",
   "/api/admin/settings/integrations",
   "/api/admin/settings/cache-purge",
+  "/api/admin/settings/author",
+  "/api/admin/settings/social",
+  "/api/admin/settings/seo",
+  "/api/admin/settings/content",
+  "/api/admin/settings/footer",
 ];
 
 const { auth } = NextAuth(authConfig);

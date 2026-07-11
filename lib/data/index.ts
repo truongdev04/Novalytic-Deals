@@ -1,5 +1,6 @@
 export * from "./stores";
 export * from "./coupons";
+export * from "./deals";
 export * from "./categories";
 export * from "./blog";
 export * from "./blogTopics";
@@ -10,3 +11,4 @@ export * from "./submittedCoupons";
 export * from "./settings";
 export * from "./redirects";
 export * from "./users";
+export * from "./authors";

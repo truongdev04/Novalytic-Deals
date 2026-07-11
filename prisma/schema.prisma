@@ -49,6 +49,11 @@ enum RedirectType {
   TEMPORARY
 }
 
+enum DealType {
+  DEAL
+  CODE
+}
+
 model Store {
   id               String   @id
   slug             String   @unique
@@ -70,11 +75,19 @@ model Store {
   faq              Json
   categoryIds      String[]
   eventId          String?
+  // Monthly-frozen SEO title/description discount snapshot (lib/content/storeSeoSnapshot.ts) —
+  // seoDiscountSnapshot is the formatted value (e.g. "20%") or null when the store currently has
+  // no qualifying coupon (fallback template used instead); seoDiscountSnapshotPeriod is the UTC
+  // "YYYY-MM" key it was computed for. Recomputed lazily on the first store-page render of a new
+  // period, not admin-editable.
+  seoDiscountSnapshot       String?
+  seoDiscountSnapshotPeriod String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   event   Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   coupons Coupon[]
+  deals   Deal[]
   reviews Review[]
 
   @@index([isFeatured])
@@ -101,6 +114,7 @@ model Category {
   children Category[] @relation("CategoryTree")
 
   blogPosts BlogPost[]
+  deals     Deal[]
 
   @@index([parentId])
   @@map("categories")
@@ -140,6 +154,37 @@ model Coupon {
   @@index([isTrending])
   @@index([isActive])
   @@map("coupons")
+}
+
+model Deal {
+  id            String    @id
+  slug          String    @unique
+  storeId       String
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name          String
+  type          DealType
+  code          String?
+  eventId       String?
+  event         Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  originalPrice Float?
+  price         Float
+  offer         String?
+  url           String
+  imageUrl      String
+  description   String?
+  isFeatured    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([storeId])
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isActive])
+  @@map("deals")
 }
 
 model BlogPost {
@@ -200,6 +245,7 @@ model Event {
   updatedAt    DateTime  @updatedAt
 
   stores Store[]
+  deals  Deal[]
 
   @@map("events")
 }

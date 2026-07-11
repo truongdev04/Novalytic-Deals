@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +13,8 @@ import { ImageUploadField, type StorageProvider } from "@/components/admin/Image
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import { slugify } from "@/lib/utils";
-import type { BlogPost, BlogTopic, Category } from "@/types";
+import { applyTemplate } from "@/lib/content/template";
+import type { Author, BlogPost, BlogTopic, Category, ContentConfigTemplates } from "@/types";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -22,21 +23,33 @@ function requiredMark() {
   return <span className="text-red-600"> *</span>;
 }
 
+const CUSTOM_AUTHOR_VALUE = "__custom__";
+
 export function BlogForm({
   post,
   categories,
   topics,
+  authors,
+  templates,
 }: {
   post?: BlogPost;
   categories: Category[];
   topics: BlogTopic[];
+  authors: Author[];
+  templates: ContentConfigTemplates;
 }) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
   const [pendingCoverProvider, setPendingCoverProvider] = useState<StorageProvider>("cloudinary");
-  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
-  const [pendingAvatarProvider, setPendingAvatarProvider] = useState<StorageProvider>("cloudinary");
+
+  const matchedAuthor = post ? authors.find((a) => a.name === post.authorName) : undefined;
+  const defaultAuthor = authors.find((a) => a.isDefault);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string>(() => {
+    if (!post) return defaultAuthor?.id ?? "";
+    if (matchedAuthor) return matchedAuthor.id;
+    return post.authorName ? CUSTOM_AUTHOR_VALUE : "";
+  });
 
   const {
     register,
@@ -70,8 +83,8 @@ export function BlogForm({
           title: "",
           excerpt: "",
           coverImage: "",
-          authorName: "",
-          authorAvatarUrl: "",
+          authorName: defaultAuthor?.name ?? "",
+          authorAvatarUrl: defaultAuthor?.avatarUrl ?? "",
           tags: [],
           categoryId: "",
           topicId: "",
@@ -84,6 +97,11 @@ export function BlogForm({
           seoDescription: "",
         },
   });
+
+  const titleValue = useWatch({ control, name: "title" }) || "";
+  const excerptPlaceholder = applyTemplate(templates.blogExcerptTemplate, titleValue);
+  const seoTitlePlaceholder = applyTemplate(templates.blogSeoTitleTemplate, titleValue);
+  const seoDescriptionPlaceholder = applyTemplate(templates.blogSeoDescriptionTemplate, titleValue);
 
   async function uploadIfPending(
     currentValue: string | undefined,
@@ -106,12 +124,11 @@ export function BlogForm({
 
   async function onSubmit(data: AdminBlogPostInput) {
     try {
-      const [coverImage, authorAvatarUrl, body] = await Promise.all([
+      const [coverImage, body] = await Promise.all([
         uploadIfPending(data.coverImage, pendingCoverFile, pendingCoverProvider, "cover image"),
-        uploadIfPending(data.authorAvatarUrl, pendingAvatarFile, pendingAvatarProvider, "author avatar"),
         resolveRichTextImages(data.body),
       ]);
-      if ((pendingCoverFile && coverImage === null) || (pendingAvatarFile && authorAvatarUrl === null)) {
+      if (pendingCoverFile && coverImage === null) {
         return;
       }
 
@@ -119,7 +136,7 @@ export function BlogForm({
       const res = await fetch(endpoint, {
         method: post ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, coverImage, authorAvatarUrl, body }),
+        body: JSON.stringify({ ...data, coverImage, body }),
       });
       if (!res.ok) throw new Error("save failed");
       toast.success(post ? "Blog post updated." : "Blog post created.");
@@ -188,9 +205,18 @@ export function BlogForm({
 
           <div>
             <label htmlFor="excerpt" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Excerpt{requiredMark()}
+              Excerpt <span className="text-muted-400">(optional)</span>
             </label>
-            <textarea id="excerpt" rows={2} className={fieldClassName} {...register("excerpt")} />
+            <textarea
+              id="excerpt"
+              rows={2}
+              placeholder={excerptPlaceholder}
+              className={fieldClassName}
+              {...register("excerpt")}
+            />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.excerpt && <p className="mt-1 text-xs text-red-600">{errors.excerpt.message}</p>}
           </div>
 
@@ -214,40 +240,38 @@ export function BlogForm({
             )}
           />
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="authorName" className="mb-1.5 block text-sm font-medium text-brand-950">
-                Author Name <span className="text-muted-400">(optional)</span>
-              </label>
-              <input
-                id="authorName"
-                placeholder="e.g. NovalyticDeals"
-                className={fieldClassName}
-                {...register("authorName")}
-              />
-              {errors.authorName && (
-                <p className="mt-1 text-xs text-red-600">{errors.authorName.message}</p>
+          <div>
+            <label htmlFor="authorId" className="mb-1.5 block text-sm font-medium text-brand-950">
+              Author <span className="text-muted-400">(optional)</span>
+            </label>
+            <select
+              id="authorId"
+              className={fieldClassName}
+              value={selectedAuthorId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setSelectedAuthorId(nextId);
+                const author = authors.find((a) => a.id === nextId);
+                setValue("authorName", author?.name ?? "", { shouldDirty: true });
+                setValue("authorAvatarUrl", author?.avatarUrl ?? "", { shouldDirty: true });
+              }}
+            >
+              <option value="">None</option>
+              {authors.map((author) => (
+                <option key={author.id} value={author.id}>
+                  {author.name}
+                  {author.isDefault ? " (default)" : ""}
+                </option>
+              ))}
+              {selectedAuthorId === CUSTOM_AUTHOR_VALUE && (
+                <option value={CUSTOM_AUTHOR_VALUE} disabled>
+                  {post?.authorName} (not in Author list)
+                </option>
               )}
-            </div>
-
-            <Controller
-              control={control}
-              name="authorAvatarUrl"
-              render={({ field }) => (
-                <ImageUploadField
-                  label="Author Avatar"
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                  aspectClassName="aspect-square w-20"
-                  allowManualUrl
-                  deferUpload
-                  onFileSelected={(file, provider) => {
-                    setPendingAvatarFile(file);
-                    setPendingAvatarProvider(provider);
-                  }}
-                />
-              )}
-            />
+            </select>
+            <p className="mt-1 text-xs text-muted-500">
+              Manage the Author list at Settings &gt; Author.
+            </p>
           </div>
 
           <div>
@@ -343,9 +367,17 @@ export function BlogForm({
 
           <div>
             <label htmlFor="seoTitle" className="mb-1.5 block text-sm font-medium text-brand-950">
-              SEO Title{requiredMark()}
+              SEO Title <span className="text-muted-400">(optional)</span>
             </label>
-            <input id="seoTitle" className={fieldClassName} {...register("seoTitle")} />
+            <input
+              id="seoTitle"
+              placeholder={seoTitlePlaceholder}
+              className={fieldClassName}
+              {...register("seoTitle")}
+            />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.seoTitle && <p className="mt-1 text-xs text-red-600">{errors.seoTitle.message}</p>}
           </div>
 
@@ -354,14 +386,18 @@ export function BlogForm({
               htmlFor="seoDescription"
               className="mb-1.5 block text-sm font-medium text-brand-950"
             >
-              SEO Description{requiredMark()}
+              SEO Description <span className="text-muted-400">(optional)</span>
             </label>
             <textarea
               id="seoDescription"
               rows={3}
+              placeholder={seoDescriptionPlaceholder}
               className={fieldClassName}
               {...register("seoDescription")}
             />
+            <p className="mt-1 text-xs text-muted-500">
+              Leave blank to auto-fill from Content Configuration defaults.
+            </p>
             {errors.seoDescription && (
               <p className="mt-1 text-xs text-red-600">{errors.seoDescription.message}</p>
             )}

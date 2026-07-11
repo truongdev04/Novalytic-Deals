@@ -1,23 +1,44 @@
+import { getGeneralSettings, getSocialSettings } from "@/lib/data";
+import { resolveImageUrl } from "@/lib/seo/metadata";
 import type { BlogPost, Coupon, Store } from "@/types";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
-export function organizationJsonLd() {
+export async function organizationJsonLd() {
+  const [general, social] = await Promise.all([getGeneralSettings(), getSocialSettings()]);
+  const sameAs = [
+    social.facebookUrl,
+    social.tiktokUrl,
+    social.instagramUrl,
+    social.xUrl,
+    social.youtubeUrl,
+  ].filter((url): url is string => Boolean(url));
+  const logo = general.logoUrl
+    ? resolveImageUrl(general.logoUrl)
+    : general.faviconUrl
+      ? resolveImageUrl(general.faviconUrl)
+      : undefined;
+
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "NovalyticDeals",
+    name: general.companyName || general.title || "NovalyticDeals",
     url: siteUrl,
-    logo: `${siteUrl}/favicon.ico`,
-    sameAs: [],
+    logo,
+    sameAs,
+    telephone: general.hotline || undefined,
+    email: general.email || undefined,
+    address: general.address || undefined,
   };
 }
 
-export function websiteJsonLd() {
+export async function websiteJsonLd() {
+  const general = await getGeneralSettings();
+
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "NovalyticDeals",
+    name: general.title || "NovalyticDeals",
     url: siteUrl,
     potentialAction: {
       "@type": "SearchAction",

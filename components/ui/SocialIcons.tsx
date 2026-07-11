@@ -38,3 +38,11 @@ export function YoutubeIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function TiktokIcon({ className }: { className?: string }) {
+  return (
+    <svg {...iconProps(className)}>
+      <path d="M16.6 2h-3.3v13.2c0 1.5-1.2 2.7-2.7 2.7s-2.7-1.2-2.7-2.7 1.2-2.7 2.7-2.7c.3 0 .55.04.8.1V9.3a6 6 0 0 0-.8-.06 6 6 0 1 0 6 6V9.03a8.16 8.16 0 0 0 4.5 1.35V7.1a4.85 4.85 0 0 1-4.5-4.5V2Z" />
+    </svg>
+  );
+}
