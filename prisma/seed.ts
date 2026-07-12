@@ -141,7 +141,9 @@ async function seedEvents(events: JsonEvent[]) {
         bannerUrl: e.bannerUrl ?? null,
         startsAt: e.startsAt ? new Date(e.startsAt) : null,
         endsAt: e.endsAt ? new Date(e.endsAt) : null,
-        couponId: e.featuredCouponIds,
+        eventCoupons: {
+          create: e.featuredCouponIds.map((couponId) => ({ couponId })),
+        },
       },
       update: {},
     });

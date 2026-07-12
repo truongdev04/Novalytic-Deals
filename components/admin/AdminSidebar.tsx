@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,9 +18,11 @@ import {
   Users,
   Settings,
   ChevronDown,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { EditorPermission } from "@/lib/validators/admin/user";
 
 interface FlatNavItem {
   href: string;
@@ -39,46 +42,64 @@ interface ParentNavItem {
   children: NavChild[];
 }
 
-function buildNavItems(role?: "ADMIN" | "EDITOR"): (FlatNavItem | ParentNavItem)[] {
+function buildNavItems(
+  role?: "ADMIN" | "EDITOR",
+  permissions: string[] = []
+): (FlatNavItem | ParentNavItem)[] {
+  const has = (permission: EditorPermission) =>
+    role === "ADMIN" || permissions.includes(permission);
+
+  const settingsChildren: NavChild[] = [
+    ...(has("settings_general") ? [{ href: "/admin/settings", label: "General" }] : []),
+    ...(has("settings_integrations")
+      ? [{ href: "/admin/settings/integrations", label: "Integrations" }]
+      : []),
+    ...(has("settings_affiliate")
+      ? [{ href: "/admin/settings/affiliate", label: "Affiliate & Redirects" }]
+      : []),
+    ...(has("settings_author") ? [{ href: "/admin/settings/author", label: "Author" }] : []),
+    ...(has("settings_social")
+      ? [{ href: "/admin/settings/social", label: "Social Network" }]
+      : []),
+    ...(has("settings_seo") ? [{ href: "/admin/settings/seo", label: "SEO" }] : []),
+    ...(has("settings_content")
+      ? [{ href: "/admin/settings/content", label: "Content Configuration" }]
+      : []),
+    ...(has("settings_footer") ? [{ href: "/admin/settings/footer", label: "Footer" }] : []),
+  ];
+
   return [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    { href: "/admin/stores", label: "Stores", icon: Store },
-    { href: "/admin/coupons", label: "Coupons", icon: Ticket },
-    { href: "/admin/deals", label: "Deals", icon: Tags },
-    { href: "/admin/categories", label: "Categories", icon: FolderTree },
-    { href: "/admin/events", label: "Events", icon: CalendarDays },
-    {
-      label: "Blog",
-      icon: Newspaper,
-      children: [
-        { href: "/admin/blog/topics", label: "Topics" },
-        { href: "/admin/blog", label: "Blog" },
-      ],
-    },
-    { href: "/admin/reviews", label: "Reviews", icon: MessageSquare },
-    { href: "/admin/submissions", label: "Submissions", icon: Inbox },
-    { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
+    ...(has("stores") ? [{ href: "/admin/stores", label: "Stores", icon: Store }] : []),
+    ...(has("coupons") ? [{ href: "/admin/coupons", label: "Coupons", icon: Ticket }] : []),
+    ...(has("deals") ? [{ href: "/admin/deals", label: "Deals", icon: Tags }] : []),
+    ...(has("categories")
+      ? [{ href: "/admin/categories", label: "Categories", icon: FolderTree }]
+      : []),
+    ...(has("events") ? [{ href: "/admin/events", label: "Events", icon: CalendarDays }] : []),
+    ...(has("blog")
+      ? [
+          {
+            label: "Blog",
+            icon: Newspaper,
+            children: [
+              { href: "/admin/blog/topics", label: "Topics" },
+              { href: "/admin/blog", label: "Blog" },
+            ],
+          },
+        ]
+      : []),
+    ...(has("reviews") ? [{ href: "/admin/reviews", label: "Reviews", icon: MessageSquare }] : []),
+    ...(has("submissions")
+      ? [{ href: "/admin/submissions", label: "Submissions", icon: Inbox }]
+      : []),
+    ...(has("newsletter") ? [{ href: "/admin/newsletter", label: "Newsletter", icon: Mail }] : []),
     ...(role === "ADMIN"
       ? [{ href: "/admin/users", label: "User Management", icon: Users }]
       : []),
-    {
-      label: "Settings",
-      icon: Settings,
-      children: [
-        { href: "/admin/settings", label: "General" },
-        { href: "/admin/settings/integrations", label: "Integrations" },
-        { href: "/admin/settings/affiliate", label: "Affiliate & Redirects" },
-        ...(role === "ADMIN"
-          ? [
-              { href: "/admin/settings/author", label: "Author" },
-              { href: "/admin/settings/social", label: "Social Network" },
-              { href: "/admin/settings/seo", label: "SEO" },
-              { href: "/admin/settings/content", label: "Content Configuration" },
-              { href: "/admin/settings/footer", label: "Footer" },
-            ]
-          : []),
-      ],
-    },
+    ...(settingsChildren.length > 0
+      ? [{ label: "Settings", icon: Settings, children: settingsChildren }]
+      : []),
   ];
 }
 
@@ -101,9 +122,19 @@ function activeChildHref(children: NavChild[], pathname: string): string | null 
   return best;
 }
 
-export function AdminSidebar({ role }: { role?: "ADMIN" | "EDITOR" }) {
+export function AdminSidebar({
+  role,
+  permissions,
+  mobileOpen,
+  onClose,
+}: {
+  role?: "ADMIN" | "EDITOR";
+  permissions?: string[];
+  mobileOpen: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
-  const navItems = buildNavItems(role);
+  const navItems = buildNavItems(role, permissions);
 
   function activeParentLabel() {
     return (
@@ -126,12 +157,18 @@ export function AdminSidebar({ role }: { role?: "ADMIN" | "EDITOR" }) {
     setOpenLabel(activeParentLabel());
   }
 
-  return (
-    <aside className="hidden w-56 shrink-0 overflow-y-auto border-r border-muted-200 bg-surface-0 md:block">
-      <div className="px-4 py-5">
-        <span className="font-heading text-lg font-bold text-brand-950">ND Admin</span>
-      </div>
-      <nav className="space-y-1 px-3">
+  // Desktop-only: clicking the logo/"Admin" label pins the rail collapsed
+  // (icon-only). While collapsed, hovering the rail temporarily flies it
+  // out to full width without shifting the page content (the reserved
+  // spacer column stays icon-width) — moving the mouse away shrinks it
+  // back. Clicking again returns to the normal, always-expanded rail.
+  const [collapsed, setCollapsed] = useState(false);
+  const [railHovering, setRailHovering] = useState(false);
+  const expanded = !collapsed || railHovering;
+
+  function renderNav(showLabels: boolean, onNavigate: () => void) {
+    return (
+      <nav className="space-y-1 px-3 pb-24">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -144,26 +181,34 @@ export function AdminSidebar({ role }: { role?: "ADMIN" | "EDITOR" }) {
                 <button
                   type="button"
                   onClick={() => setOpenLabel(isOpen ? null : item.label)}
+                  title={showLabels ? undefined : item.label}
                   className={cn(
-                    "w-full justify-between",
+                    "w-full",
+                    showLabels ? "justify-between" : "justify-center",
                     rowClassName,
                     isParentActive ? activeClassName : inactiveClassName
                   )}
                 >
                   <span className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {showLabels && item.label}
                   </span>
-                  <ChevronDown
-                    className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")}
-                  />
+                  {showLabels && (
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-transform duration-200",
+                        isOpen && "rotate-180"
+                      )}
+                    />
+                  )}
                 </button>
-                {isOpen && (
+                {isOpen && showLabels && (
                   <div className="ml-6 mt-1 space-y-1 border-l border-muted-200 pl-3">
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href}
+                        onClick={onNavigate}
                         className={cn(
                           rowClassName,
                           child.href === activeHref ? activeClassName : inactiveClassName
@@ -183,14 +228,103 @@ export function AdminSidebar({ role }: { role?: "ADMIN" | "EDITOR" }) {
             <Link
               key={item.href}
               href={item.href}
-              className={cn(rowClassName, isActive ? activeClassName : inactiveClassName)}
+              onClick={onNavigate}
+              title={showLabels ? undefined : item.label}
+              className={cn(
+                rowClassName,
+                !showLabels && "justify-center",
+                isActive ? activeClassName : inactiveClassName
+              )}
             >
-              <Icon className="h-4 w-4" />
-              {item.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              {showLabels && item.label}
             </Link>
           );
         })}
       </nav>
-    </aside>
+    );
+  }
+
+  return (
+    <>
+      {/* Backdrop — mobile/tablet only, closes the drawer on tap outside it. */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile drawer — independent of the desktop collapse/flyout state,
+          always renders fully expanded while open. */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 -translate-x-full overflow-y-auto border-r border-muted-200 bg-surface-0 transition-transform duration-200 ease-out md:hidden",
+          mobileOpen && "translate-x-0"
+        )}
+      >
+        <div className="flex items-center justify-between px-4 py-5">
+          <span className="flex items-center gap-2.5">
+            <Image
+              src="/images/logo/logo-xoa-nen/icon.png"
+              alt="NovalyticDeals"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+            <span className="font-heading text-lg font-bold text-brand-950">Admin</span>
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="rounded-lg p-1 text-muted-600 hover:bg-surface-100 hover:text-brand-950"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {renderNav(true, onClose)}
+      </aside>
+
+      {/* Desktop spacer — reserves layout width based on the pinned state
+          (collapsed vs expanded) so the hover flyout below can overlay the
+          page without shifting content. */}
+      <div
+        className={cn(
+          "hidden shrink-0 transition-[width] duration-200 ease-out md:block",
+          collapsed ? "md:w-16" : "md:w-56"
+        )}
+      />
+      <aside
+        onMouseEnter={() => collapsed && setRailHovering(true)}
+        onMouseLeave={() => setRailHovering(false)}
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden overflow-y-auto border-r border-muted-200 bg-surface-0 transition-[width] duration-200 ease-out md:block",
+          expanded ? "md:w-56" : "md:w-16",
+          collapsed && expanded && "shadow-lg"
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          title={collapsed ? "Expand menu" : "Collapse menu"}
+          className={cn(
+            "flex w-full items-center gap-2.5 px-4 py-5 hover:bg-surface-100",
+            !expanded && "justify-center px-0"
+          )}
+        >
+          <Image
+            src="/images/logo/logo-xoa-nen/icon.png"
+            alt="NovalyticDeals"
+            width={40}
+            height={40}
+            className="shrink-0 rounded-full"
+          />
+          {expanded && <span className="font-heading text-lg font-bold text-brand-950">Admin</span>}
+        </button>
+        {renderNav(expanded, () => {})}
+      </aside>
+    </>
   );
 }

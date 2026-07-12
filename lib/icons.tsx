@@ -17,6 +17,17 @@ import {
   Gift,
   Book,
   Package,
+  GraduationCap,
+  Baby,
+  Utensils,
+  Car,
+  Gamepad2,
+  ToyBrick,
+  Store,
+  Bot,
+  Palette,
+  Handshake,
+  Cigarette,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +50,17 @@ export const iconMap: Record<string, LucideIcon> = {
   Gift,
   Book,
   Package,
+  GraduationCap,
+  Baby,
+  Utensils,
+  Car,
+  Gamepad2,
+  ToyBrick,
+  Store,
+  Bot,
+  Palette,
+  Handshake,
+  Cigarette
 };
 
 export function getIcon(name: string): LucideIcon {

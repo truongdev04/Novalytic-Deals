@@ -34,11 +34,17 @@ export interface RedirectRule {
 }
 
 export type AdminRole = "ADMIN" | "EDITOR";
+export type AdminUserStatus = "ACTIVE" | "INACTIVE";
 
 export interface AdminUser {
   id: string;
   email: string;
   role: AdminRole;
+  status: AdminUserStatus;
+  fullName?: string;
+  avatarUrl?: string;
+  phone?: string;
+  permissions: string[];
   createdAt: string;
   updatedAt: string;
 }

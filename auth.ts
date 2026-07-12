@@ -22,11 +22,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.hashedPassword) return null;
+        if (user.status === "INACTIVE") return null;
 
         const valid = await bcrypt.compare(password, user.hashedPassword);
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, role: user.role };
+        return { id: user.id, email: user.email, role: user.role, permissions: user.permissions };
       },
     }),
   ],

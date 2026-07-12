@@ -38,6 +38,11 @@ enum AdminRole {
   EDITOR
 }
 
+enum AdminUserStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum SubmissionStatus {
   PENDING
   APPROVED
@@ -148,6 +153,8 @@ model Coupon {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  eventCoupons EventCoupon[]
+
   @@index([storeId])
   @@index([expiresAt])
   @@index([isFeatured])
@@ -240,14 +247,32 @@ model Event {
   bannerUrl    String?
   startsAt     DateTime?
   endsAt       DateTime?
-  couponId     String[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  stores Store[]
-  deals  Deal[]
+  stores       Store[]
+  deals        Deal[]
+  eventCoupons EventCoupon[]
 
   @@map("events")
+}
+
+// Join table for curated coupons on an event. Both FKs cascade on delete so
+// removing a coupon (directly, or via its store cascading) or an event
+// automatically drops the association — no denormalized array to clean up
+// by hand (see the previous String[] approach this replaces).
+model EventCoupon {
+  eventId   String
+  couponId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, couponId])
+  @@index([couponId])
+  @@map("event_coupons")
 }
 
 model Review {
@@ -311,6 +336,11 @@ model User {
   hashedPassword String?
   oauthId        String?
   role           AdminRole @default(EDITOR)
+  status         AdminUserStatus @default(ACTIVE)
+  fullName       String?
+  avatarUrl      String?
+  phone          String?
+  permissions    String[]  @default([])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

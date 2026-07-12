@@ -6,14 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import {
-  adminCreateUserSchema,
+  adminUpdateUserSchema,
   EDITOR_PERMISSION_OPTIONS,
-  type AdminCreateUserInput,
+  type AdminUpdateUserInput,
 } from "@/lib/validators/admin/user";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+import type { AdminUser } from "@/types";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -24,7 +25,7 @@ function requiredMark() {
   return <span className="text-red-600"> *</span>;
 }
 
-export function UserForm() {
+export function UserEditForm({ user }: { user: AdminUser }) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
@@ -49,46 +50,46 @@ export function UserForm() {
     setError,
     control,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<AdminCreateUserInput>({
-    resolver: zodResolver(adminCreateUserSchema),
+  } = useForm<AdminUpdateUserInput>({
+    resolver: zodResolver(adminUpdateUserSchema),
     defaultValues: {
-      email: "",
-      role: "EDITOR",
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName ?? "",
+      avatarUrl: user.avatarUrl ?? "",
+      phone: user.phone ?? "",
       password: "",
-      fullName: "",
-      avatarUrl: "",
-      phone: "",
-      permissions: [],
+      permissions: (user.permissions as AdminUpdateUserInput["permissions"]) ?? [],
     },
   });
 
   const role = useWatch({ control, name: "role" });
 
-  async function onSubmit(data: AdminCreateUserInput) {
+  async function onSubmit(data: AdminUpdateUserInput) {
     try {
       const avatarUrl = pendingAvatarFile
         ? await uploadPendingImage(pendingAvatarFile, pendingAvatarProvider)
         : data.avatarUrl;
 
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, avatarUrl }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const message = body?.error ?? "Failed to create user.";
+        const message = body?.error ?? "Failed to update user.";
         if (message.toLowerCase().includes("email")) {
           setError("email", { message });
         }
         toast.error(message);
         return;
       }
-      toast.success("User created.");
+      toast.success("User updated.");
       router.push(BACK_HREF);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create user.");
+      toast.error(error instanceof Error ? error.message : "Failed to update user.");
     }
   }
 
@@ -159,12 +160,13 @@ export function UserForm() {
 
           <div>
             <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Password{requiredMark()}
+              Password
             </label>
             <div className="relative">
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                placeholder="Leave blank to keep the current password"
                 className={`${fieldClassName} pr-10`}
                 {...register("password")}
               />
@@ -174,11 +176,7 @@ export function UserForm() {
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-500 hover:text-brand-900"
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             {errors.password && (
@@ -225,7 +223,7 @@ export function UserForm() {
 
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create User"}
+              {isSubmitting ? "Saving..." : "Save changes"}
             </Button>
           </div>
         </div>

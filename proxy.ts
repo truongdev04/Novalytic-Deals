@@ -2,18 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "./auth.config";
 import { redis } from "@/lib/server/cache/redis";
-
-const ADMIN_ONLY_PREFIXES = [
-  "/api/admin/users",
-  "/admin/users",
-  "/api/admin/settings/integrations",
-  "/api/admin/settings/cache-purge",
-  "/api/admin/settings/author",
-  "/api/admin/settings/social",
-  "/api/admin/settings/seo",
-  "/api/admin/settings/content",
-  "/api/admin/settings/footer",
-];
+import { canAccess } from "@/lib/permissions";
 
 const { auth } = NextAuth(authConfig);
 
@@ -42,8 +31,10 @@ export default auth(async (req) => {
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }
 
-  const isAdminOnly = ADMIN_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  if (isAdminOnly && req.auth?.user?.role !== "ADMIN") {
+  if (
+    (isAdminApi || isAdminPage) &&
+    !canAccess(req.auth?.user?.role, req.auth?.user?.permissions, pathname)
+  ) {
     if (isAdminApi) {
       return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
     }

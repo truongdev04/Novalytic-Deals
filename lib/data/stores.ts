@@ -224,41 +224,34 @@ export async function incrementStoreClickCount(id: string): Promise<Store | unde
 }
 
 // Coupon/Review rows cascade-delete at the DB level (see prisma/schema.prisma
-// onDelete: Cascade), so nothing to do there — but their cache tags and any
-// stale references left in Event.couponId (a denormalized String[], not a
-// real FK) aren't covered by that cascade and must be cleaned up here.
+// onDelete: Cascade), and each deleted coupon in turn cascades its
+// EventCoupon rows the same way — so the only manual work left here is
+// purging cache tags.
 export async function deleteStore(id: string): Promise<void> {
   const coupons = await prisma.coupon.findMany({
     where: { storeId: id },
     select: { id: true, slug: true },
   });
   const dealCount = await prisma.deal.count({ where: { storeId: id } });
+  const affectedEvents = await prisma.eventCoupon.findMany({
+    where: { coupon: { storeId: id } },
+    select: { event: { select: { slug: true } } },
+    distinct: ["eventId"],
+  });
 
   const row = await prisma.store.delete({ where: { id } });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
 
-  // Deal rows cascade-delete at the DB level (onDelete: Cascade) with no
-  // denormalized array to clean up (unlike Event.couponId below), so all
-  // that's left is invalidating the list cache.
   if (dealCount > 0) purgeTag("deals:list");
 
   if (coupons.length === 0) return;
 
   purgeTag("coupons:list");
-  const couponIds = coupons.map((c) => c.id);
   for (const coupon of coupons) purgeTag(`coupon:${coupon.slug}`);
 
-  const events = await prisma.event.findMany({
-    where: { couponId: { hasSome: couponIds } },
-    select: { id: true, slug: true, couponId: true },
-  });
-  for (const event of events) {
-    const remaining = event.couponId.filter((cid) => !couponIds.includes(cid));
-    await prisma.event.update({ where: { id: event.id }, data: { couponId: remaining } });
-    purgeTag(`event:${event.slug}`);
-  }
-  if (events.length > 0) purgeTag("events:list");
+  for (const { event } of affectedEvents) purgeTag(`event:${event.slug}`);
+  if (affectedEvents.length > 0) purgeTag("events:list");
 }
 
 export interface AdminStoreFields {

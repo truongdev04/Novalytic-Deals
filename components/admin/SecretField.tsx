@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SecretFieldView } from "@/types";
 
@@ -35,6 +37,8 @@ export function SecretField({
   cleared: boolean;
   onToggleClear: () => void;
 }) {
+  const [showValue, setShowValue] = useState(false);
+
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
@@ -52,15 +56,26 @@ export function SecretField({
         </span>
       </div>
       <div className="flex gap-2">
-        <input
-          id={id}
-          type="password"
-          placeholder="Enter a new value to replace it"
-          className={fieldClassName}
-          disabled={cleared}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <div className="relative flex-1">
+          <input
+            id={id}
+            type={showValue ? "text" : "password"}
+            placeholder="Enter a new value to replace it"
+            className={cn(fieldClassName, "pr-10")}
+            disabled={cleared}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowValue((v) => !v)}
+            disabled={cleared}
+            aria-label={showValue ? "Hide value" : "Show value"}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-500 hover:text-brand-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {showValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         {view.source === "db" && (
           <button
             type="button"

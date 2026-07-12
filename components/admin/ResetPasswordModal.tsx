@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import {
   adminResetPasswordSchema,
   type AdminResetPasswordInput,
@@ -21,6 +23,8 @@ export function ResetPasswordModal({
   user: AdminUser | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -52,7 +56,10 @@ export function ResetPasswordModal({
     <Modal
       open={user !== null}
       onOpenChange={(open) => {
-        if (!open) reset();
+        if (!open) {
+          reset();
+          setShowPassword(false);
+        }
         onOpenChange(open);
       }}
       title={user ? `Reset password for ${user.email}` : "Reset password"}
@@ -62,12 +69,22 @@ export function ResetPasswordModal({
           <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-brand-950">
             New password
           </label>
-          <input
-            id="password"
-            type="password"
-            className={fieldClassName}
-            {...register("password")}
-          />
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              className={`${fieldClassName} pr-10`}
+              {...register("password")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-500 hover:text-brand-900"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           {errors.password && (
             <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
           )}

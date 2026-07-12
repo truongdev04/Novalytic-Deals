@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { KeyRound } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { KeyRound, Pencil, UserRound } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { ResetPasswordModal } from "@/components/admin/ResetPasswordModal";
@@ -21,21 +23,41 @@ export function UsersTable({ users, currentUserId }: { users: AdminUser[]; curre
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-100 text-xs uppercase text-muted-500">
             <tr>
+              <th className="px-4 py-3">Avatar</th>
+              <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Created</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((user) => (
               <tr key={user.id} className="border-t border-muted-200">
+                <td className="px-4 py-3">
+                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-100 text-muted-400">
+                    {user.avatarUrl ? (
+                      <Image
+                        src={user.avatarUrl}
+                        alt={user.fullName ?? user.email}
+                        width={36}
+                        height={36}
+                        className="h-9 w-9 object-cover"
+                      />
+                    ) : (
+                      <UserRound className="h-4 w-4" />
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-medium text-brand-950">
-                  {user.email}
+                  {user.fullName ?? "—"}
                   {user.id === currentUserId && (
                     <span className="ml-2 text-xs font-normal text-muted-500">(you)</span>
                   )}
                 </td>
+                <td className="px-4 py-3 text-muted-600">{user.email}</td>
+                <td className="px-4 py-3 text-muted-600">{user.phone ?? "—"}</td>
                 <td className="px-4 py-3">
                   <AdminDropdownSelect
                     endpoint={`/api/admin/users/${user.id}`}
@@ -45,13 +67,35 @@ export function UsersTable({ users, currentUserId }: { users: AdminUser[]; curre
                       { value: "ADMIN", label: "Admin" },
                       { value: "EDITOR", label: "Editor" },
                     ]}
+                    triggerClassName="w-28"
                   />
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-600">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                <td className="px-4 py-3">
+                  <AdminDropdownSelect
+                    endpoint={`/api/admin/users/${user.id}`}
+                    field="status"
+                    value={user.status}
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "INACTIVE", label: "Inactive" },
+                    ]}
+                    triggerClassName="w-28"
+                    badgeClassName={
+                      user.status === "ACTIVE"
+                        ? "border-brand-200 bg-brand-50 text-brand-700"
+                        : "border-red-200 bg-red-50 text-red-600"
+                    }
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin/users/${user.id}/edit`}
+                      aria-label={`Edit ${user.email}`}
+                      className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-brand-900"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
                     <button
                       type="button"
                       onClick={() => setResetPasswordFor(user)}
@@ -70,7 +114,7 @@ export function UsersTable({ users, currentUserId }: { users: AdminUser[]; curre
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-muted-500">
+                <td colSpan={7} className="px-4 py-6 text-center text-muted-500">
                   No users found.
                 </td>
               </tr>
