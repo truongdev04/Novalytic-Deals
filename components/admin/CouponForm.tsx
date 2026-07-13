@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -98,8 +98,19 @@ export function CouponForm({
   });
 
   const discountType = useWatch({ control, name: "discountType" });
+  const couponType = useWatch({ control, name: "type" });
   const selectedStoreId = useWatch({ control, name: "storeId" });
   const selectedStoreName = stores.find((s) => s.id === selectedStoreId)?.name ?? "";
+
+  // FREESHIP coupons don't carry a meaningful discount value — force the
+  // fields to a valid combo in the background so the badge can key off
+  // `type` alone (see formatDiscount) without the admin picking OTHER/0 by hand.
+  useEffect(() => {
+    if (couponType === "FREESHIP") {
+      setValue("discountType", "OTHER", { shouldDirty: true });
+      setValue("discountValue", 0, { shouldDirty: true });
+    }
+  }, [couponType, setValue]);
   // Picked once per mount (not re-randomized on submit) so the placeholder
   // preview and the value actually saved when creating a coupon match
   // exactly — no surprise mismatch between what the admin saw and what got
@@ -119,12 +130,17 @@ export function CouponForm({
       const description =
         !coupon && !data.description ? applyTemplate(descriptionPick, storeName) : data.description;
       const terms = !coupon && !data.terms ? applyTemplate(termsPick, storeName) : data.terms;
+      // Safety net for the case where Code is left blank from the start (the
+      // live onChange switch above only fires once the admin touches the
+      // field) — a brand-new coupon still typed as CODE with no code doesn't
+      // make sense, so it's normalized to DEAL right before saving.
+      const type = !coupon && data.type === "CODE" && !data.code ? "DEAL" : data.type;
 
       const endpoint = coupon ? `/api/admin/coupons/${coupon.id}` : "/api/admin/coupons";
       const res = await fetch(endpoint, {
         method: coupon ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, description, terms }),
+        body: JSON.stringify({ ...data, type, description, terms }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -259,69 +275,93 @@ export function CouponForm({
               <label htmlFor="code" className="mb-1.5 block text-sm font-medium text-brand-950">
                 Code <span className="text-muted-400">(optional)</span>
               </label>
-              <input id="code" placeholder="e.g. SAVE20" className={fieldClassName} {...register("code")} />
+              <input
+                id="code"
+                placeholder="e.g. SAVE20"
+                className={fieldClassName}
+                {...register("code", {
+                  onChange: (e) => {
+                    if (!coupon && couponType === "CODE" && !e.target.value) {
+                      setValue("type", "DEAL", { shouldDirty: true });
+                    }
+                  },
+                })}
+              />
             </div>
           </div>
 
-          <div
-            className={cn(
-              "grid grid-cols-1 gap-5",
-              discountType === "AMOUNT" ? "sm:grid-cols-3" : "sm:grid-cols-2"
-            )}
-          >
-            <div>
-              <span className="mb-1.5 block text-sm font-medium text-brand-950">
-                Discount Type{requiredMark()}
-              </span>
-              <select className={fieldClassName} {...register("discountType")}>
-                {DISCOUNT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="discountValue"
-                className="mb-1.5 block text-sm font-medium text-brand-950"
-              >
-                Discount Value{requiredMark()}
-              </label>
-              <input
-                id="discountValue"
-                type="text"
-                inputMode="decimal"
-                className={fieldClassName}
-                {...register("discountValue", { valueAsNumber: true })}
-              />
-              {errors.discountValue && (
-                <p className="mt-1 text-xs text-red-600">{errors.discountValue.message}</p>
+          {couponType === "FREESHIP" ? (
+            <p className="text-xs text-muted-500">
+              Free Shipping coupons don&apos;t need a discount value — the badge will automatically
+              show &quot;FREE SHIPPING&quot;.
+            </p>
+          ) : (
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-5",
+                discountType === "AMOUNT" ? "sm:grid-cols-3" : "sm:grid-cols-2"
               )}
-            </div>
-
-            {discountType === "AMOUNT" && (
+            >
               <div>
-                <label htmlFor="currency" className="mb-1.5 block text-sm font-medium text-brand-950">
-                  Currency{requiredMark()}
+                <span className="mb-1.5 block text-sm font-medium text-brand-950">
+                  Discount Type{requiredMark()}
+                </span>
+                <select className={fieldClassName} {...register("discountType")}>
+                  {DISCOUNT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-500">
+                  The coupon Type = &quot;DEAL&quot; without a specific DISCOUNT has been working
+                  correctly before (select OTHER + 0 manually → displays &quot;DEAL&quot;).
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="discountValue"
+                  className="mb-1.5 block text-sm font-medium text-brand-950"
+                >
+                  Discount Value{requiredMark()}
                 </label>
                 <input
-                  id="currency"
-                  list="currency-options"
-                  placeholder="e.g. $"
+                  id="discountValue"
+                  type="text"
+                  inputMode="decimal"
                   className={fieldClassName}
-                  {...register("currency")}
+                  {...register("discountValue", { valueAsNumber: true })}
                 />
-                <datalist id="currency-options">
-                  {CURRENCY_OPTIONS.map((symbol) => (
-                    <option key={symbol} value={symbol} />
-                  ))}
-                </datalist>
-                {errors.currency && <p className="mt-1 text-xs text-red-600">{errors.currency.message}</p>}
+                {errors.discountValue && (
+                  <p className="mt-1 text-xs text-red-600">{errors.discountValue.message}</p>
+                )}
               </div>
-            )}
-          </div>
+
+              {discountType === "AMOUNT" && (
+                <div>
+                  <label htmlFor="currency" className="mb-1.5 block text-sm font-medium text-brand-950">
+                    Currency{requiredMark()}
+                  </label>
+                  <input
+                    id="currency"
+                    list="currency-options"
+                    placeholder="e.g. $"
+                    className={fieldClassName}
+                    {...register("currency")}
+                  />
+                  <datalist id="currency-options">
+                    {CURRENCY_OPTIONS.map((symbol) => (
+                      <option key={symbol} value={symbol} />
+                    ))}
+                  </datalist>
+                  {errors.currency && (
+                    <p className="mt-1 text-xs text-red-600">{errors.currency.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label htmlFor="affiliateUrl" className="mb-1.5 block text-sm font-medium text-brand-950">

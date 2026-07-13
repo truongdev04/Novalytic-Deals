@@ -89,7 +89,7 @@ export default async function StorePage({
             activeDeals={activeCoupons.length}
             bestOfferLabel={
               bestOffer
-                ? formatDiscount(bestOffer.discountType, bestOffer.discountValue, bestOffer.currency)
+                ? formatDiscount(bestOffer.type, bestOffer.discountType, bestOffer.discountValue, bestOffer.currency)
                 : undefined
             }
           />

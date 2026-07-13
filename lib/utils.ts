@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { CouponType, DiscountType } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,12 +26,14 @@ export function slugify(value: string) {
 }
 
 export function formatDiscount(
-  discountType: "PERCENT" | "AMOUNT" | "OTHER",
+  couponType: CouponType,
+  discountType: DiscountType,
   discountValue: number,
   currency: string
 ) {
   if (discountType === "PERCENT") return `${discountValue}% OFF`;
   if (discountType === "AMOUNT") return `${currency}${discountValue} OFF`;
+  if (couponType === "FREESHIP") return "FREE SHIPPING";
   return "DEAL";
 }
 

@@ -17,10 +17,13 @@ function filterCoupons(coupons: Coupon[], tab: string) {
   switch (tab) {
     case "verified":
       return coupons.filter((c) => c.verified);
+    // Matches the "Show Code" vs "Get Deal" button split in CouponCodeModal
+    // (Boolean(coupon.code)), not `coupon.type` — a FREESHIP/DEAL coupon
+    // that still carries a real code belongs under "Codes", not "Deals".
     case "codes":
-      return coupons.filter((c) => c.type === "CODE");
+      return coupons.filter((c) => Boolean(c.code));
     case "deals":
-      return coupons.filter((c) => c.type !== "CODE");
+      return coupons.filter((c) => !c.code);
     default:
       return coupons;
   }
