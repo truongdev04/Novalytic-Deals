@@ -74,8 +74,14 @@ model Store {
   region           StoreRegion
   affiliateNetwork String
   isFeatured       Boolean  @default(false)
+  isPin            Boolean  @default(false)
   isActive         Boolean  @default(true)
-  clickCount       Int      @default(0)
+  // Rolling monthly click counters (lib/content/popularStoresRefresh.ts) — currentMonthClicks
+  // increments on every /go/[couponId] redirect, lastMonthClicks is its frozen value from the
+  // previous UTC month (rolled over lazily when Auto Popular is enabled). Drive Popular Stores
+  // ranking; no lifetime total is kept anymore (superseded the old single clickCount column).
+  currentMonthClicks Int    @default(0)
+  lastMonthClicks    Int    @default(0)
   seo              Json
   faq              Json
   categoryIds      String[]
@@ -96,6 +102,7 @@ model Store {
   reviews Review[]
 
   @@index([isFeatured])
+  @@index([isPin])
   @@index([isActive])
   @@index([eventId])
   @@map("stores")
@@ -183,6 +190,11 @@ model Deal {
   description   String?
   isFeatured    Boolean   @default(false)
   isActive      Boolean   @default(true)
+  // Rolling 8-hour click counters (lib/content/dealsRefresh.ts) — currentHourClicks
+  // increments on every "Get Deal"/"Show Code" click (app/api/deals/[id]/click),
+  // lastHourClicks is its frozen value from the last Auto Deal rollover.
+  currentHourClicks Int   @default(0)
+  lastHourClicks    Int   @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -309,7 +321,10 @@ model NewsletterSubscriber {
 model SubmittedCoupon {
   id              String           @id @default(cuid())
   storeName       String
+  websiteUrl      String   @default("")
   code            String?
+  discountUnit    String   @default("%")
+  discountValue   Float    @default(0)
   description     String
   expiresAt       DateTime?
   submitterEmail  String
