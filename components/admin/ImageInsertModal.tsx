@@ -5,6 +5,7 @@ import { Link2, Maximize, Unlink } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { cn } from "@/lib/utils";
 import { registerPendingImage } from "@/lib/richTextImageUpload";
 import { borderStyleProps, hspaceStyleProps, vspaceStyleProps, type ImagePosition } from "@/lib/richTextImageStyle";
@@ -27,6 +28,13 @@ export interface EditingImage {
 const fieldInputClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:bg-surface-100 disabled:text-muted-400";
 const fieldLabelClassName = "mb-1.5 block text-sm font-medium text-brand-950";
+
+const POSITION_OPTIONS = [
+  { value: "", label: "None" },
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" },
+];
 
 export function ImageInsertModal({
   editor,
@@ -348,17 +356,13 @@ export function ImageInsertModal({
 
             <div>
               <label className={fieldLabelClassName}>Position</label>
-              <select
+              <SingleSelectDropdown
+                options={POSITION_OPTIONS}
                 value={position}
                 disabled={fullWidth}
-                onChange={(e) => setPosition(e.target.value as ImagePosition)}
-                className={fieldInputClassName}
-              >
-                <option value="">None</option>
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
+                onChange={(v) => setPosition(v as ImagePosition)}
+                placeholder="None"
+              />
               {fullWidth && <p className="mt-1 text-xs text-muted-400">Not applicable when Max width is on.</p>}
             </div>
 

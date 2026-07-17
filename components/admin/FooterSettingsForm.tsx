@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Controller,
   useForm,
   useFieldArray,
   useWatch,
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import {
   adminFooterSettingsSchema,
   type AdminFooterSettingsInput,
@@ -123,18 +125,19 @@ function FooterColumnFields({
           </div>
           <div className="w-40">
             <label className="mb-1.5 block text-sm font-medium text-brand-950">Type</label>
-            <select
-              className={fieldClassName}
-              disabled={isTypeChosen}
-              {...register(`columns.${columnIndex}.type` as const)}
-            >
-              <option value="">Select type</option>
-              {TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name={`columns.${columnIndex}.type` as const}
+              render={({ field }) => (
+                <SingleSelectDropdown
+                  options={TYPE_OPTIONS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select type"
+                  disabled={isTypeChosen}
+                />
+              )}
+            />
             {columnErrors?.type && <p className="mt-1 text-xs text-red-600">Select a type</p>}
           </div>
         </div>

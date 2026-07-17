@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import type { RedirectRule } from "@/types";
 
 const fieldClassName =
@@ -30,6 +31,7 @@ export function RedirectRuleForm({ rule }: { rule?: RedirectRule }) {
   const {
     register,
     handleSubmit,
+    control,
     setError,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<AdminRedirectRuleInput>({
@@ -122,13 +124,21 @@ export function RedirectRuleForm({ rule }: { rule?: RedirectRule }) {
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="type" className="mb-1.5 block text-sm font-medium text-brand-950">
-                Redirect type
-              </label>
-              <select id="type" className={fieldClassName} {...register("type")}>
-                <option value="PERMANENT">308 Permanent</option>
-                <option value="TEMPORARY">307 Temporary</option>
-              </select>
+              <span className="mb-1.5 block text-sm font-medium text-brand-950">Redirect type</span>
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <SingleSelectDropdown
+                    options={[
+                      { value: "PERMANENT", label: "308 Permanent" },
+                      { value: "TEMPORARY", label: "307 Temporary" },
+                    ]}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
             <div className="flex items-end pb-2.5">
               <label className="flex items-center gap-2 text-sm font-medium text-brand-950">

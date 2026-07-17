@@ -262,13 +262,17 @@ export function CouponForm({
               <span className="mb-1.5 block text-sm font-medium text-brand-950">
                 Type{requiredMark()}
               </span>
-              <select className={fieldClassName} {...register("type")}>
-                {COUPON_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <SingleSelectDropdown
+                    options={COUPON_TYPES.map((type) => ({ value: type, label: type }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
 
             <div>
@@ -306,13 +310,17 @@ export function CouponForm({
                 <span className="mb-1.5 block text-sm font-medium text-brand-950">
                   Discount Type{requiredMark()}
                 </span>
-                <select className={fieldClassName} {...register("discountType")}>
-                  {DISCOUNT_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  control={control}
+                  name="discountType"
+                  render={({ field }) => (
+                    <SingleSelectDropdown
+                      options={DISCOUNT_TYPES.map((type) => ({ value: type, label: type }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
                 <p className="mt-1 text-xs text-muted-500">
                   The coupon Type = &quot;DEAL&quot; without a specific DISCOUNT has been working
                   correctly before (select OTHER + 0 manually → displays &quot;DEAL&quot;).

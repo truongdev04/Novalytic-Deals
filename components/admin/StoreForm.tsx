@@ -91,6 +91,7 @@ export function StoreForm({
           howToApply: store.howToApply ?? "",
           faq: store.faq,
           isFeatured: store.isFeatured,
+          isPin: store.isPin,
           seoTitle: store.seo.title,
           seoDescription: store.seo.description,
         }
@@ -108,6 +109,7 @@ export function StoreForm({
           howToApply: "",
           faq: [],
           isFeatured: false,
+          isPin: false,
           seoTitle: "",
           seoDescription: "",
         },
@@ -346,18 +348,17 @@ export function StoreForm({
               control={control}
               name="eventId"
               render={({ field }) => (
-                <select
-                  className={fieldClassName}
+                <SingleSelectDropdown
+                  options={[
+                    { value: "", label: "Uncategorized" },
+                    ...events.map((event) => ({ value: event.id, label: event.name })),
+                  ]}
                   value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                >
-                  <option value="">Uncategorized</option>
-                  {events.map((event) => (
-                    <option key={event.id} value={event.id}>
-                      {event.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => field.onChange(value || null)}
+                  placeholder="Uncategorized"
+                  searchable
+                  searchPlaceholder="Search events..."
+                />
               )}
             />
           </div>
@@ -545,10 +546,16 @@ export function StoreForm({
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
-            <input type="checkbox" className="h-4 w-4" {...register("isFeatured")} />
-            Featured
-          </label>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
+              <input type="checkbox" className="h-4 w-4" {...register("isFeatured")} />
+              Featured
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
+              <input type="checkbox" className="h-4 w-4" {...register("isPin")} />
+              Pin to top of Popular Stores
+            </label>
+          </div>
 
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>

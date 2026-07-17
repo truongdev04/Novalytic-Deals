@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import { slugify } from "@/lib/utils";
 import { applyTemplate } from "@/lib/content/template";
@@ -97,6 +98,29 @@ export function BlogForm({
           seoDescription: "",
         },
   });
+
+  const authorOptions = [
+    { value: "", label: "None" },
+    ...authors.map((author) => ({
+      value: author.id,
+      label: author.isDefault ? `${author.name} (default)` : author.name,
+    })),
+    ...(selectedAuthorId === CUSTOM_AUTHOR_VALUE
+      ? [{ value: CUSTOM_AUTHOR_VALUE, label: `${post?.authorName} (not in Author list)` }]
+      : []),
+  ];
+
+  function handleAuthorChange(nextId: string) {
+    // The synthetic CUSTOM_AUTHOR_VALUE entry only exists to show the
+    // already-selected out-of-list author name — it has no real author
+    // record behind it, so selecting it again must be a no-op rather than
+    // wiping authorName/authorAvatarUrl.
+    if (nextId === CUSTOM_AUTHOR_VALUE) return;
+    setSelectedAuthorId(nextId);
+    const author = authors.find((a) => a.id === nextId);
+    setValue("authorName", author?.name ?? "", { shouldDirty: true });
+    setValue("authorAvatarUrl", author?.avatarUrl ?? "", { shouldDirty: true });
+  }
 
   const titleValue = useWatch({ control, name: "title" }) || "";
   const excerptPlaceholder = applyTemplate(templates.blogExcerptTemplate, titleValue);
@@ -241,34 +265,15 @@ export function BlogForm({
           />
 
           <div>
-            <label htmlFor="authorId" className="mb-1.5 block text-sm font-medium text-brand-950">
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">
               Author <span className="text-muted-400">(optional)</span>
-            </label>
-            <select
-              id="authorId"
-              className={fieldClassName}
+            </span>
+            <SingleSelectDropdown
+              options={authorOptions}
               value={selectedAuthorId}
-              onChange={(e) => {
-                const nextId = e.target.value;
-                setSelectedAuthorId(nextId);
-                const author = authors.find((a) => a.id === nextId);
-                setValue("authorName", author?.name ?? "", { shouldDirty: true });
-                setValue("authorAvatarUrl", author?.avatarUrl ?? "", { shouldDirty: true });
-              }}
-            >
-              <option value="">None</option>
-              {authors.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name}
-                  {author.isDefault ? " (default)" : ""}
-                </option>
-              ))}
-              {selectedAuthorId === CUSTOM_AUTHOR_VALUE && (
-                <option value={CUSTOM_AUTHOR_VALUE} disabled>
-                  {post?.authorName} (not in Author list)
-                </option>
-              )}
-            </select>
+              onChange={handleAuthorChange}
+              placeholder="None"
+            />
             <p className="mt-1 text-xs text-muted-500">
               Manage the Author list at Settings &gt; Author.
             </p>
@@ -278,28 +283,44 @@ export function BlogForm({
             <span className="mb-1.5 block text-sm font-medium text-brand-950">
               Category <span className="text-muted-400">(optional)</span>
             </span>
-            <select className={fieldClassName} {...register("categoryId")}>
-              <option value="">None</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <SingleSelectDropdown
+                  options={[
+                    { value: "", label: "None" },
+                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                  ]}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="None"
+                  searchable
+                  searchPlaceholder="Search categories..."
+                />
+              )}
+            />
           </div>
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-brand-950">
               Topic <span className="text-muted-400">(optional)</span>
             </span>
-            <select className={fieldClassName} {...register("topicId")}>
-              <option value="">None</option>
-              {topics.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {topic.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="topicId"
+              render={({ field }) => (
+                <SingleSelectDropdown
+                  options={[
+                    { value: "", label: "None" },
+                    ...topics.map((topic) => ({ value: topic.id, label: topic.name })),
+                  ]}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="None"
+                />
+              )}
+            />
           </div>
 
           <div>

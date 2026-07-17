@@ -7,13 +7,29 @@ import { Pencil, Search } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import type { BlogPost } from "@/types";
 
 const BOOL_FILTER_ALL = "all";
 
-const selectClassName =
-  "rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:border-brand-400 focus:outline-none";
+const featuredFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All featured" },
+  { value: "true", label: "Featured" },
+  { value: "false", label: "Not featured" },
+];
+
+const firstFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All first" },
+  { value: "true", label: "First" },
+  { value: "false", label: "Not first" },
+];
+
+const statusFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All statuses" },
+  { value: "true", label: "Active" },
+  { value: "false", label: "Hidden" },
+];
 
 export function BlogTable({ posts }: { posts: BlogPost[] }) {
   const [query, setQuery] = useState("");
@@ -52,35 +68,32 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
           />
         </div>
 
-        <select
-          value={featuredFilter}
-          onChange={(e) => setFeaturedFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All featured</option>
-          <option value="true">Featured</option>
-          <option value="false">Not featured</option>
-        </select>
+        <div className="w-36">
+          <SingleSelectDropdown
+            options={featuredFilterOptions}
+            value={featuredFilter}
+            onChange={setFeaturedFilter}
+            placeholder="All featured"
+          />
+        </div>
 
-        <select
-          value={firstFilter}
-          onChange={(e) => setFirstFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All first</option>
-          <option value="true">First</option>
-          <option value="false">Not first</option>
-        </select>
+        <div className="w-32">
+          <SingleSelectDropdown
+            options={firstFilterOptions}
+            value={firstFilter}
+            onChange={setFirstFilter}
+            placeholder="All first"
+          />
+        </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All statuses</option>
-          <option value="true">Active</option>
-          <option value="false">Hidden</option>
-        </select>
+        <div className="w-36">
+          <SingleSelectDropdown
+            options={statusFilterOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="All statuses"
+          />
+        </div>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-lg border border-muted-200 bg-surface-0">

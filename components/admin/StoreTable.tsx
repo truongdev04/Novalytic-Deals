@@ -4,22 +4,21 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ListChecks, Pencil, Search, Trash2 } from "lucide-react";
+import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { Category, Event, Store } from "@/types";
 
+const CATEGORY_FILTER_ALL = "all";
 const EVENT_FILTER_ALL = "all";
 const EVENT_FILTER_UNCATEGORIZED = "uncategorized";
 const BOOL_FILTER_ALL = "all";
-
-const selectClassName =
-  "rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:border-brand-400 focus:outline-none";
 
 export function StoreTable({
   stores,
@@ -32,13 +31,21 @@ export function StoreTable({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(CATEGORY_FILTER_ALL);
   const [eventFilter, setEventFilter] = useState(EVENT_FILTER_ALL);
   const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
+  const [pinFilter, setPinFilter] = useState(BOOL_FILTER_ALL);
   const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [draftCategoryFilter, setDraftCategoryFilter] = useState(CATEGORY_FILTER_ALL);
+  const [draftEventFilter, setDraftEventFilter] = useState(EVENT_FILTER_ALL);
+  const [draftFeaturedFilter, setDraftFeaturedFilter] = useState(BOOL_FILTER_ALL);
+  const [draftPinFilter, setDraftPinFilter] = useState(BOOL_FILTER_ALL);
+  const [draftStatusFilter, setDraftStatusFilter] = useState(BOOL_FILTER_ALL);
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((c) => [c.id, c.name])),
@@ -53,10 +60,49 @@ export function StoreTable({
     [events]
   );
 
+  const categoryFilterOptions = useMemo(
+    () => [
+      { value: CATEGORY_FILTER_ALL, label: "All categories" },
+      ...categories.map((category) => ({ value: category.id, label: category.name })),
+    ],
+    [categories]
+  );
+
+  const eventFilterOptions = useMemo(
+    () => [
+      { value: EVENT_FILTER_ALL, label: "All events" },
+      { value: EVENT_FILTER_UNCATEGORIZED, label: "Uncategorized" },
+      ...events.map((event) => ({ value: event.id, label: event.name })),
+    ],
+    [events]
+  );
+
+  const featuredFilterOptions = [
+    { value: BOOL_FILTER_ALL, label: "All featured" },
+    { value: "true", label: "Featured" },
+    { value: "false", label: "Not featured" },
+  ];
+
+  const pinFilterOptions = [
+    { value: BOOL_FILTER_ALL, label: "All pin" },
+    { value: "true", label: "Pinned" },
+    { value: "false", label: "Not pinned" },
+  ];
+
+  const statusFilterOptions = [
+    { value: BOOL_FILTER_ALL, label: "All statuses" },
+    { value: "true", label: "Active" },
+    { value: "false", label: "Hidden" },
+  ];
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return stores.filter((store) => {
       if (q && !store.name.toLowerCase().includes(q)) return false;
+
+      if (categoryFilter !== CATEGORY_FILTER_ALL) {
+        if (!store.categoryIds.includes(categoryFilter)) return false;
+      }
 
       if (eventFilter !== EVENT_FILTER_ALL) {
         const currentEventId = store.eventId ?? null;
@@ -71,13 +117,55 @@ export function StoreTable({
         if (String(store.isFeatured) !== featuredFilter) return false;
       }
 
+      if (pinFilter !== BOOL_FILTER_ALL) {
+        if (String(store.isPin) !== pinFilter) return false;
+      }
+
       if (statusFilter !== BOOL_FILTER_ALL) {
         if (String(store.isActive) !== statusFilter) return false;
       }
 
       return true;
     });
-  }, [stores, query, eventFilter, featuredFilter, statusFilter]);
+  }, [stores, query, categoryFilter, eventFilter, featuredFilter, pinFilter, statusFilter]);
+
+  const hasActiveFilters =
+    categoryFilter !== CATEGORY_FILTER_ALL ||
+    eventFilter !== EVENT_FILTER_ALL ||
+    featuredFilter !== BOOL_FILTER_ALL ||
+    pinFilter !== BOOL_FILTER_ALL ||
+    statusFilter !== BOOL_FILTER_ALL;
+
+  function clearAllFilters() {
+    setCategoryFilter(CATEGORY_FILTER_ALL);
+    setEventFilter(EVENT_FILTER_ALL);
+    setFeaturedFilter(BOOL_FILTER_ALL);
+    setPinFilter(BOOL_FILTER_ALL);
+    setStatusFilter(BOOL_FILTER_ALL);
+    setDraftCategoryFilter(CATEGORY_FILTER_ALL);
+    setDraftEventFilter(EVENT_FILTER_ALL);
+    setDraftFeaturedFilter(BOOL_FILTER_ALL);
+    setDraftPinFilter(BOOL_FILTER_ALL);
+    setDraftStatusFilter(BOOL_FILTER_ALL);
+  }
+
+  function openFilterModal() {
+    setDraftCategoryFilter(categoryFilter);
+    setDraftEventFilter(eventFilter);
+    setDraftFeaturedFilter(featuredFilter);
+    setDraftPinFilter(pinFilter);
+    setDraftStatusFilter(statusFilter);
+    setShowFilterModal(true);
+  }
+
+  function applyFilters() {
+    setCategoryFilter(draftCategoryFilter);
+    setEventFilter(draftEventFilter);
+    setFeaturedFilter(draftFeaturedFilter);
+    setPinFilter(draftPinFilter);
+    setStatusFilter(draftStatusFilter);
+    setShowFilterModal(false);
+  }
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
 
@@ -146,40 +234,92 @@ export function StoreTable({
           />
         </div>
 
-        <select
-          value={eventFilter}
-          onChange={(e) => setEventFilter(e.target.value)}
-          className={selectClassName}
+        <button
+          type="button"
+          onClick={openFilterModal}
+          className="flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
         >
-          <option value={EVENT_FILTER_ALL}>All events</option>
-          <option value={EVENT_FILTER_UNCATEGORIZED}>Uncategorized</option>
-          {events.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-            </option>
-          ))}
-        </select>
+          <Filter className="h-4 w-4" />
+          Filter
+        </button>
 
-        <select
-          value={featuredFilter}
-          onChange={(e) => setFeaturedFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All featured</option>
-          <option value="true">Featured</option>
-          <option value="false">Not featured</option>
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All statuses</option>
-          <option value="true">Active</option>
-          <option value="false">Hidden</option>
-        </select>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+          >
+            Clear All
+          </button>
+        )}
       </div>
+
+      <Modal open={showFilterModal} onOpenChange={setShowFilterModal} title="Filters">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Category</label>
+            <SingleSelectDropdown
+              options={categoryFilterOptions}
+              value={draftCategoryFilter}
+              onChange={setDraftCategoryFilter}
+              placeholder="All categories"
+              searchable
+              searchPlaceholder="Search categories..."
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Event</label>
+            <SingleSelectDropdown
+              options={eventFilterOptions}
+              value={draftEventFilter}
+              onChange={setDraftEventFilter}
+              placeholder="All events"
+              searchable
+              searchPlaceholder="Search events..."
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Featured</label>
+            <SingleSelectDropdown
+              options={featuredFilterOptions}
+              value={draftFeaturedFilter}
+              onChange={setDraftFeaturedFilter}
+              placeholder="All featured"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Pin</label>
+            <SingleSelectDropdown
+              options={pinFilterOptions}
+              value={draftPinFilter}
+              onChange={setDraftPinFilter}
+              placeholder="All pin"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Status</label>
+            <SingleSelectDropdown
+              options={statusFilterOptions}
+              value={draftStatusFilter}
+              onChange={setDraftStatusFilter}
+              placeholder="All statuses"
+            />
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowFilterModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={applyFilters}>
+            Apply filter
+          </Button>
+        </div>
+      </Modal>
 
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -256,9 +396,9 @@ export function StoreTable({
               <th className="px-4 py-3">Logo</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Rating</th>
               <th className="px-4 py-3">Event</th>
               <th className="px-4 py-3">Featured</th>
+              <th className="px-4 py-3">Pin</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3 text-right">Actions</th>
@@ -289,7 +429,6 @@ export function StoreTable({
                   <td className="px-4 py-3 text-muted-600">
                     {store.categoryIds.map((id) => categoryNameById.get(id)).filter(Boolean).join(", ") || "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-600">{store.rating.toFixed(1)}</td>
                   <td className="px-4 py-3">
                     <AdminDropdownSelect
                       endpoint={`/api/admin/stores/${store.id}`}
@@ -317,6 +456,23 @@ export function StoreTable({
                       badgeClassName={
                         store.isFeatured
                           ? "border-brand-300 bg-brand-50 text-brand-700"
+                          : "border-muted-300 text-muted-500 hover:bg-surface-100"
+                      }
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <AdminDropdownSelect
+                      endpoint={`/api/admin/stores/${store.id}`}
+                      field="isPin"
+                      value={store.isPin}
+                      options={[
+                        { value: true, label: "Pinned" },
+                        { value: false, label: "Not pinned" },
+                      ]}
+                      triggerClassName="w-24"
+                      badgeClassName={
+                        store.isPin
+                          ? "border-accent-300 bg-accent-50 text-accent-700"
                           : "border-muted-300 text-muted-500 hover:bg-surface-100"
                       }
                     />

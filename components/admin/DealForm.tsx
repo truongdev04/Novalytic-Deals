@@ -239,13 +239,17 @@ export function DealForm({
               <span className="mb-1.5 block text-sm font-medium text-brand-950">
                 Type{requiredMark()}
               </span>
-              <select className={fieldClassName} {...register("type")}>
-                {DEAL_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <SingleSelectDropdown
+                    options={DEAL_TYPES.map((t) => ({ value: t, label: t }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
 
             {type === "CODE" && (
@@ -265,18 +269,17 @@ export function DealForm({
               control={control}
               name="eventId"
               render={({ field }) => (
-                <select
-                  className={fieldClassName}
+                <SingleSelectDropdown
+                  options={[
+                    { value: "", label: "Uncategorized" },
+                    ...events.map((event) => ({ value: event.id, label: event.name })),
+                  ]}
                   value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                >
-                  <option value="">Uncategorized</option>
-                  {events.map((event) => (
-                    <option key={event.id} value={event.id}>
-                      {event.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => field.onChange(value || null)}
+                  placeholder="Uncategorized"
+                  searchable
+                  searchPlaceholder="Search events..."
+                />
               )}
             />
           </div>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import type { AdminUser } from "@/types";
 
 const fieldClassName =
@@ -185,13 +186,21 @@ export function UserEditForm({ user }: { user: AdminUser }) {
           </div>
 
           <div>
-            <label htmlFor="role" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Role
-            </label>
-            <select id="role" className={fieldClassName} {...register("role")}>
-              <option value="EDITOR">Editor</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">Role</span>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <SingleSelectDropdown
+                  options={[
+                    { value: "EDITOR", label: "Editor" },
+                    { value: "ADMIN", label: "Admin" },
+                  ]}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
           </div>
 
           {role === "EDITOR" && (

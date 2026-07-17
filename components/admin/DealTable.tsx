@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ListChecks, Pencil, Search, Trash2 } from "lucide-react";
+import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
@@ -22,9 +22,6 @@ const EVENT_FILTER_UNCATEGORIZED = "uncategorized";
 const BOOL_FILTER_ALL = "all";
 
 const DEAL_TYPES: DealType[] = ["DEAL", "CODE"];
-
-const selectClassName =
-  "rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:border-brand-400 focus:outline-none";
 
 export function DealTable({
   deals,
@@ -46,6 +43,11 @@ export function DealTable({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [draftTypeFilter, setDraftTypeFilter] = useState(TYPE_FILTER_ALL);
+  const [draftEventFilter, setDraftEventFilter] = useState(EVENT_FILTER_ALL);
+  const [draftFeaturedFilter, setDraftFeaturedFilter] = useState(BOOL_FILTER_ALL);
+  const [draftStatusFilter, setDraftStatusFilter] = useState(BOOL_FILTER_ALL);
 
   const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 
@@ -64,6 +66,35 @@ export function DealTable({
     ],
     [events]
   );
+
+  const typeFilterOptions = useMemo(
+    () => [
+      { value: TYPE_FILTER_ALL, label: "All types" },
+      ...DEAL_TYPES.map((type) => ({ value: type, label: type })),
+    ],
+    []
+  );
+
+  const eventFilterOptions = useMemo(
+    () => [
+      { value: EVENT_FILTER_ALL, label: "All events" },
+      { value: EVENT_FILTER_UNCATEGORIZED, label: "Uncategorized" },
+      ...events.map((event) => ({ value: event.id, label: event.name })),
+    ],
+    [events]
+  );
+
+  const featuredFilterOptions = [
+    { value: BOOL_FILTER_ALL, label: "All featured" },
+    { value: "true", label: "Featured" },
+    { value: "false", label: "Not featured" },
+  ];
+
+  const statusFilterOptions = [
+    { value: BOOL_FILTER_ALL, label: "All statuses" },
+    { value: "true", label: "Active" },
+    { value: "false", label: "Hidden" },
+  ];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -94,6 +125,39 @@ export function DealTable({
       return true;
     });
   }, [deals, query, storeFilter, typeFilter, eventFilter, featuredFilter, statusFilter]);
+
+  const hasActiveFilters =
+    typeFilter !== TYPE_FILTER_ALL ||
+    eventFilter !== EVENT_FILTER_ALL ||
+    featuredFilter !== BOOL_FILTER_ALL ||
+    statusFilter !== BOOL_FILTER_ALL;
+
+  function clearAllFilters() {
+    setTypeFilter(TYPE_FILTER_ALL);
+    setEventFilter(EVENT_FILTER_ALL);
+    setFeaturedFilter(BOOL_FILTER_ALL);
+    setStatusFilter(BOOL_FILTER_ALL);
+    setDraftTypeFilter(TYPE_FILTER_ALL);
+    setDraftEventFilter(EVENT_FILTER_ALL);
+    setDraftFeaturedFilter(BOOL_FILTER_ALL);
+    setDraftStatusFilter(BOOL_FILTER_ALL);
+  }
+
+  function openFilterModal() {
+    setDraftTypeFilter(typeFilter);
+    setDraftEventFilter(eventFilter);
+    setDraftFeaturedFilter(featuredFilter);
+    setDraftStatusFilter(statusFilter);
+    setShowFilterModal(true);
+  }
+
+  function applyFilters() {
+    setTypeFilter(draftTypeFilter);
+    setEventFilter(draftEventFilter);
+    setFeaturedFilter(draftFeaturedFilter);
+    setStatusFilter(draftStatusFilter);
+    setShowFilterModal(false);
+  }
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
 
@@ -173,53 +237,80 @@ export function DealTable({
           />
         </div>
 
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className={selectClassName}
+        <button
+          type="button"
+          onClick={openFilterModal}
+          className="flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
         >
-          <option value={TYPE_FILTER_ALL}>All types</option>
-          {DEAL_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
+          <Filter className="h-4 w-4" />
+          Filter
+        </button>
 
-        <select
-          value={eventFilter}
-          onChange={(e) => setEventFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={EVENT_FILTER_ALL}>All events</option>
-          <option value={EVENT_FILTER_UNCATEGORIZED}>Uncategorized</option>
-          {events.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={featuredFilter}
-          onChange={(e) => setFeaturedFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All featured</option>
-          <option value="true">Featured</option>
-          <option value="false">Not featured</option>
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All statuses</option>
-          <option value="true">Active</option>
-          <option value="false">Hidden</option>
-        </select>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+          >
+            Clear All
+          </button>
+        )}
       </div>
+
+      <Modal open={showFilterModal} onOpenChange={setShowFilterModal} title="Filters">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Type</label>
+            <SingleSelectDropdown
+              options={typeFilterOptions}
+              value={draftTypeFilter}
+              onChange={setDraftTypeFilter}
+              placeholder="All types"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Event</label>
+            <SingleSelectDropdown
+              options={eventFilterOptions}
+              value={draftEventFilter}
+              onChange={setDraftEventFilter}
+              placeholder="All events"
+              searchable
+              searchPlaceholder="Search events..."
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Featured</label>
+            <SingleSelectDropdown
+              options={featuredFilterOptions}
+              value={draftFeaturedFilter}
+              onChange={setDraftFeaturedFilter}
+              placeholder="All featured"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Status</label>
+            <SingleSelectDropdown
+              options={statusFilterOptions}
+              value={draftStatusFilter}
+              onChange={setDraftStatusFilter}
+              placeholder="All statuses"
+            />
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowFilterModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={applyFilters}>
+            Apply filter
+          </Button>
+        </div>
+      </Modal>
 
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

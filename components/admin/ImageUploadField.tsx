@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 
 export type StorageProvider = "cloudinary" | "supabase";
 
@@ -118,22 +119,15 @@ export function ImageUploadField({
         />
       )}
 
-      <div className="mb-2 flex items-center justify-start gap-2">
-        <label htmlFor={`${inputId}-storage`} className="text-xs font-medium text-muted-600">
-          Storage
-        </label>
-        <select
-          id={`${inputId}-storage`}
-          value={provider}
-          onChange={(e) => setProvider(e.target.value as StorageProvider)}
-          className="w-44 rounded-lg border border-muted-300 bg-surface-0 px-3 py-1.5 text-left text-xs text-brand-950 focus:border-brand-400 focus:outline-none"
-        >
-          {PROVIDERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-xs font-medium text-muted-600">Storage</span>
+        <div className="w-44">
+          <SingleSelectDropdown
+            options={PROVIDERS}
+            value={provider}
+            onChange={(v) => setProvider(v as StorageProvider)}
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

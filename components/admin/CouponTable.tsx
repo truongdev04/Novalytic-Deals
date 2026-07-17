@@ -18,8 +18,23 @@ import type { Coupon, Store } from "@/types";
 const STORE_FILTER_ALL = "all";
 const BOOL_FILTER_ALL = "all";
 
-const selectClassName =
-  "rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm text-brand-950 focus:border-brand-400 focus:outline-none";
+const featuredFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All featured" },
+  { value: "true", label: "Featured" },
+  { value: "false", label: "Not featured" },
+];
+
+const statusFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All statuses" },
+  { value: "true", label: "Active" },
+  { value: "false", label: "Hidden" },
+];
+
+const verifiedFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All verified" },
+  { value: "true", label: "Verified" },
+  { value: "false", label: "Unverified" },
+];
 
 export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: Store[] }) {
   const router = useRouter();
@@ -137,35 +152,32 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
           />
         </div>
 
-        <select
-          value={featuredFilter}
-          onChange={(e) => setFeaturedFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All featured</option>
-          <option value="true">Featured</option>
-          <option value="false">Not featured</option>
-        </select>
+        <div className="w-36">
+          <SingleSelectDropdown
+            options={featuredFilterOptions}
+            value={featuredFilter}
+            onChange={setFeaturedFilter}
+            placeholder="All featured"
+          />
+        </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All statuses</option>
-          <option value="true">Active</option>
-          <option value="false">Hidden</option>
-        </select>
+        <div className="w-36">
+          <SingleSelectDropdown
+            options={statusFilterOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="All statuses"
+          />
+        </div>
 
-        <select
-          value={verifiedFilter}
-          onChange={(e) => setVerifiedFilter(e.target.value)}
-          className={selectClassName}
-        >
-          <option value={BOOL_FILTER_ALL}>All verified</option>
-          <option value="true">Verified</option>
-          <option value="false">Unverified</option>
-        </select>
+        <div className="w-36">
+          <SingleSelectDropdown
+            options={verifiedFilterOptions}
+            value={verifiedFilter}
+            onChange={setVerifiedFilter}
+            placeholder="All verified"
+          />
+        </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between">

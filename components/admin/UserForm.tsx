@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
@@ -187,13 +188,21 @@ export function UserForm() {
           </div>
 
           <div>
-            <label htmlFor="role" className="mb-1.5 block text-sm font-medium text-brand-950">
-              Role
-            </label>
-            <select id="role" className={fieldClassName} {...register("role")}>
-              <option value="EDITOR">Editor</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">Role</span>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <SingleSelectDropdown
+                  options={[
+                    { value: "EDITOR", label: "Editor" },
+                    { value: "ADMIN", label: "Admin" },
+                  ]}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
           </div>
 
           {role === "EDITOR" && (
