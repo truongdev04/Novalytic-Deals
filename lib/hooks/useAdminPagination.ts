@@ -2,17 +2,22 @@
 
 import { useMemo, useState } from "react";
 
-export function useAdminPagination<T>(items: T[], initialPageSize = 20) {
+export function useAdminPagination<T extends { id: string }>(items: T[], initialPageSize = 20) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [trackedItems, setTrackedItems] = useState(items);
 
-  // Jump back to page 1 whenever the underlying item set changes (e.g. a new
-  // search query), so pagination never strands the user on an empty page.
-  // Computed during render (not an effect) per React's "adjusting state when
-  // a prop changes" pattern — avoids an extra render pass.
-  if (items !== trackedItems) {
-    setTrackedItems(items);
+  // Track identity (which ids, in which order) rather than array reference —
+  // `items` gets a brand new reference on every `router.refresh()` (e.g.
+  // after toggling a Status dropdown) even when it's the same rows in the
+  // same order, and reference equality alone would wrongly strand the admin
+  // back on page 1 after every edit. Reset only when the actual row set
+  // changes (search/filter, create, delete), so pagination never strands the
+  // user on a now-empty page.
+  const signature = items.map((item) => item.id).join(",");
+  const [trackedSignature, setTrackedSignature] = useState(signature);
+
+  if (signature !== trackedSignature) {
+    setTrackedSignature(signature);
     setPage(1);
   }
 
