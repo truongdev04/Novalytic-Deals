@@ -1,12 +1,13 @@
 import Image from "next/image";
-import Link from "next/link";
+import { getGeneralSettings } from "@/lib/data";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
-import { Button } from "@/components/ui/Button";
 
-export function Hero({ suggestions }: { suggestions: string[] }) {
+export async function Hero() {
+  const settings = await getGeneralSettings();
+
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10">
+    <section className="relative">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
         <Image
           src="/images/hero/home-hero.svg"
           alt=""
@@ -16,24 +17,15 @@ export function Hero({ suggestions }: { suggestions: string[] }) {
         />
       </div>
       <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
-        <h1 className="max-w-2xl font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-          Verified coupon codes & exclusive deals
+        <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-6xl">
+          {settings.slogan || "Verified coupon codes & exclusive deals"}
         </h1>
         <p className="mt-4 max-w-xl text-brand-100">
-          Save more on your favorite brands with thousands of tested and verified
-          discount codes.
+          {settings.topDescription ||
+            "Save more on your favorite brands with thousands of tested and verified discount codes."}
         </p>
-        <div className="mt-8 flex w-full max-w-xl flex-col items-center gap-4 sm:flex-row">
-          <SearchAutocomplete
-            id="hero-search-suggestions"
-            suggestions={suggestions}
-            placeholder="Search stores, coupons, categories..."
-            className="flex-1"
-            inputClassName="h-12"
-          />
-          <Button asChild size="lg" variant="accent" className="w-full sm:w-auto">
-            <Link href="/deals">Shop now</Link>
-          </Button>
+        <div className="mt-8 w-full sm:w-3/5">
+          <SearchAutocomplete id="hero-search" inputClassName="h-[58px] rounded-2xl text-base" />
         </div>
       </div>
     </section>

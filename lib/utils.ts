@@ -94,3 +94,32 @@ export function buildQueryUrl(
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
 }
+
+const PENDING_CODE_REVEAL_KEY = "novalytic:pendingCodeReveal";
+
+// "Show Code" opens the store in the current tab and a duplicate of the
+// current page in a new tab where the code dialog should auto-open. Since
+// that new tab is a fresh page load (no React state to hand off), the
+// pending coupon/deal id is passed through localStorage — shared across
+// same-origin tabs regardless of window.open's noopener setting, unlike
+// sessionStorage which only clones to auxiliary (non-noopener) tabs.
+export function setPendingCodeReveal(id: string) {
+  try {
+    localStorage.setItem(PENDING_CODE_REVEAL_KEY, JSON.stringify({ id, ts: Date.now() }));
+  } catch {
+    // localStorage unavailable (private mode, etc.) — safe to no-op
+  }
+}
+
+export function consumePendingCodeReveal(id: string): boolean {
+  try {
+    const raw = localStorage.getItem(PENDING_CODE_REVEAL_KEY);
+    if (!raw) return false;
+    const { id: pendingId, ts } = JSON.parse(raw) as { id: string; ts: number };
+    if (pendingId !== id || Date.now() - ts > 10_000) return false;
+    localStorage.removeItem(PENDING_CODE_REVEAL_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/Toast";
 import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 
 const fieldClassName =
-  "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
+  "w-full rounded-xl border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
 export function ContactForm() {
   const {
@@ -108,7 +108,7 @@ export function ContactForm() {
 
       <TurnstileWidget onVerify={handleVerify} />
 
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting} className="rounded-xl">
         {isSubmitting ? "Sending..." : "Send message"}
       </Button>
     </form>

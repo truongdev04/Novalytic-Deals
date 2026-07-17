@@ -18,7 +18,7 @@ export function CouponCard({ coupon, store }: { coupon: Coupon; store: Store }) 
           <ExpirationBadge expiresAt={coupon.expiresAt} />
         </div>
         <Link href={`/coupon/${coupon.slug}`} className="mt-2 block">
-          <h3 className="font-heading font-semibold text-brand-950 hover:text-brand-700">
+          <h3 className="font-heading text-base font-semibold text-brand-950 hover:text-brand-700 sm:text-lg">
             {coupon.title}
           </h3>
         </Link>

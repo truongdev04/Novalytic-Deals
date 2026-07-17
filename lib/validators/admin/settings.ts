@@ -95,10 +95,11 @@ export type AdminSeoSettingsInput = z.infer<typeof adminSeoSettingsSchema>;
 export const adminContentConfigSettingsSchema = z.object({
   pagination: z.object({
     dealsPageSize: z.number().int().min(1),
-    searchPageSize: z.number().int().min(1),
     featuredStoresCount: z.number().int().min(1),
     featuredCategoriesCount: z.number().int().min(1),
     trendingDealsCount: z.number().int().min(1),
+    exclusiveCodesCount: z.number().int().min(1),
+    bestDealsCount: z.number().int().min(1),
     featuredBlogCount: z.number().int().min(1),
   }),
   templates: z.object({

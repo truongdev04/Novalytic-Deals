@@ -13,7 +13,7 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn("mb-10", align === "center" && "text-center", className)}>
-      <h2 className="font-heading text-2xl font-semibold tracking-tight text-brand-950 sm:text-3xl">
+      <h2 className="font-heading text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
         {title}
       </h2>
       {subtitle && (

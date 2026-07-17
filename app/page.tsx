@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import {
+  getStores,
   getFeaturedStores,
   getFeaturedCategories,
   getFeaturedBlogPosts,
-  getTrendingDeals,
-  getCoupons,
+  getFeaturedDeals,
+  getFeaturedCoupons,
+  getExclusiveCoupons,
   getContentConfigSettings,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
@@ -12,13 +14,16 @@ import { SectionHeader } from "@/components/layout/SectionHeader";
 import { Hero } from "@/components/home/Hero";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { WhyTrustUs } from "@/components/home/WhyTrustUs";
-import { StoreCard } from "@/components/store/StoreCard";
+import { StoreCarousel } from "@/components/store/StoreCarousel";
 import { CategoryCard } from "@/components/category/CategoryCard";
-import { DealCard } from "@/components/coupon/DealCard";
+import { DealProductCard } from "@/components/deal/DealProductCard";
+import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { Newsletter } from "@/components/ui/Newsletter";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { getSeoSettings } from "@/lib/data";
+import { ensurePopularStoresAutoRollover } from "@/lib/content/popularStoresRefresh";
+import { ensureAutoDealRollover } from "@/lib/content/dealsRefresh";
 
 export const revalidate = 300;
 
@@ -34,34 +39,31 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
+  // Lazy monthly rollover for "Auto Popular" (see popularStoresRefresh.ts) —
+  // must complete before getFeaturedStores() below reads the store list, so
+  // it's awaited on its own rather than folded into the Promise.all.
+  await ensurePopularStoresAutoRollover();
+  // Lazy 8-hour rollover for "Auto Deal" (see lib/content/dealsRefresh.ts) —
+  // same reasoning, must complete before getFeaturedDeals() reads the list.
+  await ensureAutoDealRollover();
+
   const config = await getContentConfigSettings();
-  const [stores, categories, deals, posts, coupons] = await Promise.all([
-    getFeaturedStores(config.pagination.featuredStoresCount),
-    getFeaturedCategories(config.pagination.featuredCategoriesCount),
-    getTrendingDeals(config.pagination.trendingDealsCount),
-    getFeaturedBlogPosts(config.pagination.featuredBlogCount),
-    getCoupons(),
-  ]);
+  const [stores, allStores, categories, deals, trendingCoupons, exclusiveCoupons, posts] =
+    await Promise.all([
+      getFeaturedStores(config.pagination.featuredStoresCount),
+      getStores(),
+      getFeaturedCategories(config.pagination.featuredCategoriesCount),
+      getFeaturedDeals(config.pagination.bestDealsCount),
+      getFeaturedCoupons(config.pagination.trendingDealsCount),
+      getExclusiveCoupons(config.pagination.exclusiveCodesCount),
+      getFeaturedBlogPosts(config.pagination.featuredBlogCount),
+    ]);
 
-  const suggestions = [...stores.map((s) => s.name), ...categories.map((c) => c.name)];
-  const storeById = new Map(stores.map((s) => [s.id, s]));
-  const couponCountByStore = new Map<string, number>();
-  const couponCountByCategory = new Map<string, number>();
-
-  for (const coupon of coupons) {
-    couponCountByStore.set(coupon.storeId, (couponCountByStore.get(coupon.storeId) ?? 0) + 1);
-  }
-  for (const category of categories) {
-    const count = coupons.filter((c) => {
-      const store = storeById.get(c.storeId);
-      return store?.categoryIds.includes(category.id);
-    }).length;
-    couponCountByCategory.set(category.id, count);
-  }
+  const storeById = new Map(allStores.map((s) => [s.id, s]));
 
   return (
     <>
-      <Hero suggestions={suggestions} />
+      <Hero />
 
       <div className="space-y-20 py-16">
         <Container>
@@ -69,14 +71,47 @@ export default async function HomePage() {
             title="Popular stores"
             subtitle="Shop from the most trusted retailers and save with exclusive coupon codes"
           />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {stores.map((store) => (
-              <StoreCard
-                key={store.id}
-                store={store}
-                couponCount={couponCountByStore.get(store.id) ?? 0}
-              />
-            ))}
+          <StoreCarousel stores={stores} />
+        </Container>
+
+        <Container>
+          <SectionHeader
+            title="Today's best deals"
+            subtitle="Limited time offers you don't want to miss"
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {deals.map((deal) => {
+              const store = storeById.get(deal.storeId);
+              return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
+            })}
+          </div>
+        </Container>
+
+        <Container>
+          <SectionHeader
+            title="Trending coupon"
+            subtitle="The codes everyone's using right now"
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {trendingCoupons.map((coupon) => {
+              const store = storeById.get(coupon.storeId);
+              return store ? (
+                <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
+              ) : null;
+            })}
+          </div>
+        </Container>
+
+        <Container>
+          <SectionHeader
+            title="NovalyticDeals Exclusive Codes"
+            subtitle="Verified codes you won't find anywhere else"
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {exclusiveCoupons.map((coupon) => {
+              const store = storeById.get(coupon.storeId);
+              return store ? <CouponGridCard key={coupon.id} coupon={coupon} store={store} /> : null;
+            })}
           </div>
         </Container>
 
@@ -87,25 +122,8 @@ export default async function HomePage() {
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                couponCount={couponCountByCategory.get(category.id) ?? 0}
-              />
+              <CategoryCard key={category.id} category={category} showCount={false} />
             ))}
-          </div>
-        </Container>
-
-        <Container>
-          <SectionHeader
-            title="Today's best deals"
-            subtitle="Limited time offers you don't want to miss"
-          />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {deals.map((coupon) => {
-              const store = storeById.get(coupon.storeId);
-              return store ? <DealCard key={coupon.id} coupon={coupon} store={store} /> : null;
-            })}
           </div>
         </Container>
 

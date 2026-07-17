@@ -3,18 +3,16 @@ import { cn } from "@/lib/utils";
 
 export function SearchBox({
   defaultValue = "",
-  placeholder = "Search stores, coupons...",
-  action = "/search",
+  placeholder = "Search stores...",
+  action = "/stores",
   className,
   inputClassName,
-  listId,
 }: {
   defaultValue?: string;
   placeholder?: string;
   action?: string;
   className?: string;
   inputClassName?: string;
-  listId?: string;
 }) {
   return (
     <form action={action} method="GET" role="search" className={cn("relative w-full", className)}>
@@ -24,10 +22,9 @@ export function SearchBox({
         name="q"
         defaultValue={defaultValue}
         placeholder={placeholder}
-        list={listId}
-        aria-label="Search stores and coupons"
+        aria-label="Search"
         className={cn(
-          "h-11 w-full rounded-full border border-muted-300 bg-surface-0 pl-10 pr-4 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+          "h-11 w-full rounded-xl border border-muted-300 bg-surface-0 pl-10 pr-4 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
           inputClassName
         )}
       />

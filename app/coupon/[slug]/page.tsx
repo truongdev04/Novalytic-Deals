@@ -93,7 +93,7 @@ export default async function CouponPage({
             {coupon.exclusive && <span className="text-xs font-semibold text-accent-600">Exclusive</span>}
           </div>
 
-          <h1 className="mt-4 font-heading text-2xl font-bold text-brand-950 sm:text-3xl">
+          <h1 className="mt-4 font-heading text-3xl font-bold text-brand-950 sm:text-4xl">
             {coupon.title}
           </h1>
           <p className="mt-3 text-muted-600">{coupon.description}</p>

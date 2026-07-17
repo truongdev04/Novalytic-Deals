@@ -41,10 +41,11 @@ type TabId = (typeof TABS)[number]["id"];
 
 const paginationFields: { name: keyof AdminContentConfigSettingsInput["pagination"]; label: string }[] = [
   { name: "dealsPageSize", label: "Deals page size" },
-  { name: "searchPageSize", label: "Search page size" },
   { name: "featuredStoresCount", label: "Featured stores on homepage" },
   { name: "featuredCategoriesCount", label: "Featured categories on homepage" },
-  { name: "trendingDealsCount", label: "Trending deals on homepage" },
+  { name: "trendingDealsCount", label: "Trending coupon on homepage" },
+  { name: "exclusiveCodesCount", label: "Exclusive Codes on homepage" },
+  { name: "bestDealsCount", label: "Best deals on homepage" },
   { name: "featuredBlogCount", label: "Featured blog posts on homepage" },
 ];
 

@@ -28,6 +28,7 @@ import {
   Palette,
   Handshake,
   Cigarette,
+  FlaskConical,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,7 +61,8 @@ export const iconMap: Record<string, LucideIcon> = {
   Bot,
   Palette,
   Handshake,
-  Cigarette
+  Cigarette,
+  FlaskConical
 };
 
 export function getIcon(name: string): LucideIcon {

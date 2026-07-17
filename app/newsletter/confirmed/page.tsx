@@ -23,7 +23,7 @@ export default function NewsletterConfirmedPage() {
       <p className="mt-2 text-muted-600">
         You&apos;re all set — we&apos;ll send the best deals straight to your inbox.
       </p>
-      <Button asChild className="mt-6">
+      <Button asChild className="mt-6 rounded-xl">
         <Link href="/">Back to home</Link>
       </Button>
     </Container>

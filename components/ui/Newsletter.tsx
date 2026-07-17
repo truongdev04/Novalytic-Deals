@@ -70,7 +70,7 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "newsletter-error" : undefined}
             className={cn(
-              "h-11 w-full rounded-full border pl-10 pr-4 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+              "h-11 w-full rounded-xl border pl-10 pr-4 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
               isFooter
                 ? "border-white/20 bg-white/10 text-white placeholder:text-white/50"
                 : "border-muted-300 bg-surface-0 text-brand-950 placeholder:text-muted-400"
@@ -78,7 +78,13 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
             {...register("email")}
           />
         </div>
-        <Button type="submit" variant="accent" size="md" disabled={isSubmitting} className="shrink-0">
+        <Button
+          type="submit"
+          variant="accent"
+          size="md"
+          disabled={isSubmitting}
+          className="shrink-0 rounded-xl"
+        >
           <Mail className="h-4 w-4" />
           <span className="sr-only sm:not-sr-only">Subscribe</span>
         </Button>

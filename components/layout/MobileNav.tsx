@@ -4,15 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Accordion from "@radix-ui/react-accordion";
-import { Menu, X, ChevronDown, Tag } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { renderCategoryIcon } from "@/lib/icons";
-import { SearchBox } from "@/components/search/SearchBox";
 import type { Event } from "@/types";
 
 const navLinks = [
-  { name: "Home", href: "/" },
   { name: "Stores", href: "/stores" },
-  { name: "Categories", href: "/categories" },
   { name: "Deals", href: "/deals" },
   { name: "Blog", href: "/blog" },
 ];
@@ -42,8 +39,6 @@ export function MobileNav({ events }: { events: Event[] }) {
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
-
-          <SearchBox className="mb-6" />
 
           <nav className="flex flex-col gap-1">
             {navLinks.map((link) => (
@@ -83,15 +78,6 @@ export function MobileNav({ events }: { events: Event[] }) {
               </Accordion.Item>
             </Accordion.Root>
           </nav>
-
-          <Link
-            href="/deals"
-            onClick={() => setOpen(false)}
-            className="mt-6 flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            <Tag className="h-4 w-4" />
-            Browse Deals
-          </Link>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

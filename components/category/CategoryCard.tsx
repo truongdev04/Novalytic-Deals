@@ -4,10 +4,12 @@ import type { Category } from "@/types";
 
 export function CategoryCard({
   category,
-  couponCount,
+  couponCount = 0,
+  showCount = true,
 }: {
   category: Category;
-  couponCount: number;
+  couponCount?: number;
+  showCount?: boolean;
 }) {
   return (
     <Link
@@ -17,13 +19,15 @@ export function CategoryCard({
       <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg bg-brand-50 text-brand-600 group-hover:bg-brand-100">
         {renderCategoryIcon(category, { iconClassName: "h-5 w-5" })}
       </span>
-      <h3 className="mt-3 font-heading text-sm font-semibold text-brand-950">
+      <h3 className="mt-3 font-heading text-base font-semibold text-brand-950">
         {category.name}
       </h3>
       <p className="mt-1 line-clamp-2 text-xs text-muted-500">{category.description}</p>
-      <span className="mt-3 text-xs font-semibold text-brand-600">
-        {couponCount} {couponCount === 1 ? "coupon" : "coupons"}
-      </span>
+      {showCount && (
+        <span className="mt-3 text-xs font-semibold text-brand-600">
+          {couponCount} {couponCount === 1 ? "coupon" : "coupons"}
+        </span>
+      )}
     </Link>
   );
 }

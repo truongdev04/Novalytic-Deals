@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCouponVote } from "@/lib/hooks/useCouponVote";
 
 export function VoteButtons({
   couponId,
@@ -13,31 +13,7 @@ export function VoteButtons({
   upvotes: number;
   downvotes: number;
 }) {
-  const [votes, setVotes] = useState({ up: upvotes, down: downvotes });
-  const [choice, setChoice] = useState<"up" | "down" | null>(null);
-
-  async function vote(type: "up" | "down") {
-    if (choice) return;
-
-    const previous = votes;
-    setVotes((prev) => ({
-      up: type === "up" ? prev.up + 1 : prev.up,
-      down: type === "down" ? prev.down + 1 : prev.down,
-    }));
-    setChoice(type);
-
-    try {
-      const res = await fetch(`/api/coupons/${couponId}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ direction: type }),
-      });
-      if (!res.ok) throw new Error("vote failed");
-    } catch {
-      setVotes(previous);
-      setChoice(null);
-    }
-  }
+  const { votes, choice, vote } = useCouponVote(couponId, { up: upvotes, down: downvotes });
 
   return (
     <div className="flex items-center gap-2">

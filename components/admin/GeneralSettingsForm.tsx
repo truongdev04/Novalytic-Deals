@@ -120,7 +120,9 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
           className={fieldClassName}
           {...register("slogan")}
         />
-        <p className="mt-1 text-xs text-muted-500">Shown under the site title in the header.</p>
+        <p className="mt-1 text-xs text-muted-500">
+          Shown as the big headline on the homepage hero.
+        </p>
       </div>
 
       <div>
@@ -133,7 +135,9 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
           className={fieldClassName}
           {...register("topDescription")}
         />
-        <p className="mt-1 text-xs text-muted-500">Shown under the Slogan in the header.</p>
+        <p className="mt-1 text-xs text-muted-500">
+          Shown under the headline on the homepage hero.
+        </p>
       </div>
 
       <div>

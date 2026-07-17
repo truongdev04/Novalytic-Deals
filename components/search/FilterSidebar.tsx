@@ -5,7 +5,7 @@ import { buildQueryUrl } from "@/lib/utils";
 import type { Category, Store } from "@/types";
 
 const selectClassName =
-  "h-11 rounded-full border border-muted-300 bg-surface-0 px-4 text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
+  "h-11 rounded-xl border border-muted-300 bg-surface-0 px-4 text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
 export function FilterSidebar({
   categories,

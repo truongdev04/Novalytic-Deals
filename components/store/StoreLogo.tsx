@@ -2,9 +2,11 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const sizeMap = {
+  xs: 24,
   sm: 40,
   md: 56,
   lg: 88,
+  xl: 112,
 };
 
 export function StoreLogo({

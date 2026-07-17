@@ -105,18 +105,22 @@ export async function getCouponById(id: string): Promise<Coupon | undefined> {
 export const getFeaturedCoupons = unstable_cache(
   async (limit = 6): Promise<Coupon[]> => {
     const all = await getCoupons();
-    return all.filter((c) => c.isFeatured && !isExpired(c.expiresAt)).slice(0, limit);
+    return all
+      .filter((c) => c.isFeatured && c.verified && !c.exclusive && !isExpired(c.expiresAt))
+      .slice(0, limit);
   },
   ["coupons:featured"],
   { tags: ["coupons:list"], revalidate: 300 }
 );
 
-export const getTrendingDeals = unstable_cache(
+export const getExclusiveCoupons = unstable_cache(
   async (limit = 6): Promise<Coupon[]> => {
     const all = await getCoupons();
-    return all.filter((c) => c.isTrending && !isExpired(c.expiresAt)).slice(0, limit);
+    return all
+      .filter((c) => c.isFeatured && c.exclusive && c.verified && !isExpired(c.expiresAt))
+      .slice(0, limit);
   },
-  ["coupons:trending"],
+  ["coupons:exclusive"],
   { tags: ["coupons:list"], revalidate: 300 }
 );
 
