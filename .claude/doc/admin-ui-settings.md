@@ -298,3 +298,27 @@ Phát hiện ngay sau Session 10: `couponDescriptionTemplate`/`couponTermsTempla
 
 ### Chưa làm / lưu ý
 - Không tự test được luồng tạo coupon thật qua trình duyệt (giới hạn cũ, không login admin qua script). **Cần user tự tạo 1 coupon mới để trống Description/Terms**, xác nhận sau khi lưu mở lại `/admin/coupons/[id]` thấy field đã điền đúng 1 mẫu (không phải chuỗi dính tất cả các mẫu lại như lỗi cũ).
+
+## Session 12 — Icon ẩn/hiện cho Secret field (Integrations) + Content Configuration: bỏ Search page size, tách riêng Exclusive Codes/Best deals khỏi Trending
+
+Hai yêu cầu độc lập trong cùng session.
+
+### 12.1 — Integrations: icon con mắt ẩn/hiện cho Resend API key + Turnstile secret key
+
+- `components/admin/SecretField.tsx`: thêm state `showValue` nội bộ, input đổi `type` giữa `password`/`text`, nút icon `Eye`/`EyeOff` (lucide-react) absolute bên trong input (`pr-10` + `absolute inset-y-0 right-0`) — theo đúng pattern đã có sẵn ở `ResetPasswordModal.tsx` (không tạo pattern mới). Nút tự disable khi field đang ở trạng thái "Cleared". Component này dùng chung cho cả 2 field (Resend + Turnstile) trong `IntegrationsSettingsForm.tsx` nên sửa 1 chỗ áp dụng cho cả 2, không cần đụng file form.
+
+### 12.2 — Content Configuration (Listing & Pagination): bỏ Search page size, đổi label Trending, thêm Exclusive Codes/Best deals riêng
+
+Phát hiện lúc đọc code: section "Today's best deals" ở trang chủ đang **hardcode `getFeaturedDeals(6)`** (không qua Settings nào), và section "NovalyticDeals Exclusive Codes" đang **dùng chung** `config.pagination.trendingDealsCount` với section "Trending coupon" (2 section khác nhau, chung 1 con số — không phải chủ đích, do đặt tên field từ session 2 chỉ tính cho 1 khối "trending/deals" gộp).
+
+- **Bỏ `searchPageSize`**: xoá khỏi `types/settings.ts` (`ContentConfigPagination`), `lib/validators/admin/settings.ts`, `lib/data/settings.ts` (`DEFAULT_CONTENT_CONFIG_SETTINGS`), `ContentConfigSettingsForm.tsx` (`paginationFields`) — field đã chết từ trước vì `app/search/page.tsx` đã bị xoá (đổi khác session/không rõ khi nào, không phải session này), không còn nơi nào đọc.
+- **Đổi label** field `trendingDealsCount`: "Trending deals on homepage" → "Trending coupon on homepage" (chỉ đổi label hiển thị trong form admin, giữ nguyên tên field — khớp với title section "Trending coupon" đã có sẵn ở `app/page.tsx`).
+- **Thêm 2 field mới**: `exclusiveCodesCount` (label "Exclusive Codes on homepage", wire vào `getExclusiveCoupons()`, tách khỏi `trendingDealsCount`), `bestDealsCount` (label "Best deals on homepage", wire vào `getFeaturedDeals()`, thay hardcode `6`) — cả 2 default `3`/`6` tương ứng giá trị cũ đang hiển thị, deploy không đổi gì cho tới khi admin sửa. Cập nhật `types/settings.ts`, `lib/validators/admin/settings.ts`, `lib/data/settings.ts`, `ContentConfigSettingsForm.tsx`, `app/page.tsx`.
+- **Không cần migration DB**: cơ chế merge sẵn có `{ ...DEFAULT_CONTENT_CONFIG_SETTINGS.pagination, ...stored.pagination }` (`getContentConfigSettings()`) tự fallback field mới về default khi DB cũ chưa có key này; field bỏ (`searchPageSize`) nếu còn sót trong DB cũ cũng vô hại (không type nào đọc tới).
+- **Ghi nhận thay đổi ngoài phạm vi session** (không phải do session này gây ra, phát hiện qua diff sau đó): `app/page.tsx` phần grid "Today's best deals" đổi `lg:grid-cols-6` → `lg:grid-cols-5` — do user/linter chỉnh riêng, đã giữ nguyên không revert.
+
+### Đã verify
+`typecheck`/`lint` sạch (chỉ còn warning cũ không liên quan ở `lib/server/affiliate/redirect.ts`). Grep xác nhận không còn tham chiếu `searchPageSize` sót lại.
+
+### Chưa làm / lưu ý
+- Chưa test tay qua trình duyệt (giới hạn cũ, không login admin qua script) — cần user tự vào `/admin/settings/integrations` xem icon con mắt hoạt động đúng, và `/admin/settings/content` xác nhận 2 field mới lưu đúng + trang chủ hiển thị đúng số lượng theo từng section.
