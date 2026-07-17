@@ -3,6 +3,7 @@
 import { type ReactNode, useState } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
+import { AccountStatusWatcher } from "@/components/admin/AccountStatusWatcher";
 
 export function AdminShell({
   role,
@@ -19,6 +20,7 @@ export function AdminShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-50">
+      <AccountStatusWatcher />
       <AdminSidebar
         role={role}
         permissions={permissions}

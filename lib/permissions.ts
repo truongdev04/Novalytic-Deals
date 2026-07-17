@@ -71,6 +71,9 @@ export function getRequiredPermission(
 ): EditorPermission | typeof ADMIN_ONLY | null {
   if (pathname === "/admin" || pathname === "/admin/login") return null;
   if (pathname === "/api/admin/upload" || pathname.startsWith("/api/admin/upload/")) return null;
+  // Self-status check — every authenticated admin/editor polls this to
+  // detect their own account being deactivated/deleted mid-session.
+  if (pathname === "/api/admin/session/status") return null;
 
   const match = SORTED_ROUTE_PERMISSIONS.find(
     (route) => pathname === route.prefix || pathname.startsWith(`${route.prefix}/`)
