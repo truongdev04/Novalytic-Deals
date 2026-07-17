@@ -27,8 +27,12 @@ export interface Store {
   region: StoreRegion;
   affiliateNetwork: string;
   isFeatured: boolean;
+  /** Only takes effect combined with isFeatured=true — see getFeaturedStores(). */
+  isPin: boolean;
   isActive: boolean;
-  clickCount: number;
+  /** Rolling monthly click counters driving Popular Stores ranking — see lib/content/popularStoresRefresh.ts. */
+  currentMonthClicks: number;
+  lastMonthClicks: number;
   seo: StoreSeo;
   faq: StoreFaqItem[];
   /** Monthly-frozen SEO discount snapshot — see lib/content/storeSeoSnapshot.ts. Not admin-editable. */

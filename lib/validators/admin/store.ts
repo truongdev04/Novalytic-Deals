@@ -33,6 +33,7 @@ export const adminStoreSchema = z.object({
   howToApply: z.string().optional().or(z.literal("")),
   faq: z.array(storeFaqItemSchema),
   isFeatured: z.boolean(),
+  isPin: z.boolean(),
   seoTitle: z.string().optional().or(z.literal("")),
   seoDescription: z.string().optional().or(z.literal("")),
 });

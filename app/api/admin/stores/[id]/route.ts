@@ -5,6 +5,7 @@ import {
   setStoreActive,
   setStoreEvent,
   setStoreFeatured,
+  setStorePinned,
   updateStore,
 } from "@/lib/data";
 import { adminStoreSchema } from "@/lib/validators/admin/store";
@@ -49,6 +50,7 @@ export async function PATCH(
         affiliateNetwork: fullUpdate.data.affiliateNetwork,
         categoryIds: fullUpdate.data.categoryIds,
         isFeatured: fullUpdate.data.isFeatured,
+        isPin: fullUpdate.data.isPin,
         seo: {
           title: fullUpdate.data.seoTitle || "",
           description: fullUpdate.data.seoDescription || "",
@@ -67,6 +69,11 @@ export async function PATCH(
 
   if (typeof body?.isFeatured === "boolean") {
     const store = await setStoreFeatured(id, body.isFeatured);
+    return jsonOk(store);
+  }
+
+  if (typeof body?.isPin === "boolean") {
+    const store = await setStorePinned(id, body.isPin);
     return jsonOk(store);
   }
 

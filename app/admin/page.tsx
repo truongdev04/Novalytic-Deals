@@ -85,7 +85,7 @@ export default async function AdminDashboardPage() {
         <div className="space-y-4 lg:col-span-2">
           <div className="rounded-xl border border-muted-200 bg-surface-0 p-5">
             <h3 className="font-heading text-sm font-semibold text-brand-950">
-              Store có lượng click nhiều nhất (tổng cộng)
+              Store có lượng click nhiều nhất (tháng này)
             </h3>
             <div className="mt-2">
               {topStores.length === 0 ? (

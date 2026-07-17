@@ -21,6 +21,24 @@ export interface AffiliateSettings {
   defaultAffiliateNetwork?: string;
 }
 
+export interface PopularStoresSettings {
+  autoPopularEnabled: boolean;
+  /** ISO timestamp of the last Popular Stores refresh (manual click or automatic monthly rollover). */
+  lastRefreshedAt: string | null;
+  /** UTC "YYYY-MM" of the last automatic monthly rollover — guards against re-running it twice in the same month. */
+  lastRolloverPeriod: string | null;
+}
+
+export interface DealRefreshSettings {
+  autoDealEnabled: boolean;
+  /** ISO timestamp of the last Deals refresh (manual click or automatic 8h rollover). */
+  lastRefreshedAt: string | null;
+  /** ISO timestamp of the last automatic 8h rollover — elapsed-time based (not a
+   * calendar period key like PopularStoresSettings, since 8h has no natural
+   * calendar anchor the way a month does). */
+  lastRolloverAt: string | null;
+}
+
 export type RedirectType = "PERMANENT" | "TEMPORARY";
 
 export interface RedirectRule {
@@ -99,10 +117,11 @@ export interface SeoSettings {
 
 export interface ContentConfigPagination {
   dealsPageSize: number;
-  searchPageSize: number;
   featuredStoresCount: number;
   featuredCategoriesCount: number;
   trendingDealsCount: number;
+  exclusiveCodesCount: number;
+  bestDealsCount: number;
   featuredBlogCount: number;
 }
 

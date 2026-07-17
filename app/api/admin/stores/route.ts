@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       affiliateNetwork: parsed.data.affiliateNetwork,
       categoryIds: parsed.data.categoryIds,
       isFeatured: parsed.data.isFeatured,
+      isPin: parsed.data.isPin,
       seo: { title: parsed.data.seoTitle || "", description: parsed.data.seoDescription || "" },
       faq: parsed.data.faq,
     });

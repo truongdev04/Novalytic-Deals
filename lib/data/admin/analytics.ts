@@ -24,11 +24,11 @@ export interface TopStoreByClicks {
 
 export async function getTopStoresByClickCount(limit = 5): Promise<TopStoreByClicks[]> {
   const stores = await prisma.store.findMany({
-    where: { clickCount: { gt: 0 } },
-    orderBy: { clickCount: "desc" },
+    where: { currentMonthClicks: { gt: 0 } },
+    orderBy: { currentMonthClicks: "desc" },
     take: limit,
   });
-  return stores.map((s) => ({ storeId: s.id, storeName: s.name, clicks: s.clickCount }));
+  return stores.map((s) => ({ storeId: s.id, storeName: s.name, clicks: s.currentMonthClicks }));
 }
 
 export async function getModerationCounts() {

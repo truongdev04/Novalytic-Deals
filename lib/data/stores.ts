@@ -34,8 +34,10 @@ function toStore(row: PrismaStore): Store {
     region: row.region,
     affiliateNetwork: row.affiliateNetwork,
     isFeatured: row.isFeatured,
+    isPin: row.isPin,
     isActive: row.isActive,
-    clickCount: row.clickCount,
+    currentMonthClicks: row.currentMonthClicks,
+    lastMonthClicks: row.lastMonthClicks,
     seo: row.seo as unknown as StoreSeo,
     faq: row.faq as unknown as StoreFaqItem[],
     seoDiscountSnapshot: row.seoDiscountSnapshot,
@@ -68,7 +70,15 @@ export async function getStores(): Promise<Store[]> {
 export const getFeaturedStores = unstable_cache(
   async (limit = 8): Promise<Store[]> => {
     const all = await getStores();
-    return all.filter((s) => s.isFeatured).slice(0, limit);
+    const featured = all.filter((s) => s.isFeatured);
+    // Pin only takes effect combined with Featured — pinned stores lead the
+    // list (most recently updated first), the rest keep the base createdAt
+    // desc order from getAllStoresCached.
+    const pinned = featured
+      .filter((s) => s.isPin)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    const rest = featured.filter((s) => !s.isPin);
+    return [...pinned, ...rest].slice(0, limit);
   },
   ["stores:featured"],
   { tags: ["stores:list"], revalidate: 300 }
@@ -155,6 +165,16 @@ export async function setStoreFeatured(id: string, isFeatured: boolean): Promise
   return toStore(row);
 }
 
+export async function setStorePinned(id: string, isPin: boolean): Promise<Store> {
+  const row = await prisma.store.update({
+    where: { id },
+    data: { isPin },
+  });
+  purgeTag("stores:list");
+  purgeTag(`store:${row.slug}`);
+  return toStore(row);
+}
+
 // Toggling a store's Status cascades to its coupons: hiding the store hides
 // every one of its coupons, reactivating it only reactivates coupons that
 // haven't expired (expiresAt null or in the future) — an expired coupon
@@ -211,16 +231,53 @@ export async function setStoreActive(id: string, isActive: boolean): Promise<Sto
   return toStore(row);
 }
 
-export async function incrementStoreClickCount(id: string): Promise<Store | undefined> {
+export async function incrementStoreCurrentMonthClicks(id: string): Promise<Store | undefined> {
   try {
     const row = await prisma.store.update({
       where: { id },
-      data: { clickCount: { increment: 1 } },
+      data: { currentMonthClicks: { increment: 1 } },
     });
     return toStore(row);
   } catch {
     return undefined;
   }
+}
+
+// Bulk-sets which stores are Featured based on a Popular Stores ranking
+// (see lib/content/popularStoresRefresh.ts) — turns on the winners, turns
+// off any active store that was Featured but didn't make the cut this time.
+// Doesn't purge per-slug store:<slug> tags: the store detail page doesn't
+// render anything differently based on isFeatured.
+// No purgeTag here: this is shared by the manual "Refresh Popular" admin
+// action (safe to purge, runs in a route handler) and the lazy auto-rollover
+// that runs inside the home page's own render (revalidateTag is disallowed
+// during render) — see lib/content/popularStoresRefresh.ts. The manual path
+// purges explicitly itself; the render path relies on stores:list's own
+// 300s revalidate window.
+export async function applyFeaturedSelection(winnerIds: string[]): Promise<void> {
+  await prisma.store.updateMany({
+    where: { id: { in: winnerIds } },
+    data: { isFeatured: true },
+  });
+  await prisma.store.updateMany({
+    where: { isActive: true, isFeatured: true, id: { notIn: winnerIds } },
+    data: { isFeatured: false },
+  });
+}
+
+// Monthly rollover for the Popular Stores click ranking (see
+// lib/content/popularStoresRefresh.ts): freezes this month's running total
+// into lastMonthClicks and resets currentMonthClicks to 0 for every store
+// (including hidden ones, so click history isn't lost while a store is
+// toggled off). Column-to-column, so it needs raw SQL — Prisma's updateMany
+// can't reference another column's current value.
+export async function rolloverMonthlyClicks(): Promise<void> {
+  await prisma.$executeRaw`UPDATE "stores" SET "lastMonthClicks" = "currentMonthClicks", "currentMonthClicks" = 0`;
+  // No purgeTag here: this runs lazily inside the home page's own render
+  // (see ensurePopularStoresAutoRollover), and revalidateTag is disallowed
+  // during render. stores:list already revalidates every 300s on its own,
+  // so the rollover's effect on getFeaturedStores() surfaces within that
+  // window without needing an explicit purge.
 }
 
 // Coupon/Review rows cascade-delete at the DB level (see prisma/schema.prisma
@@ -269,6 +326,7 @@ export interface AdminStoreFields {
   affiliateNetwork: string;
   categoryIds: string[];
   isFeatured: boolean;
+  isPin: boolean;
   seo: StoreSeo;
   faq: StoreFaqItem[];
 }
@@ -292,6 +350,7 @@ export async function createStore(fields: AdminStoreFields): Promise<Store> {
         region: fields.region,
         affiliateNetwork: fields.affiliateNetwork,
         isFeatured: fields.isFeatured,
+        isPin: fields.isPin,
         seo: fields.seo as unknown as Prisma.InputJsonValue,
         faq: fields.faq as unknown as Prisma.InputJsonValue,
         categoryIds: fields.categoryIds,
@@ -323,6 +382,7 @@ export async function updateStore(id: string, fields: AdminStoreFields): Promise
         region: fields.region,
         affiliateNetwork: fields.affiliateNetwork,
         isFeatured: fields.isFeatured,
+        isPin: fields.isPin,
         seo: fields.seo as unknown as Prisma.InputJsonValue,
         faq: fields.faq as unknown as Prisma.InputJsonValue,
         categoryIds: fields.categoryIds,

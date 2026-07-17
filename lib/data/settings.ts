@@ -4,11 +4,13 @@ import { prisma, Prisma } from "@/lib/server/db";
 import type {
   AffiliateSettings,
   ContentConfigSettings,
+  DealRefreshSettings,
   FooterColumn,
   FooterItem,
   FooterSettings,
   GeneralSettings,
   IntegrationsSettingsView,
+  PopularStoresSettings,
   SeoSettings,
   SocialSettings,
 } from "@/types";
@@ -21,14 +23,29 @@ const SOCIAL_KEY = "social_links";
 const SEO_KEY = "seo_defaults";
 const CONTENT_CONFIG_KEY = "content_config";
 const FOOTER_KEY = "footer_links";
+const POPULAR_STORES_KEY = "popular_stores_config";
+const DEAL_REFRESH_KEY = "deal_refresh_config";
+
+const DEFAULT_POPULAR_STORES_SETTINGS: PopularStoresSettings = {
+  autoPopularEnabled: false,
+  lastRefreshedAt: null,
+  lastRolloverPeriod: null,
+};
+
+const DEFAULT_DEAL_REFRESH_SETTINGS: DealRefreshSettings = {
+  autoDealEnabled: false,
+  lastRefreshedAt: null,
+  lastRolloverAt: null,
+};
 
 const DEFAULT_CONTENT_CONFIG_SETTINGS: ContentConfigSettings = {
   pagination: {
     dealsPageSize: 9,
-    searchPageSize: 9,
     featuredStoresCount: 8,
     featuredCategoriesCount: 8,
     trendingDealsCount: 3,
+    exclusiveCodesCount: 3,
+    bestDealsCount: 6,
     featuredBlogCount: 3,
   },
   templates: {},
@@ -326,6 +343,61 @@ export async function setAffiliateSettings(input: AffiliateSettings): Promise<Af
 export async function getEffectiveDefaultAffiliateNetwork(): Promise<string | undefined> {
   const settings = await getAffiliateSettings();
   return settings.defaultAffiliateNetwork || process.env.AFFILIATE_DEFAULT_NETWORK;
+}
+
+export const getPopularStoresSettings = unstable_cache(
+  async (): Promise<PopularStoresSettings> => {
+    const row = await prisma.siteSetting.findUnique({ where: { key: POPULAR_STORES_KEY } });
+    const stored = (row?.value as unknown as Partial<PopularStoresSettings>) ?? {};
+    return { ...DEFAULT_POPULAR_STORES_SETTINGS, ...stored };
+  },
+  ["settings:popular-stores"],
+  { tags: ["settings:popular-stores"], revalidate: 60 }
+);
+
+// No purgeTag here: one caller (ensurePopularStoresAutoRollover) runs inside
+// the home page's own render, where revalidateTag is disallowed. Callers
+// outside a render (route handlers) purge "settings:popular-stores"
+// themselves; the render-path caller relies on this setting's own 60s
+// revalidate window.
+export async function setPopularStoresSettings(
+  patch: Partial<PopularStoresSettings>
+): Promise<PopularStoresSettings> {
+  const current = await getPopularStoresSettings();
+  const next: PopularStoresSettings = { ...current, ...patch };
+  await prisma.siteSetting.upsert({
+    where: { key: POPULAR_STORES_KEY },
+    create: { key: POPULAR_STORES_KEY, value: next as unknown as Prisma.InputJsonValue },
+    update: { value: next as unknown as Prisma.InputJsonValue },
+  });
+  return next;
+}
+
+export const getDealRefreshSettings = unstable_cache(
+  async (): Promise<DealRefreshSettings> => {
+    const row = await prisma.siteSetting.findUnique({ where: { key: DEAL_REFRESH_KEY } });
+    const stored = (row?.value as unknown as Partial<DealRefreshSettings>) ?? {};
+    return { ...DEFAULT_DEAL_REFRESH_SETTINGS, ...stored };
+  },
+  ["settings:deal-refresh"],
+  { tags: ["settings:deal-refresh"], revalidate: 60 }
+);
+
+// No purgeTag here: one caller (ensureAutoDealRollover) runs inside the home
+// page's own render, where revalidateTag is disallowed. Callers outside a
+// render (route handlers) purge "settings:deal-refresh" themselves; the
+// render-path caller relies on this setting's own 60s revalidate window.
+export async function setDealRefreshSettings(
+  patch: Partial<DealRefreshSettings>
+): Promise<DealRefreshSettings> {
+  const current = await getDealRefreshSettings();
+  const next: DealRefreshSettings = { ...current, ...patch };
+  await prisma.siteSetting.upsert({
+    where: { key: DEAL_REFRESH_KEY },
+    create: { key: DEAL_REFRESH_KEY, value: next as unknown as Prisma.InputJsonValue },
+    update: { value: next as unknown as Prisma.InputJsonValue },
+  });
+  return next;
 }
 
 export const getSocialSettings = unstable_cache(
