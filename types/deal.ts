@@ -17,6 +17,9 @@ export interface Deal {
   description?: string;
   isFeatured: boolean;
   isActive: boolean;
+  /** Rolling 8-hour click counters — see lib/content/dealsRefresh.ts. Not admin-editable. */
+  currentHourClicks: number;
+  lastHourClicks: number;
   createdAt: string;
   updatedAt: string;
 }

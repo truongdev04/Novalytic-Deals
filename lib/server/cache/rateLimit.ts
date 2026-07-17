@@ -27,6 +27,10 @@ export const searchRateLimit = createLimiter(30, "1 m");
 // quota burn from a runaway admin client, not to stop abuse (already auth-gated).
 export const uploadRateLimit = createLimiter(20, "1 m");
 
+// deal click: not spec'd in CLAUDE.md — generous enough for legitimate
+// multi-deal browsing, bounds abuse of the public click-counter ping.
+export const dealClickRateLimit = createLimiter(20, "1 m");
+
 export async function checkRateLimit(limiter: Ratelimit | null, identifier: string) {
   if (!limiter) {
     // Upstash not configured (e.g. local dev) — allow all requests through.

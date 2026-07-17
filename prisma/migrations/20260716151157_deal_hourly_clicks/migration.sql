@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "deals" ADD COLUMN "currentHourClicks" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "lastHourClicks" INTEGER NOT NULL DEFAULT 0;
