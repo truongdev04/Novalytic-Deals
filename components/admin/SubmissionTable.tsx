@@ -17,7 +17,9 @@ export function SubmissionTable({ submissions }: { submissions: Submission[] }) 
           <thead className="bg-surface-100 text-xs uppercase text-muted-500">
             <tr>
               <th className="px-4 py-3">Store</th>
+              <th className="px-4 py-3">Website</th>
               <th className="px-4 py-3">Code</th>
+              <th className="px-4 py-3">Discount</th>
               <th className="px-4 py-3">Description</th>
               <th className="px-4 py-3">Submitter</th>
               <th className="px-4 py-3" />
@@ -27,7 +29,22 @@ export function SubmissionTable({ submissions }: { submissions: Submission[] }) 
             {paged.map((submission) => (
               <tr key={submission.id} className="border-t border-muted-200">
                 <td className="px-4 py-3 font-medium text-brand-950">{submission.storeName}</td>
+                <td className="max-w-[180px] truncate px-4 py-3 text-muted-600">
+                  <a
+                    href={submission.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-600 hover:underline"
+                  >
+                    {submission.websiteUrl}
+                  </a>
+                </td>
                 <td className="px-4 py-3 text-muted-600">{submission.code ?? "—"}</td>
+                <td className="px-4 py-3 text-muted-600">
+                  {submission.discountUnit === "%"
+                    ? `${submission.discountValue}%`
+                    : `${submission.discountUnit}${submission.discountValue}`}
+                </td>
                 <td className="max-w-xs truncate px-4 py-3 text-muted-600">
                   {submission.description}
                 </td>
@@ -39,7 +56,7 @@ export function SubmissionTable({ submissions }: { submissions: Submission[] }) 
             ))}
             {submissions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-muted-500">
+                <td colSpan={7} className="px-4 py-6 text-center text-muted-500">
                   No submissions found.
                 </td>
               </tr>

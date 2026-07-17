@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
 
   await createSubmittedCoupon({
     storeName: parsed.data.storeName,
+    websiteUrl: parsed.data.websiteUrl,
     code: parsed.data.code,
+    discountUnit: parsed.data.discountUnit,
+    discountValue: parsed.data.discountValue,
     description: parsed.data.description,
     expiresAt: parsed.data.expiresAt,
     submitterEmail: parsed.data.submitterEmail,

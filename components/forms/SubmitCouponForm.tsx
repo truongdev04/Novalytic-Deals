@@ -3,13 +3,17 @@
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { submitCouponSchema, type SubmitCouponInput } from "@/lib/validators/submitCoupon";
+import {
+  discountUnitOptions,
+  submitCouponSchema,
+  type SubmitCouponInput,
+} from "@/lib/validators/submitCoupon";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 
 const fieldClassName =
-  "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
+  "w-full rounded-xl border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
 export function SubmitCouponForm() {
   const {
@@ -18,7 +22,10 @@ export function SubmitCouponForm() {
     reset,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<SubmitCouponInput>({ resolver: zodResolver(submitCouponSchema) });
+  } = useForm<SubmitCouponInput>({
+    resolver: zodResolver(submitCouponSchema),
+    defaultValues: { discountUnit: "%" },
+  });
 
   const handleVerify = useCallback(
     (token: string) => setValue("turnstileToken", token),
@@ -70,10 +77,66 @@ export function SubmitCouponForm() {
       </div>
 
       <div>
+        <label htmlFor="websiteUrl" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Link Website
+        </label>
+        <input
+          id="websiteUrl"
+          type="url"
+          placeholder="e.g. https://www.amazon.com"
+          aria-invalid={Boolean(errors.websiteUrl)}
+          aria-describedby={errors.websiteUrl ? "websiteUrl-error" : undefined}
+          className={fieldClassName}
+          {...register("websiteUrl")}
+        />
+        {errors.websiteUrl && (
+          <p id="websiteUrl-error" className="mt-1 text-xs text-red-600">
+            {errors.websiteUrl.message}
+          </p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="code" className="mb-1.5 block text-sm font-medium text-brand-950">
           Coupon code <span className="text-muted-400">(optional for deals)</span>
         </label>
         <input id="code" placeholder="e.g. SAVE20" className={fieldClassName} {...register("code")} />
+      </div>
+
+      <div>
+        <label htmlFor="discountValue" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Discount
+        </label>
+        <div className="flex">
+          <select
+            id="discountUnit"
+            aria-label="Discount unit"
+            className="w-20 shrink-0 rounded-l-xl border border-r-0 border-muted-300 bg-surface-0 px-3 py-2.5 text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            {...register("discountUnit")}
+          >
+            {discountUnitOptions.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </select>
+          <input
+            id="discountValue"
+            type="number"
+            step="any"
+            min="0"
+            placeholder="e.g. 15"
+            aria-invalid={Boolean(errors.discountValue)}
+            aria-describedby={errors.discountValue ? "discountValue-error" : undefined}
+            className="w-full rounded-r-xl border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            {...register("discountValue", { valueAsNumber: true })}
+          />
+        </div>
+        {errors.discountValue && (
+          <p id="discountValue-error" className="mt-1 text-xs text-red-600">
+            {errors.discountValue.message}
+          </p>
+        )}
       </div>
 
       <div>
@@ -124,7 +187,7 @@ export function SubmitCouponForm() {
 
       <TurnstileWidget onVerify={handleVerify} />
 
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting} className="rounded-xl">
         {isSubmitting ? "Submitting..." : "Submit coupon"}
       </Button>
     </form>
