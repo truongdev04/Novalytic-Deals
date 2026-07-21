@@ -1,15 +1,34 @@
 "use client";
 
 import { useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { ToggleButton } from "@/components/admin/ToggleButton";
 import { AdminPagination } from "@/components/admin/AdminPagination";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { buildQueryUrl } from "@/lib/utils";
 import type { Review, Store } from "@/types";
 
-export function ReviewTable({ reviews, stores }: { reviews: Review[]; stores: Store[] }) {
+export function ReviewTable({
+  reviews,
+  stores,
+  total,
+  page,
+  pageSize,
+}: {
+  reviews: Review[];
+  stores: Store[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(reviews);
+
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
 
   return (
     <div>
@@ -26,7 +45,7 @@ export function ReviewTable({ reviews, stores }: { reviews: Review[]; stores: St
             </tr>
           </thead>
           <tbody>
-            {paged.map((review) => (
+            {reviews.map((review) => (
               <tr key={review.id} className="border-t border-muted-200">
                 <td className="px-4 py-3 text-muted-600">
                   {storeById.get(review.storeId)?.name ?? "—"}
@@ -62,8 +81,8 @@ export function ReviewTable({ reviews, stores }: { reviews: Review[]; stores: St
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { buildQueryUrl } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -27,18 +28,37 @@ export function DealTable({
   deals,
   stores,
   events,
+  total,
+  page,
+  pageSize,
 }: {
   deals: Deal[];
   stores: Store[];
   events: Event[];
+  total: number;
+  page: number;
+  pageSize: number;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [storeFilter, setStoreFilter] = useState(STORE_FILTER_ALL);
-  const [typeFilter, setTypeFilter] = useState(TYPE_FILTER_ALL);
-  const [eventFilter, setEventFilter] = useState(EVENT_FILTER_ALL);
-  const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
-  const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const storeFilter = searchParams.get("store") ?? STORE_FILTER_ALL;
+  const typeFilter = searchParams.get("type") ?? TYPE_FILTER_ALL;
+  const eventFilter = searchParams.get("event") ?? EVENT_FILTER_ALL;
+  const featuredFilter = searchParams.get("featured") ?? BOOL_FILTER_ALL;
+  const statusFilter = searchParams.get("status") ?? BOOL_FILTER_ALL;
+  const urlQuery = searchParams.get("q") ?? "";
+
+  const [query, setQuery] = useState(urlQuery);
+  const debouncedQuery = useDebouncedValue(query);
+
+  useEffect(() => {
+    if (debouncedQuery === urlQuery) return;
+    navigate({ q: debouncedQuery || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -92,39 +112,13 @@ export function DealTable({
 
   const statusFilterOptions = [
     { value: BOOL_FILTER_ALL, label: "All statuses" },
-    { value: "true", label: "Active" },
-    { value: "false", label: "Hidden" },
+    { value: "active", label: "Active" },
+    { value: "hidden", label: "Hidden" },
   ];
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return deals.filter((deal) => {
-      if (q && !deal.name.toLowerCase().includes(q)) return false;
-
-      if (storeFilter !== STORE_FILTER_ALL && deal.storeId !== storeFilter) return false;
-
-      if (typeFilter !== TYPE_FILTER_ALL && deal.type !== typeFilter) return false;
-
-      if (eventFilter !== EVENT_FILTER_ALL) {
-        const currentEventId = deal.eventId ?? null;
-        if (eventFilter === EVENT_FILTER_UNCATEGORIZED) {
-          if (currentEventId !== null) return false;
-        } else if (currentEventId !== eventFilter) {
-          return false;
-        }
-      }
-
-      if (featuredFilter !== BOOL_FILTER_ALL) {
-        if (String(deal.isFeatured) !== featuredFilter) return false;
-      }
-
-      if (statusFilter !== BOOL_FILTER_ALL) {
-        if (String(deal.isActive) !== statusFilter) return false;
-      }
-
-      return true;
-    });
-  }, [deals, query, storeFilter, typeFilter, eventFilter, featuredFilter, statusFilter]);
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
 
   const hasActiveFilters =
     typeFilter !== TYPE_FILTER_ALL ||
@@ -133,14 +127,7 @@ export function DealTable({
     statusFilter !== BOOL_FILTER_ALL;
 
   function clearAllFilters() {
-    setTypeFilter(TYPE_FILTER_ALL);
-    setEventFilter(EVENT_FILTER_ALL);
-    setFeaturedFilter(BOOL_FILTER_ALL);
-    setStatusFilter(BOOL_FILTER_ALL);
-    setDraftTypeFilter(TYPE_FILTER_ALL);
-    setDraftEventFilter(EVENT_FILTER_ALL);
-    setDraftFeaturedFilter(BOOL_FILTER_ALL);
-    setDraftStatusFilter(BOOL_FILTER_ALL);
+    navigate({ type: undefined, event: undefined, featured: undefined, status: undefined });
   }
 
   function openFilterModal() {
@@ -152,16 +139,16 @@ export function DealTable({
   }
 
   function applyFilters() {
-    setTypeFilter(draftTypeFilter);
-    setEventFilter(draftEventFilter);
-    setFeaturedFilter(draftFeaturedFilter);
-    setStatusFilter(draftStatusFilter);
+    navigate({
+      type: draftTypeFilter === TYPE_FILTER_ALL ? undefined : draftTypeFilter,
+      event: draftEventFilter === EVENT_FILTER_ALL ? undefined : draftEventFilter,
+      featured: draftFeaturedFilter === BOOL_FILTER_ALL ? undefined : draftFeaturedFilter,
+      status: draftStatusFilter === BOOL_FILTER_ALL ? undefined : draftStatusFilter,
+    });
     setShowFilterModal(false);
   }
 
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
-
-  const pagedIds = useMemo(() => paged.map((d) => d.id), [paged]);
+  const pagedIds = useMemo(() => deals.map((d) => d.id), [deals]);
   const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.has(id));
 
   function toggleSelectionMode() {
@@ -230,7 +217,7 @@ export function DealTable({
           <SingleSelectDropdown
             options={storeOptions}
             value={storeFilter}
-            onChange={setStoreFilter}
+            onChange={(value) => navigate({ store: value === STORE_FILTER_ALL ? undefined : value })}
             placeholder="All stores"
             searchable
             searchPlaceholder="Search stores..."
@@ -395,7 +382,7 @@ export function DealTable({
             </tr>
           </thead>
           <tbody>
-            {paged.map((deal) => {
+            {deals.map((deal) => {
               const store = storeById.get(deal.storeId);
               const currentEventId = deal.eventId ?? null;
               return (
@@ -491,7 +478,7 @@ export function DealTable({
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {deals.length === 0 && (
               <tr>
                 <td colSpan={selectionMode ? 9 : 8} className="px-4 py-6 text-center text-muted-500">
                   No deals found.
@@ -506,8 +493,8 @@ export function DealTable({
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

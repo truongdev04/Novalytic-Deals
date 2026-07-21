@@ -8,5 +8,4 @@
   <rect width="1200" height="400" fill="url(#g)"/>
   <circle cx="1000" cy="80" r="160" fill="rgba(255,255,255,0.10)"/>
   <circle cx="120" cy="360" r="200" fill="rgba(255,255,255,0.08)"/>
-  <text x="60" y="230" font-family="Poppins, Arial, sans-serif" font-size="48" font-weight="700" fill="rgba(255,255,255,0.95)">Easter</text>
 </svg>

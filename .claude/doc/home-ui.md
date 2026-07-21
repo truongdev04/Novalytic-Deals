@@ -132,3 +132,43 @@ Redesign toàn bộ trang chủ (`app/page.tsx`): thanh search Header/Hero, sect
 - `typecheck`/`lint` sạch xuyên suốt (chỉ còn cảnh báo cũ không liên quan ở `lib/server/affiliate/redirect.ts`).
 - Verify qua Chrome headless cho từng fix: card thẳng hàng (Trending coupon/Exclusive Codes/Blog), logo Popular stores đúng cho cả 3 dạng (chữ ngang, vuông, tròn có padding sẵn), search "s"/"ho" chỉ gợi ý đúng tiền tố, form Submit a coupon hiện đúng layout + validate + payload gửi đi đúng shape (dùng kỹ thuật spy `window.fetch` vì Turnstile chặn submit thật trong môi trường test).
 - DB dev (Supabase) đã có schema mới cho `submitted_coupons`; chưa verify được màn `/admin/submissions` bằng screenshot thật vì route yêu cầu đăng nhập và không có sẵn credential trong phiên — đã xác nhận đúng qua typecheck + đọc trực tiếp shape dữ liệu trong DB.
+
+## 7. Session tiếp theo: Hero home, lọc Trending/Exclusive, bug 500 render, debug đăng nhập admin
+
+### 1. Mục tiêu
+
+Đồng bộ style Hero home với trang Stores, siết điều kiện lọc Trending coupon/Exclusive Codes, fix bug 500 ở trang chủ, và điều tra lỗi "Tài khoản không còn hoạt động" + "Đăng xuất ngay" không phản hồi ở admin.
+
+### 2. Những phần đã hoàn thành
+
+**Hero home** (`components/home/Hero.tsx`)
+- Slogan tăng cỡ chữ (`text-3xl sm:text-4xl lg:text-5xl` → `text-4xl sm:text-6xl`) và search box đổi bo góc (`rounded-xl` → `rounded-2xl`) khớp trang `/stores`, giữ nguyên nền ảnh xanh đậm/chữ trắng (không đổi màu sắc theo yêu cầu).
+- `max-w-2xl` → `max-w-3xl` để slogan chỉ còn 2 hàng thay vì 3.
+
+**Lọc Trending coupon / Exclusive Codes** (`lib/data/coupons.ts`)
+- `getFeaturedCoupons`: `isFeatured && !isExpired` → thêm `verified && !exclusive` (mã vừa Featured vừa Exclusive không còn lọt vào Trending, tránh trùng 2 section).
+- `getExclusiveCoupons`: `exclusive && !isExpired` → thêm `isFeatured && verified`.
+- Cả 2 hàm chỉ được gọi ở `app/page.tsx` (grep xác nhận) nên không ảnh hưởng nơi khác.
+
+**Bug production: `revalidateTag` gọi trong lúc render (trang chủ 500)**
+- `ensurePopularStoresAutoRollover()` (chạy trong render `HomePage`, tính năng "Auto Popular" rollover click hàng tháng) gọi xuyên qua chuỗi `rolloverMonthlyClicks` → `applyFeaturedSelection` → `setPopularStoresSettings`, cả 3 đều tự `purgeTag` (= `revalidateTag`) — Next.js không cho phép gọi trong render, gây lỗi 500 toàn bộ trang chủ (lộ ra tuần tự qua 3 lớp khi sửa từng lớp).
+- Fix: bỏ `purgeTag` khỏi cả 3 hàm data-layer dùng chung (`lib/data/stores.ts`, `lib/data/settings.ts`). Thêm purge tường minh ở 2 nơi gọi an toàn (route handler, ngoài render): `refreshPopularStoresNow()` (`lib/content/popularStoresRefresh.ts`, dùng cho nút "Refresh Popular" thủ công ở admin) và `app/api/admin/stores/auto-popular/route.ts` (toggle bật/tắt). Luồng tự động trong render dựa vào `revalidate` sẵn có (300s cho `stores:list`, 60s cho `settings:popular-stores`) để tự làm mới thay vì purge tức thời.
+
+**Điều tra "Tài khoản không còn hoạt động" false-positive + "Đăng xuất ngay" không hoạt động**
+- Nguyên nhân dialog false-positive: JWT session (`session.user.id`, ghi cố định lúc đăng nhập, xem `auth.config.ts`) trong trình duyệt trỏ tới id cũ không còn tồn tại trong DB (do DB dev bị reset/thay đổi ở đâu đó trong quá trình làm việc nhiều ngày). `/api/admin/session/status` (`app/api/admin/session/status/route.ts`) tra `getUserById(session.user.id)` theo id này, không thấy row → báo `active: false`, trùng hiện tượng với tài khoản bị xoá dù tài khoản (cùng email) hiện tại vẫn Active dưới id mới. Cách khắc phục cho user: đăng xuất rồi đăng nhập lại để lấy token mới.
+- Điều tra tiếp lỗi nút "Đăng xuất ngay" không phản hồi: trong lúc test qua `curl` phát hiện `/admin` (dashboard) trả về 200 không cần cookie — tưởng là lỗi bảo mật ở `proxy.ts` (middleware đổi tên ở Next.js 16), nhưng hoá ra do **nhiều tiến trình `next dev`/`next start` cũ bị treo (zombie) chạy song song trên máy** (1 cái từ 2/7, tức 17 ngày trước) — mọi lần test trước đó vô tình nhắm vào tiến trình cũ mang code lỗi thời. Đã `kill -9` toàn bộ, chỉ chạy lại đúng 1 dev server sạch trên port 3000; xác nhận lại `proxy.ts` bảo vệ `/admin/*` đúng (307 redirect khi chưa đăng nhập) trên server sạch.
+- Gia cố thêm `components/admin/AccountStatusWatcher.tsx` phòng lỗi tương tự về sau: chặn gọi `signOut()` 2 lần cùng lúc (nút bấm tay + timer tự động 8s) bằng `signingOutRef`, thêm fallback `window.location.href = "/admin/login"` nếu `signOut()` promise reject (không bao giờ bị kẹt sau dialog này).
+
+### 3. Trạng thái hiện tại
+
+- Dev server chạy ổn định tại `http://localhost:3000` (chỉ 1 tiến trình duy nhất, đã dọn sạch zombie process). `typecheck`/`lint` sạch xuyên suốt (chỉ còn 1 warning cũ không liên quan ở `lib/server/affiliate/redirect.ts`).
+- Trang chủ hết lỗi 500, load ổn định — đã verify qua nhiều lần request liên tiếp + screenshot thật.
+- Lọc Trending coupon/Exclusive Codes đã verify khớp chính xác với query trực tiếp DB (10 mã Trending, 8 mã Exclusive, không trùng lặp).
+- **Chưa có xác nhận cuối cùng từ user** rằng việc dọn zombie process + gia cố `AccountStatusWatcher` đã giải quyết triệt để lỗi "Đăng xuất ngay" — user vừa được yêu cầu đóng tab cũ, hard refresh, đăng nhập lại để kiểm tra.
+
+### 4. Bước tiếp theo
+
+- Chờ user xác nhận đăng xuất/đăng nhập lại đã hoạt động bình thường sau khi dọn zombie process.
+- Nếu lỗi "Đăng xuất ngay" vẫn còn sau khi có 1 dev server sạch + hardening, cần điều tra sâu hơn với môi trường thật của user (browser console/network tab khi bấm nút), vì phiên làm việc này không có credential admin thật để tự tái hiện đầy đủ qua browser.
+- Field `isTrending` trên `Coupon` vẫn còn mồ côi (ghi nhận từ phần 4, chưa xử lý).
+- Cân nhắc dọn dẹp các tiến trình `next dev` định kỳ trong lúc làm việc dài ngày để tránh lặp lại tình huống nhiều server zombie gây nhiễu debug.

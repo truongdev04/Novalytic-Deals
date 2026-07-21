@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { getBlogPostBySlug, getBlogPosts, getRelatedBlogPosts } from "@/lib/data";
+import Link from "next/link";
+import { getBlogPostBySlug, getBlogPosts, getRelatedBlogPosts, getBlogTopicById } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { TableOfContents } from "@/components/blog/TableOfContents";
@@ -55,7 +56,10 @@ export default async function BlogPostPage({
   if (!rawPost) notFound();
   const post = await resolveBlogContent(rawPost);
 
-  const relatedPosts = await getRelatedBlogPosts(rawPost, 3);
+  const [relatedPosts, topic] = await Promise.all([
+    getRelatedBlogPosts(rawPost, 3),
+    post.topicId ? getBlogTopicById(post.topicId) : Promise.resolve(undefined),
+  ]);
   const sections = parseBlogSections(post.body);
 
   return (
@@ -66,13 +70,11 @@ export default async function BlogPostPage({
 
       <article className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_260px]">
         <div>
-          <div className="flex flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <Badge key={tag} variant="brand">
-                {tag}
-              </Badge>
-            ))}
-          </div>
+          {topic && (
+            <Link href={`/blog?topic=${topic.slug}`}>
+              <Badge variant="brand">{topic.name}</Badge>
+            </Link>
+          )}
 
           <h1 className="mt-4 font-heading text-3xl font-bold text-brand-950">{post.title}</h1>
 

@@ -38,7 +38,6 @@ export async function PATCH(
       authorName: fullUpdate.data.authorName || author?.name || "NovalyticDeals",
       authorAvatarUrl:
         fullUpdate.data.authorAvatarUrl || author?.avatarUrl || "/images/logo/logo/app-icon.png",
-      tags: fullUpdate.data.tags,
       categoryId: fullUpdate.data.categoryId || null,
       topicId: fullUpdate.data.topicId || null,
       body: fullUpdate.data.body,

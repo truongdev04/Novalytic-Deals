@@ -13,7 +13,6 @@ function toBlogPost(row: PrismaBlogPost): BlogPost {
     coverImage: row.coverImage,
     authorName: row.authorName,
     authorAvatarUrl: row.authorAvatarUrl ?? undefined,
-    tags: row.tags,
     categoryId: row.categoryId ?? undefined,
     topicId: row.topicId ?? undefined,
     body: row.body,
@@ -44,15 +43,133 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   return getAllBlogPostsCached();
 }
 
-export async function getBlogPosts(): Promise<BlogPost[]> {
-  const all = await getAllBlogPostsCached();
-  return all.filter((p) => p.isActive);
+export interface AdminBlogFilters {
+  query?: string;
+  isFeatured?: boolean;
+  isFirst?: boolean;
+  isActive?: boolean;
 }
+
+// Admin-facing paginated list — sees hidden posts too, status is just
+// another optional filter. Ordered newest-created-first (matches the admin
+// page's previous client-side re-sort by createdAt, unlike the public
+// getBlogPosts()'s publishedAt order).
+export async function getBlogPostsAdminPaginated(
+  filters: AdminBlogFilters,
+  page: number,
+  pageSize: number
+): Promise<{ items: BlogPost[]; total: number }> {
+  const where: Prisma.BlogPostWhereInput = {};
+  if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
+  if (filters.isFirst !== undefined) where.isFirst = filters.isFirst;
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+
+  const q = filters.query?.trim();
+  if (q) {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { authorName: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const [rows, total] = await prisma.$transaction([
+    prisma.blogPost.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.blogPost.count({ where }),
+  ]);
+  return { items: rows.map(toBlogPost), total };
+}
+
+// Own query (not derived from getAllBlogPostsCached) so the public path
+// never pulls inactive posts into memory. Same tag as getAllBlogPostsCached
+// so existing purgeTag("blog:list") calls invalidate both.
+const getActiveBlogPostsCached = unstable_cache(
+  async (): Promise<BlogPost[]> => {
+    const rows = await prisma.blogPost.findMany({
+      where: { isActive: true },
+      orderBy: { publishedAt: "desc" },
+    });
+    return rows.map(toBlogPost);
+  },
+  ["blog:active"],
+  { tags: ["blog:list"], revalidate: 300 }
+);
+
+export async function getBlogPosts(): Promise<BlogPost[]> {
+  return getActiveBlogPostsCached();
+}
+
+// select-narrowed variant for card grids (blog index, related-posts rail)
+// that never render the body — drops the @db.Text `body` column instead of
+// pulling every post's full article HTML over the wire just to show a
+// title/excerpt/cover image. Returns full BlogPost shape (body: "") so
+// existing BlogCard-typed consumers don't need to change.
+const BLOG_CARD_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  coverImage: true,
+  authorName: true,
+  authorAvatarUrl: true,
+  categoryId: true,
+  topicId: true,
+  readingMinutes: true,
+  publishedAt: true,
+  seo: true,
+  isFeatured: true,
+  isFirst: true,
+  isActive: true,
+  createdAt: true,
+} satisfies Prisma.BlogPostSelect;
+
+function toBlogPostCard(row: Prisma.BlogPostGetPayload<{ select: typeof BLOG_CARD_SELECT }>): BlogPost {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    coverImage: row.coverImage,
+    authorName: row.authorName,
+    authorAvatarUrl: row.authorAvatarUrl ?? undefined,
+    categoryId: row.categoryId ?? undefined,
+    topicId: row.topicId ?? undefined,
+    body: "",
+    readingMinutes: row.readingMinutes,
+    publishedAt: row.publishedAt.toISOString(),
+    seo: row.seo as unknown as BlogSeo,
+    isFeatured: row.isFeatured,
+    isFirst: row.isFirst,
+    isActive: row.isActive,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export const getBlogPostCards = unstable_cache(
+  async (): Promise<BlogPost[]> => {
+    const rows = await prisma.blogPost.findMany({
+      where: { isActive: true },
+      select: BLOG_CARD_SELECT,
+      orderBy: { publishedAt: "desc" },
+    });
+    return rows.map(toBlogPostCard);
+  },
+  ["blog:active:cards"],
+  { tags: ["blog:list"], revalidate: 300 }
+);
 
 export const getFeaturedBlogPosts = unstable_cache(
   async (limit = 3): Promise<BlogPost[]> => {
-    const all = await getBlogPosts();
-    return all.filter((p) => p.isFeatured).slice(0, limit);
+    const rows = await prisma.blogPost.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: { publishedAt: "desc" },
+      take: limit,
+    });
+    return rows.map(toBlogPost);
   },
   ["blog:featured"],
   { tags: ["blog:list"], revalidate: 300 }
@@ -71,10 +188,14 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefi
 }
 
 export async function getRelatedBlogPosts(post: BlogPost, limit = 3): Promise<BlogPost[]> {
-  const all = await getBlogPosts();
-  return all
-    .filter((p) => p.id !== post.id && p.tags.some((t) => post.tags.includes(t)))
-    .slice(0, limit);
+  if (!post.topicId) return [];
+  const rows = await prisma.blogPost.findMany({
+    where: { isActive: true, id: { not: post.id }, topicId: post.topicId },
+    select: BLOG_CARD_SELECT,
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+  });
+  return rows.map(toBlogPostCard);
 }
 
 export async function getBlogPostById(id: string): Promise<BlogPost | undefined> {
@@ -125,7 +246,6 @@ export interface AdminBlogPostFields {
   coverImage: string;
   authorName: string;
   authorAvatarUrl?: string | null;
-  tags: string[];
   categoryId?: string | null;
   topicId?: string | null;
   body: string;
@@ -146,7 +266,6 @@ export async function createBlogPost(fields: AdminBlogPostFields): Promise<BlogP
       coverImage: fields.coverImage,
       authorName: fields.authorName,
       authorAvatarUrl: fields.authorAvatarUrl || null,
-      tags: fields.tags,
       categoryId: fields.categoryId || null,
       topicId: fields.topicId || null,
       body: fields.body,
@@ -171,7 +290,6 @@ export async function updateBlogPost(id: string, fields: AdminBlogPostFields): P
       coverImage: fields.coverImage,
       authorName: fields.authorName,
       authorAvatarUrl: fields.authorAvatarUrl || null,
-      tags: fields.tags,
       categoryId: fields.categoryId || null,
       topicId: fields.topicId || null,
       body: fields.body,

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCategories, getStores, getCoupons } from "@/lib/data";
+import { getCategories } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -17,21 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CategoriesPage() {
-  const [categories, stores, coupons] = await Promise.all([
-    getCategories(),
-    getStores(),
-    getCoupons(),
-  ]);
-
-  const storeById = new Map(stores.map((s) => [s.id, s]));
-  const couponCountByCategory = new Map<string, number>();
-  for (const category of categories) {
-    const count = coupons.filter((c) => {
-      const store = storeById.get(c.storeId);
-      return store?.categoryIds.includes(category.id);
-    }).length;
-    couponCountByCategory.set(category.id, count);
-  }
+  const categories = await getCategories();
 
   return (
     <Container className="py-10">
@@ -51,11 +37,7 @@ export default async function CategoriesPage() {
         />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {categories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              couponCount={couponCountByCategory.get(category.id) ?? 0}
-            />
+            <CategoryCard key={category.id} category={category} showCount={false} />
           ))}
         </div>
       </div>

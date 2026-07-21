@@ -34,16 +34,18 @@ function TabButton({
 export function VerifiedStoresSection({
   featuredStores,
   categories,
+  storesByCategoryId,
   verifiedCouponCountByStore,
 }: {
   featuredStores: Store[];
   categories: Category[];
+  storesByCategoryId: Record<string, Store[]>;
   verifiedCouponCountByStore: Record<string, number>;
 }) {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
   const visibleStores = activeCategoryId
-    ? featuredStores.filter((store) => store.categoryIds.includes(activeCategoryId))
+    ? (storesByCategoryId[activeCategoryId] ?? [])
     : featuredStores;
 
   return (

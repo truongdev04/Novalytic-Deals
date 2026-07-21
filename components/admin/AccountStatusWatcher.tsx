@@ -14,6 +14,22 @@ const AUTO_LOGOUT_AFTER_MS = 8_000;
 export function AccountStatusWatcher() {
   const [deactivated, setDeactivated] = useState(false);
   const checkingRef = useRef(false);
+  // Guards against the auto-logout timer and a manual button click both
+  // firing signOut() around the same moment — next-auth's signOut() isn't
+  // idempotent-safe to call twice in quick succession (two in-flight CSRF
+  // fetches can race), so only the first call is allowed through.
+  const signingOutRef = useRef(false);
+
+  function handleSignOut() {
+    if (signingOutRef.current) return;
+    signingOutRef.current = true;
+    signOut({ callbackUrl: "/admin/login" }).catch(() => {
+      // The next-auth client helper failed (network hiccup, etc.) — fall
+      // back to a plain hard navigation so the user is never stuck behind
+      // this dialog with no way out.
+      window.location.href = "/admin/login";
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -54,9 +70,7 @@ export function AccountStatusWatcher() {
 
   useEffect(() => {
     if (!deactivated) return;
-    const timeout = setTimeout(() => {
-      signOut({ callbackUrl: "/admin/login" });
-    }, AUTO_LOGOUT_AFTER_MS);
+    const timeout = setTimeout(handleSignOut, AUTO_LOGOUT_AFTER_MS);
     return () => clearTimeout(timeout);
   }, [deactivated]);
 
@@ -77,7 +91,7 @@ export function AccountStatusWatcher() {
         </p>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={handleSignOut}
           className="mt-5 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
         >
           Đăng xuất ngay

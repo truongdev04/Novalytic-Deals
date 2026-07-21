@@ -60,17 +60,158 @@ export async function getDealById(id: string): Promise<Deal | undefined> {
 
 // Active-only getter — matches getStores()/getCoupons()'s naming convention.
 // Used as the candidate pool for Deal click-ranking (lib/content/dealsRefresh.ts).
+// Own query (not derived from getAllDealsCached) so the public path never
+// pulls inactive deals into memory. Same tag as getAllDealsCached so existing
+// purgeTag("deals:list") calls invalidate both.
+const getActiveDealsCached = unstable_cache(
+  async (): Promise<Deal[]> => {
+    const rows = await prisma.deal.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(toDeal);
+  },
+  ["deals:active"],
+  { tags: ["deals:list"], revalidate: 300 }
+);
+
 export async function getDeals(): Promise<Deal[]> {
-  const all = await getAllDeals();
-  return all.filter((d) => d.isActive);
+  return getActiveDealsCached();
+}
+
+export interface DealFilters {
+  categoryId?: string;
+  query?: string;
+  sort?: "relevance" | "newest" | "trending" | "discount";
+}
+
+function buildDealWhere(filters: DealFilters): Prisma.DealWhereInput {
+  const where: Prisma.DealWhereInput = { isActive: true };
+
+  if (filters.categoryId) where.categoryId = filters.categoryId;
+
+  // Search is store-name only (no deal-name/description matching) — the
+  // /deals search box suggests stores (SearchAutocomplete), not deals.
+  const q = filters.query?.trim();
+  if (q) {
+    where.store = { name: { contains: q, mode: "insensitive" } };
+  }
+
+  return where;
+}
+
+function buildDealOrderBy(sort: DealFilters["sort"]): Prisma.DealOrderByWithRelationInput[] {
+  switch (sort) {
+    case "newest":
+      return [{ createdAt: "desc" }];
+    case "trending":
+      return [{ lastHourClicks: "desc" }, { createdAt: "desc" }];
+    default:
+      return [{ isFeatured: "desc" }, { createdAt: "desc" }];
+  }
+}
+
+// Percentage saved vs. originalPrice — a computed value Prisma can't order by
+// directly. Deals without an originalPrice have nothing to rank, so they sort
+// last (mirrors notExpiredWhere's nulls-last treatment for coupons).
+function discountPercent(deal: Deal): number {
+  if (!deal.originalPrice || deal.originalPrice <= 0) return -1;
+  return (deal.originalPrice - deal.price) / deal.originalPrice;
+}
+
+// "discount" sort ranks by a value that only exists after mapping rows to
+// Deal, so — like getBestCategoryCoupons — it fetches the full filtered set
+// and sorts/paginates in JS instead of at the DB level.
+async function filterDealsByDiscountPaginated(
+  filters: DealFilters,
+  page: number,
+  pageSize: number
+): Promise<{ items: Deal[]; total: number }> {
+  const where = buildDealWhere(filters);
+  const rows = await prisma.deal.findMany({ where });
+  const sorted = rows.map(toDeal).sort((a, b) => {
+    const diff = discountPercent(b) - discountPercent(a);
+    if (diff !== 0) return diff;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const start = (page - 1) * pageSize;
+  return { items: sorted.slice(start, start + pageSize), total: sorted.length };
+}
+
+// Same filtering as getDeals but with real DB-level pagination — used where
+// the caller needs an accurate `total` for a page count (e.g. /deals).
+export async function filterDealsPaginated(
+  filters: DealFilters,
+  page: number,
+  pageSize: number
+): Promise<{ items: Deal[]; total: number }> {
+  if (filters.sort === "discount") {
+    return filterDealsByDiscountPaginated(filters, page, pageSize);
+  }
+
+  const where = buildDealWhere(filters);
+  const [rows, total] = await prisma.$transaction([
+    prisma.deal.findMany({
+      where,
+      orderBy: buildDealOrderBy(filters.sort),
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.deal.count({ where }),
+  ]);
+  return { items: rows.map(toDeal), total };
+}
+
+export interface AdminDealFilters {
+  storeId?: string;
+  type?: Deal["type"];
+  // undefined = no filter, null = "Uncategorized" (eventId is null), string = specific event
+  eventId?: string | null;
+  query?: string;
+  isFeatured?: boolean;
+  isActive?: boolean;
+}
+
+// Admin-facing paginated list — sees hidden deals too, status is just
+// another optional filter (unlike the public getDeals()/getFeaturedDeals()).
+export async function getDealsAdminPaginated(
+  filters: AdminDealFilters,
+  page: number,
+  pageSize: number
+): Promise<{ items: Deal[]; total: number }> {
+  const where: Prisma.DealWhereInput = {};
+  if (filters.storeId) where.storeId = filters.storeId;
+  if (filters.type) where.type = filters.type;
+  if (filters.eventId !== undefined) where.eventId = filters.eventId;
+  if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+
+  const q = filters.query?.trim();
+  if (q) where.name = { contains: q, mode: "insensitive" };
+
+  const [rows, total] = await prisma.$transaction([
+    prisma.deal.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.deal.count({ where }),
+  ]);
+  return { items: rows.map(toDeal), total };
 }
 
 // Public homepage feed — getAllDeals() above is unfiltered (admin list needs
 // to see inactive deals too), so this narrows to what's safe to surface.
 export const getFeaturedDeals = unstable_cache(
   async (limit = 6): Promise<Deal[]> => {
-    const all = await getAllDeals();
-    return all.filter((d) => d.isFeatured && d.isActive).slice(0, limit);
+    const rows = await prisma.deal.findMany({
+      where: { isFeatured: true, isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return rows.map(toDeal);
   },
   ["deals:featured"],
   { tags: ["deals:list"], revalidate: 300 }

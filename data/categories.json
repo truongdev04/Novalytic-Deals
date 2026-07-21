@@ -12,7 +12,10 @@
     },
     "faq": [
       { "question": "How often are Fashion coupons updated?", "answer": "Our team checks fashion retailers daily to remove expired codes and add newly verified ones." },
-      { "question": "Can I combine fashion coupons with sale prices?", "answer": "Most stores allow stacking a promo code on top of already-discounted sale items, but always check the individual coupon's terms." }
+      { "question": "Can I combine fashion coupons with sale prices?", "answer": "Most stores allow stacking a promo code on top of already-discounted sale items, but always check the individual coupon's terms." },
+      { "question": "Can I return or exchange an item bought with a fashion coupon?", "answer": "Standard return and exchange policies still apply — using a promo code doesn't usually change a retailer's return window or conditions." },
+      { "question": "Do fashion coupons apply to plus-size or extended-size items?", "answer": "Most storewide codes cover the full size range, but a few brands exclude extended sizes on select collections — check the product page for exclusions." },
+      { "question": "Can I stack a student or military discount with a fashion coupon?", "answer": "This varies by retailer — some allow combining a verified student or military discount with a promo code, while others only permit one discount per order." }
     ]
   },
   {
@@ -28,7 +31,10 @@
     },
     "faq": [
       { "question": "Are electronics coupons valid on clearance items?", "answer": "It depends on the retailer — many electronics codes exclude clearance and open-box items, so check the terms before checkout." },
-      { "question": "When are the best times to find electronics deals?", "answer": "Black Friday, Cyber Monday, and back-to-school season typically bring the deepest electronics discounts." }
+      { "question": "When are the best times to find electronics deals?", "answer": "Black Friday, Cyber Monday, and back-to-school season typically bring the deepest electronics discounts." },
+      { "question": "Does using a coupon affect my product warranty?", "answer": "No — manufacturer and retailer warranties are tied to the product itself, not the price paid, so a promo code has no effect on warranty coverage." },
+      { "question": "Are there student discounts on laptops that stack with a coupon?", "answer": "Some electronics retailers let you combine a verified student discount with a promo code, though high-demand models are sometimes excluded." },
+      { "question": "Can I use a coupon on top of a trade-in credit?", "answer": "Trade-in credit and promo codes are usually calculated separately, so you can often apply both to the same order." }
     ]
   },
   {
@@ -44,7 +50,10 @@
     },
     "faq": [
       { "question": "Do software coupons work on subscription renewals?", "answer": "Most codes apply to the first billing cycle only; renewal pricing typically reverts to standard rates." },
-      { "question": "Can I use a software coupon with a free trial?", "answer": "Yes, many services let you apply a promo code when your trial converts to a paid plan." }
+      { "question": "Can I use a software coupon with a free trial?", "answer": "Yes, many services let you apply a promo code when your trial converts to a paid plan." },
+      { "question": "Can I get a refund if I cancel right after applying a coupon?", "answer": "Refund eligibility follows the provider's standard cancellation policy — the coupon itself doesn't change how refunds are calculated." },
+      { "question": "Do software coupons apply to team or business plans?", "answer": "Some codes are limited to individual or starter tiers, so check whether the coupon explicitly covers team and business pricing before checkout." },
+      { "question": "Is there a separate student discount for software subscriptions?", "answer": "Many software brands offer a verified student plan that can sometimes be combined with a promo code for extra savings." }
     ]
   },
   {
@@ -60,7 +69,10 @@
     },
     "faq": [
       { "question": "Are travel coupons refundable if my trip is cancelled?", "answer": "Refund policies depend on the property or airline's own cancellation terms, separate from the coupon itself." },
-      { "question": "Do travel discounts apply to last-minute bookings?", "answer": "Some do, but the deepest discounts are usually available when booking a few weeks in advance." }
+      { "question": "Do travel discounts apply to last-minute bookings?", "answer": "Some do, but the deepest discounts are usually available when booking a few weeks in advance." },
+      { "question": "Do travel coupons cover resort fees or taxes?", "answer": "Most codes discount the base room or fare price only — resort fees, taxes, and airport charges are typically calculated separately." },
+      { "question": "Are there exclusive coupons for booking through a mobile app?", "answer": "Several travel brands offer app-only promo codes as an incentive to book through their mobile app instead of the website." },
+      { "question": "Do travel coupons vary by season?", "answer": "Yes — off-season and shoulder-season dates often carry deeper discounts than peak travel periods." }
     ]
   },
   {
@@ -76,7 +88,10 @@
     },
     "faq": [
       { "question": "Do home & garden coupons apply to furniture delivery fees?", "answer": "Delivery and assembly fees are usually excluded unless the coupon specifically mentions free shipping." },
-      { "question": "What's the best season for home & garden deals?", "answer": "Spring and early summer bring the widest selection of outdoor and gardening discounts." }
+      { "question": "What's the best season for home & garden deals?", "answer": "Spring and early summer bring the widest selection of outdoor and gardening discounts." },
+      { "question": "Do these coupons work on already-discounted clearance furniture?", "answer": "Clearance and floor-model items are commonly excluded from storewide codes — check the item's listing for eligibility." },
+      { "question": "Can I return furniture bought with a coupon?", "answer": "Return policies for furniture stay the same regardless of a promo code, though custom or made-to-order pieces may still be final sale." },
+      { "question": "Do coupons apply to custom or made-to-order pieces?", "answer": "Custom orders are frequently excluded from general promo codes since they're built to individual specifications." }
     ]
   },
   {
@@ -92,7 +107,10 @@
     },
     "faq": [
       { "question": "Do beauty coupons work on limited-edition sets?", "answer": "Limited-edition and gift sets are commonly excluded — check the coupon terms for specifics." },
-      { "question": "Can I get a free sample with a beauty coupon?", "answer": "Many beauty retailers offer a free sample alongside a percentage-off code with a qualifying minimum order." }
+      { "question": "Can I get a free sample with a beauty coupon?", "answer": "Many beauty retailers offer a free sample alongside a percentage-off code with a qualifying minimum order." },
+      { "question": "Do beauty coupons apply to vegan or cruelty-free product lines?", "answer": "Most storewide codes cover the full catalog including vegan and cruelty-free lines, unless the brand specifically excludes them." },
+      { "question": "Do loyalty program members get exclusive beauty coupons?", "answer": "Many beauty retailers issue member-only codes as a loyalty perk, on top of the public coupons listed here." },
+      { "question": "Can a beauty coupon be applied when purchasing a gift card?", "answer": "Gift card purchases are typically excluded from promo codes since gift cards aren't considered discountable merchandise." }
     ]
   },
   {
@@ -108,7 +126,10 @@
     },
     "faq": [
       { "question": "Are health coupons valid on subscription orders?", "answer": "Many wellness brands offer an additional discount for subscribe-and-save orders on top of a welcome coupon." },
-      { "question": "Do health coupons expire quickly?", "answer": "Wellness promo codes typically run 2-4 weeks, so check the expiration badge before you shop." }
+      { "question": "Do health coupons expire quickly?", "answer": "Wellness promo codes typically run 2-4 weeks, so check the expiration badge before you shop." },
+      { "question": "Do health coupons apply to prescription products?", "answer": "Prescription and physician-supervised products are generally excluded from general wellness promo codes." },
+      { "question": "Can I use a health coupon on an international order?", "answer": "Availability depends on the retailer's shipping regions — some codes are restricted to domestic orders only, so check the terms first." },
+      { "question": "Does an auto-renewing subscription keep the original coupon price?", "answer": "Coupon pricing usually applies to the first order only; renewal pricing typically reverts to the standard subscription rate." }
     ]
   },
   {
@@ -124,7 +145,10 @@
     },
     "faq": [
       { "question": "Do pet store coupons apply to prescription pet food?", "answer": "Prescription and veterinary-exclusive items are often excluded from general storewide codes." },
-      { "question": "Can I stack a pet coupon with autoship discounts?", "answer": "Most retailers allow combining a promo code with an autoship or subscription discount for extra savings." }
+      { "question": "Can I stack a pet coupon with autoship discounts?", "answer": "Most retailers allow combining a promo code with an autoship or subscription discount for extra savings." },
+      { "question": "Do pet coupons cover grooming or spa services?", "answer": "Service bookings like grooming and spa appointments are usually handled separately from merchandise codes, so check with the retailer directly." },
+      { "question": "Can I combine a pet coupon with a refer-a-friend credit?", "answer": "Many pet retailers allow stacking a referral credit with a promo code, since they're applied at different steps of checkout." },
+      { "question": "Do coupons apply to custom orders sized for my pet's weight?", "answer": "Custom-formulated or weight-specific orders are sometimes excluded from general promo codes — check the product page for eligibility." }
     ]
   }
 ]

@@ -75,7 +75,6 @@ export function CouponForm({
           startsAt: toDateInput(coupon.startsAt),
           expiresAt: toDateInput(coupon.expiresAt),
           isFeatured: coupon.isFeatured,
-          isTrending: coupon.isTrending,
         }
       : {
           storeId: "",
@@ -93,7 +92,6 @@ export function CouponForm({
           startsAt: "",
           expiresAt: "",
           isFeatured: false,
-          isTrending: false,
         },
   });
 

@@ -8,11 +8,14 @@ export function AlphabetNav({
   activeLetter,
   variant = "light",
   className,
+  onSelect,
 }: {
   availableLetters: Set<string>;
   activeLetter?: string;
   variant?: "light" | "dark";
   className?: string;
+  /** When provided, renders buttons that call this instead of navigating (used for in-page filtering). Selecting the active letter again clears the filter. */
+  onSelect?: (key: string | null) => void;
 }) {
   const items = [
     ...ALPHABET.map((letter) => ({ label: letter, href: `/stores/${letter}`, key: letter })),
@@ -31,16 +34,25 @@ export function AlphabetNav({
         const isActive = key === activeLetter;
 
         if (isActive) {
+          const activeClassName = cn(
+            "flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-semibold",
+            isDark ? "bg-white text-brand-700" : "bg-brand-600 text-white"
+          );
+          if (onSelect) {
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-current="page"
+                onClick={() => onSelect(null)}
+                className={activeClassName}
+              >
+                {label}
+              </button>
+            );
+          }
           return (
-            <Link
-              key={key}
-              href={href}
-              aria-current="page"
-              className={cn(
-                "flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-semibold",
-                isDark ? "bg-white text-brand-700" : "bg-brand-600 text-white"
-              )}
-            >
+            <Link key={key} href={href} aria-current="page" className={activeClassName}>
               {label}
             </Link>
           );
@@ -61,17 +73,26 @@ export function AlphabetNav({
           );
         }
 
+        const inactiveClassName = cn(
+          "px-1 text-sm font-medium transition-colors",
+          isDark ? "text-white/90 hover:text-accent-300" : "text-brand-800 hover:text-brand-600"
+        );
+
+        if (onSelect) {
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelect(key)}
+              className={inactiveClassName}
+            >
+              {label}
+            </button>
+          );
+        }
+
         return (
-          <Link
-            key={key}
-            href={href}
-            className={cn(
-              "px-1 text-sm font-medium transition-colors",
-              isDark
-                ? "text-white/90 hover:text-accent-300"
-                : "text-brand-800 hover:text-brand-600"
-            )}
-          >
+          <Link key={key} href={href} className={inactiveClassName}>
             {label}
           </Link>
         );

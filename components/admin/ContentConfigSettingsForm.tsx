@@ -20,6 +20,8 @@ const storeTemplateHint = "Use {name} — it will be replaced with the store nam
 const couponTemplateHint =
   "Use {name} — it will be replaced with the coupon's store name (not the coupon title).";
 const blogTemplateHint = "Use {name} — it will be replaced with the post title.";
+const eventTemplateHint =
+  "Use {name} — it will be replaced with the event's name. This single template is applied to every event's detail page (events have no per-event FAQ override).";
 const randomBlockHint =
   "Add one variation per block, separated by a blank line — a variation can span multiple lines. A random block is picked for each store left blank.";
 const couponDescriptionHint =
@@ -36,6 +38,7 @@ const TABS = [
   { id: "store", label: "Store Templates" },
   { id: "coupon", label: "Coupon Templates" },
   { id: "blog", label: "Blog Templates" },
+  { id: "event", label: "Event Templates" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -176,11 +179,13 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
         blogSeoTitleTemplate: settings.templates.blogSeoTitleTemplate ?? "",
         blogExcerptTemplate: settings.templates.blogExcerptTemplate ?? "",
         blogSeoDescriptionTemplate: settings.templates.blogSeoDescriptionTemplate ?? "",
+        eventFaqTemplate: settings.templates.eventFaqTemplate ?? [],
       },
     },
   });
 
   const faqArray = useFieldArray({ control, name: "templates.storeFaqTemplate" });
+  const eventFaqArray = useFieldArray({ control, name: "templates.eventFaqTemplate" });
 
   async function onSubmit(data: AdminContentConfigSettingsInput) {
     try {
@@ -306,6 +311,52 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
           {blogTemplateFields.map((field) => (
             <TemplateField key={field.name} {...field} register={register} />
           ))}
+        </section>
+
+        <section hidden={activeTab !== "event"} className="space-y-4">
+          <p className="text-xs text-muted-500">{eventTemplateHint}</p>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-brand-950">Event — FAQ template</span>
+              <button
+                type="button"
+                onClick={() => eventFaqArray.append({ question: "", answer: "" })}
+                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add FAQ
+              </button>
+            </div>
+            <div className="space-y-3">
+              {eventFaqArray.fields.map((item, index) => (
+                <div key={item.id} className="rounded-lg border border-muted-200 p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 space-y-2">
+                      <input
+                        placeholder="Question"
+                        className={fieldClassName}
+                        {...register(`templates.eventFaqTemplate.${index}.question` as const)}
+                      />
+                      <textarea
+                        placeholder="Answer"
+                        rows={2}
+                        className={fieldClassName}
+                        {...register(`templates.eventFaqTemplate.${index}.answer` as const)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => eventFaqArray.remove(index)}
+                      aria-label="Remove FAQ"
+                      className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </div>
 

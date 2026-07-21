@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { getStores, getCoupons, getCategories, groupStoresByLetter } from "@/lib/data";
+import {
+  getStores,
+  getVerifiedCouponCountByStoreIds,
+  getCategories,
+  groupStoresByLetter,
+} from "@/lib/data";
+import { rankPopularStores } from "@/lib/content/popularStoresRefresh";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
-import { SearchBox } from "@/components/search/SearchBox";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { AlphabetNav } from "@/components/store/AlphabetNav";
 import { VerifiedStoresSection } from "@/components/store/VerifiedStoresSection";
 import { CategoryGrid } from "@/components/category/CategoryGrid";
@@ -23,33 +29,50 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"];
+const MOST_POPULAR_LIMIT = 40;
+const CATEGORY_TAB_LIMIT = 25;
 
-export default async function StoresPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = await searchParams;
+export default async function StoresPage() {
   const allStores = await getStores();
   const letterGroups = groupStoresByLetter(allStores);
   const availableLetters = new Set(letterGroups.keys());
 
-  const allCoupons = await getCoupons();
-  const verifiedCouponCountByStore = new Map<string, number>();
-  for (const coupon of allCoupons) {
-    if (!coupon.verified) continue;
-    verifiedCouponCountByStore.set(
-      coupon.storeId,
-      (verifiedCouponCountByStore.get(coupon.storeId) ?? 0) + 1
-    );
-  }
-
   const categories = await getCategories();
 
-  const featuredStores = allStores.filter((store) => store.isFeatured);
+  const storeById = new Map(allStores.map((store) => [store.id, store]));
+  const rankedStoreIds = rankPopularStores(allStores, "lastMonthClicks", MOST_POPULAR_LIMIT);
+  const featuredStores = rankedStoreIds
+    .map((id) => storeById.get(id))
+    .filter((store): store is (typeof allStores)[number] => store !== undefined);
   const categoriesWithFeaturedStore = categories.filter((category) =>
     featuredStores.some((store) => store.categoryIds.includes(category.id))
   );
+
+  // Each category tab ranks its own stores independently (not limited to
+  // whichever happen to also be in the site-wide top-40 "Most Popular"
+  // pool above) so a category with plenty of its own popular stores can
+  // still fill up to CATEGORY_TAB_LIMIT.
+  const storesByCategoryId: Record<string, typeof allStores> = {};
+  for (const category of categoriesWithFeaturedStore) {
+    const categoryStores = allStores.filter((store) => store.categoryIds.includes(category.id));
+    const rankedCategoryIds = rankPopularStores(
+      categoryStores,
+      "lastMonthClicks",
+      CATEGORY_TAB_LIMIT
+    );
+    storesByCategoryId[category.id] = rankedCategoryIds
+      .map((id) => storeById.get(id))
+      .filter((store): store is (typeof allStores)[number] => store !== undefined);
+  }
+
+  const allVisibleStoreIds = new Set(featuredStores.map((s) => s.id));
+  for (const stores of Object.values(storesByCategoryId)) {
+    for (const store of stores) allVisibleStoreIds.add(store.id);
+  }
+
+  const verifiedCouponCountByStore = await getVerifiedCouponCountByStoreIds([
+    ...allVisibleStoreIds,
+  ]);
 
   return (
     <div>
@@ -63,7 +86,7 @@ export default async function StoresPage({
             className="object-cover"
           />
         </div>
-        <Container className="flex flex-col items-center py-14 text-center sm:py-20">
+        <Container className="flex flex-col items-center py-14 text-center sm:py-21.5">
           <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-6xl">
             Every store, one place to save.
           </h1>
@@ -73,10 +96,9 @@ export default async function StoresPage({
           </p>
 
           <div className="mt-8 w-full sm:w-3/5">
-            <SearchBox
-              defaultValue={q}
+            <SearchAutocomplete
+              id="stores-hero-search"
               placeholder="Search stores..."
-              action="/stores"
               inputClassName="h-[58px] rounded-2xl text-base"
             />
           </div>
@@ -103,7 +125,8 @@ export default async function StoresPage({
           <VerifiedStoresSection
             featuredStores={featuredStores}
             categories={categoriesWithFeaturedStore}
-            verifiedCouponCountByStore={Object.fromEntries(verifiedCouponCountByStore)}
+            storesByCategoryId={storesByCategoryId}
+            verifiedCouponCountByStore={verifiedCouponCountByStore}
           />
         </div>
 

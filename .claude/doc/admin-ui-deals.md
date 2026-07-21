@@ -49,16 +49,32 @@ Quyết định đã xác nhận với user (khác Store):
 - Gộp 4 dropdown rời (Type/Event/Featured/Status) trong `components/admin/DealTable.tsx` thành 1 nút **"Filter"** (mở `Modal`) + nút **"Clear All"** (chỉ hiện khi có filter đang áp dụng) — đúng skill `.claude/skills/filter.md` (pattern draft/applied state: chọn trong Modal chưa lọc bảng ngay, chỉ áp dụng khi bấm "Apply filter"; Cancel/Esc/click ngoài huỷ draft không đổi bảng).
 - **Store filter giữ nguyên** dạng dropdown search độc lập ngoài Modal — không nằm trong bộ 4 field được gộp (theo đúng yêu cầu user, chỉ định rõ Type/Event/Featured/Status).
 - Cập nhật mục "Already applied to" trong `.claude/skills/filter.md` để ghi nhận `DealTable`.
+- Bản đầu của giai đoạn này render 4 field bằng `<select>` gốc (native) — đây là nguồn gốc bug phát hiện ở Giai đoạn 5 bên dưới.
+
+### Giai đoạn 5 — Fix bug select lag + đổi 4 field Filter sang `SingleSelectDropdown`
+
+**Bug report từ user**: mở modal Filter trên `/admin/deals`, bấm vào 4 dropdown (Type/Event/Featured/Status) phải mất vài giây mới hiện, đôi khi phải bấm mấy lần mới hiện. Dùng `AskUserQuestion` xác nhận phạm vi: **chỉ** 4 select trong modal Filter bị, các dropdown khác (Store filter, cột Event/Featured/Status trong bảng) bình thường.
+
+**Nguyên nhân**: `components/ui/Modal.tsx` canh giữa `Dialog.Content` bằng `fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`, cộng animation `data-[state=open]:animate-fade-up` (`transform: translateY(8px) → translateY(0)`) — `translateY(0)` vẫn tính là có `transform`, nên `Dialog.Content` luôn là phần tử "transformed" suốt thời gian modal mở. Đây là bug Chrome đã biết: `<select>` gốc nằm trong 1 ancestor có `transform` sẽ mở popup bị trễ/đôi khi cần bấm lại. Các dropdown khác không bị vì chúng là custom div-based (`SingleSelectDropdown`/`AdminDropdownSelect`), không dùng popup `<select>` của trình duyệt.
+
+**Fix 1 — `components/ui/Modal.tsx`** (ảnh hưởng toàn bộ app, mọi Modal dùng chung component): đổi canh giữa từ `transform` sang flexbox (`Dialog.Overlay` thêm `flex items-center justify-center`, bỏ hết `left-1/2 top-1/2 -translate-x/y-1/2` khỏi `Dialog.Content`); đổi animation `Dialog.Content` từ `animate-fade-up` sang `animate-fade-in` (chỉ fade opacity, không còn `transform` nào tồn tại trên `Dialog.Content` khi mở).
+
+**Fix 2 (yêu cầu tiếp theo của user)** — "dùng dropdown giống kiểu dropdown lọc Store cho filter": thay hẳn 4 `<select>` gốc trong modal Filter của `DealTable.tsx` bằng `components/admin/SingleSelectDropdown.tsx` (đúng widget đang dùng cho Store filter) — vừa đồng bộ UI, vừa né hẳn class bug native-select-in-transformed-dialog dù Fix 1 đã sửa gốc. Thêm 4 mảng options mới (`typeFilterOptions`, `eventFilterOptions` có `searchable`, `featuredFilterOptions`, `statusFilterOptions`); xoá `selectClassName` không còn dùng.
+- `typecheck`/`lint` sạch sau cả 2 fix.
+
+**Cập nhật skill**: `.claude/skills/filter.md` cập nhật mục "Pieces already built" (ghi chú Modal.tsx không được dùng `transform` nữa + khuyến nghị dùng `SingleSelectDropdown` thay `<select>` gốc cho mọi field trong Filter panel từ nay), bước 6 đổi snippet mẫu sang `SingleSelectDropdown`, mục "Already applied to" đánh dấu `DealTable` là bản tham chiếu hiện tại (đã dùng `SingleSelectDropdown`) — `StoreTable` sau đó cũng được cập nhật theo (không phải trong phạm vi tài liệu Deal này, ghi nhận qua chỉnh sửa của session/actor khác trên cùng file skill).
 
 ## Trạng thái hiện tại
 - `typecheck`, `lint`, `build` đều sạch (chỉ còn 1 warning cũ không liên quan ở `lib/server/affiliate/redirect.ts`).
 - Dev server chạy ổn tại `localhost:3000` (Turbopack).
-- **Deal đã được wiring ra public site** (mục "chưa làm" cũ ở Giai đoạn 1/2 nay đã không còn đúng) — hiển thị ở "Today's best deals" trang chủ, có click tracking + xếp hạng tự động/thủ công theo Giai đoạn 3. Vẫn **chưa có** trang chi tiết Deal riêng (`/deal/[slug]`), chưa có trong sitemap/JSON-LD.
-- **Chưa test tay qua trình duyệt** (đăng nhập admin) cho toàn bộ Giai đoạn 2–4 — giới hạn đã ghi nhận từ các session trước, không tự động hoá được login qua script.
+- **Deal đã được wiring ra public site** (mục "chưa làm" cũ ở Giai đoạn 1/2 nay đã không còn đúng) — hiển thị ở "Today's best deals" trang chủ, có click tracking + xếp hạng tự động/thủ công theo Giai đoạn 3.
+- Modal Filter trên `/admin/deals` (Giai đoạn 4) đã hết bug select-lag và giờ dùng `SingleSelectDropdown` đồng bộ với Store filter (Giai đoạn 5).
+- Vẫn **chưa có** trang chi tiết Deal riêng (`/deal/[slug]`), chưa có trong sitemap/JSON-LD.
+- **Chưa test tay qua trình duyệt** (đăng nhập admin) cho toàn bộ Giai đoạn 2–5 — giới hạn đã ghi nhận từ các session trước, không tự động hoá được login qua script.
 
 ## Bước tiếp theo
 1. User tự đăng nhập admin, test tay theo checklist đã lập (Giai đoạn 1–2: tạo Deal Type=Deal/Code, slug auto-gen theo Name, Store/Category dropdown search + vẫn cuộn trang được, Original Price+Price → Offer tự tính %, deactivate/xoá Store có Deal → cascade đúng, trùng slug → lỗi 409).
 2. Test riêng Giai đoạn 3: bấm "Get Deal"/"Show Code" ở Home → xác nhận click được ghi nhận; bấm "Refresh Deal" → Featured cập nhật đúng theo `lastHourClicks`; bật "Auto Deal", đợi hoặc set tay `lastRolloverAt` cũ trong DB → tải lại Home → xác nhận rollover + re-rank đúng; tắt "Auto Deal" → Today's best deals giữ nguyên dù có click mới.
-3. Test riêng Giai đoạn 4: mở Filter trên `/admin/deals`, đổi Type/Event/Featured/Status (bảng chưa lọc ngay), Apply (lọc đúng), Cancel sau khi đổi (bảng không đổi, mở lại Filter thấy giá trị cũ), Clear All (xoá hết, ẩn nút).
+3. Test riêng Giai đoạn 4–5: mở Filter trên `/admin/deals`, xác nhận cả 4 dropdown (Type/Event/Featured/Status) mở ngay không còn trễ/cần bấm lại; đổi field (bảng chưa lọc ngay), Apply (lọc đúng), Cancel sau khi đổi (bảng không đổi, mở lại Filter thấy giá trị cũ), Clear All (xoá hết, ẩn nút).
 4. Chưa quyết định Deal có cần hiển thị Category/click-count như cột trong `DealTable.tsx` hay không — hiện chỉ có trong form/DB, chưa hiện trong bảng danh sách.
 5. Chưa có trang chi tiết Deal riêng (`/deal/[slug]`) + sitemap/JSON-LD — nếu cần làm tiếp thì đây là việc còn lại duy nhất chưa động tới trong toàn bộ phạm vi Deal.

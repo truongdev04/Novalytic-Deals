@@ -13,6 +13,7 @@ export function CategoryChip({
   return (
     <Link
       href={href}
+      scroll={false}
       className={cn(
         "inline-flex items-center rounded-xl border px-3.5 py-1.5 text-sm font-medium transition-colors",
         active

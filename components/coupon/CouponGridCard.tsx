@@ -9,7 +9,7 @@ export function CouponGridCard({ coupon, store }: { coupon: Coupon; store: Store
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-lg border border-muted-200 bg-surface-0 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md">
       <Link
-        href={`/coupon/${coupon.slug}`}
+        href={`/store/${store.slug}`}
         className="flex aspect-4/3 w-full items-center justify-center overflow-hidden bg-surface-0 pt-3 px-1.5 pb-1"
       >
         <StoreLogo

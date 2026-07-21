@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getStores, getCoupons, groupStoresByLetter } from "@/lib/data";
+import { getStores, getVerifiedCouponCountByStoreIds, groupStoresByLetter } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { AlphabetNav } from "@/components/store/AlphabetNav";
-import { StoreCard } from "@/components/store/StoreCard";
+import { StoreIndexGrid } from "@/components/store/StoreIndexGrid";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
@@ -51,11 +51,9 @@ export default async function StoreLetterPage({
   const letterStores = groups.get(key);
   if (!letterStores || letterStores.length === 0) notFound();
 
-  const allCoupons = await getCoupons();
-  const couponCountByStore = new Map<string, number>();
-  for (const coupon of allCoupons) {
-    couponCountByStore.set(coupon.storeId, (couponCountByStore.get(coupon.storeId) ?? 0) + 1);
-  }
+  const verifiedCouponCountByStore = await getVerifiedCouponCountByStoreIds(
+    letterStores.map((s) => s.id)
+  );
 
   const displayLetter = key === "#" ? "0-9" : key;
 
@@ -85,14 +83,8 @@ export default async function StoreLetterPage({
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {letterStores.map((store) => (
-          <StoreCard
-            key={store.id}
-            store={store}
-            couponCount={couponCountByStore.get(store.id) ?? 0}
-          />
-        ))}
+      <div className="mt-8">
+        <StoreIndexGrid stores={letterStores} verifiedCouponCountByStore={verifiedCouponCountByStore} />
       </div>
     </Container>
   );

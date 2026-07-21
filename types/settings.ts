@@ -39,6 +39,14 @@ export interface DealRefreshSettings {
   lastRolloverAt: string | null;
 }
 
+export interface CouponRefreshSettings {
+  autoCouponEnabled: boolean;
+  /** ISO timestamp of the last Coupons refresh (manual click or automatic 8h rollover). */
+  lastRefreshedAt: string | null;
+  /** ISO timestamp of the last automatic 8h rollover — elapsed-time based, same convention as DealRefreshSettings. */
+  lastRolloverAt: string | null;
+}
+
 export type RedirectType = "PERMANENT" | "TEMPORARY";
 
 export interface RedirectRule {
@@ -144,6 +152,8 @@ export interface ContentConfigTemplates {
   blogSeoTitleTemplate?: string;
   blogExcerptTemplate?: string;
   blogSeoDescriptionTemplate?: string;
+  /** Shared FAQ template applied to every event's detail page — {name} resolves to the event's name. */
+  eventFaqTemplate?: StoreFaqTemplateItem[];
 }
 
 export interface ContentConfigSettings {

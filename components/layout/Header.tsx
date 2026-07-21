@@ -33,7 +33,7 @@ export async function Header() {
                 <Tag className="h-5 w-5" />
               </span>
             )}
-            <span className="font-heading text-xl font-semibold text-brand-950">
+            <span className="font-heading text-3xl font-semibold text-brand-950">
               {settings.title || "NovalyticDeals"}
             </span>
           </Link>

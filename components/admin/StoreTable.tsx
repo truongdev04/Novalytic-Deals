@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { buildQueryUrl } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -24,18 +25,41 @@ export function StoreTable({
   stores,
   categories,
   events,
+  total,
+  page,
+  pageSize,
 }: {
   stores: Store[];
   categories: Category[];
   events: Event[];
+  total: number;
+  page: number;
+  pageSize: number;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState(CATEGORY_FILTER_ALL);
-  const [eventFilter, setEventFilter] = useState(EVENT_FILTER_ALL);
-  const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
-  const [pinFilter, setPinFilter] = useState(BOOL_FILTER_ALL);
-  const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const categoryFilter = searchParams.get("category") ?? CATEGORY_FILTER_ALL;
+  const eventFilter = searchParams.get("event") ?? EVENT_FILTER_ALL;
+  const featuredFilter = searchParams.get("featured") ?? BOOL_FILTER_ALL;
+  const pinFilter = searchParams.get("pin") ?? BOOL_FILTER_ALL;
+  const statusFilter = searchParams.get("status") ?? BOOL_FILTER_ALL;
+  const urlQuery = searchParams.get("q") ?? "";
+
+  const [query, setQuery] = useState(urlQuery);
+  const debouncedQuery = useDebouncedValue(query);
+
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
+
+  useEffect(() => {
+    if (debouncedQuery === urlQuery) return;
+    navigate({ q: debouncedQuery || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -91,43 +115,9 @@ export function StoreTable({
 
   const statusFilterOptions = [
     { value: BOOL_FILTER_ALL, label: "All statuses" },
-    { value: "true", label: "Active" },
-    { value: "false", label: "Hidden" },
+    { value: "active", label: "Active" },
+    { value: "hidden", label: "Hidden" },
   ];
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return stores.filter((store) => {
-      if (q && !store.name.toLowerCase().includes(q)) return false;
-
-      if (categoryFilter !== CATEGORY_FILTER_ALL) {
-        if (!store.categoryIds.includes(categoryFilter)) return false;
-      }
-
-      if (eventFilter !== EVENT_FILTER_ALL) {
-        const currentEventId = store.eventId ?? null;
-        if (eventFilter === EVENT_FILTER_UNCATEGORIZED) {
-          if (currentEventId !== null) return false;
-        } else if (currentEventId !== eventFilter) {
-          return false;
-        }
-      }
-
-      if (featuredFilter !== BOOL_FILTER_ALL) {
-        if (String(store.isFeatured) !== featuredFilter) return false;
-      }
-
-      if (pinFilter !== BOOL_FILTER_ALL) {
-        if (String(store.isPin) !== pinFilter) return false;
-      }
-
-      if (statusFilter !== BOOL_FILTER_ALL) {
-        if (String(store.isActive) !== statusFilter) return false;
-      }
-
-      return true;
-    });
-  }, [stores, query, categoryFilter, eventFilter, featuredFilter, pinFilter, statusFilter]);
 
   const hasActiveFilters =
     categoryFilter !== CATEGORY_FILTER_ALL ||
@@ -137,16 +127,13 @@ export function StoreTable({
     statusFilter !== BOOL_FILTER_ALL;
 
   function clearAllFilters() {
-    setCategoryFilter(CATEGORY_FILTER_ALL);
-    setEventFilter(EVENT_FILTER_ALL);
-    setFeaturedFilter(BOOL_FILTER_ALL);
-    setPinFilter(BOOL_FILTER_ALL);
-    setStatusFilter(BOOL_FILTER_ALL);
-    setDraftCategoryFilter(CATEGORY_FILTER_ALL);
-    setDraftEventFilter(EVENT_FILTER_ALL);
-    setDraftFeaturedFilter(BOOL_FILTER_ALL);
-    setDraftPinFilter(BOOL_FILTER_ALL);
-    setDraftStatusFilter(BOOL_FILTER_ALL);
+    navigate({
+      category: undefined,
+      event: undefined,
+      featured: undefined,
+      pin: undefined,
+      status: undefined,
+    });
   }
 
   function openFilterModal() {
@@ -159,17 +146,17 @@ export function StoreTable({
   }
 
   function applyFilters() {
-    setCategoryFilter(draftCategoryFilter);
-    setEventFilter(draftEventFilter);
-    setFeaturedFilter(draftFeaturedFilter);
-    setPinFilter(draftPinFilter);
-    setStatusFilter(draftStatusFilter);
+    navigate({
+      category: draftCategoryFilter === CATEGORY_FILTER_ALL ? undefined : draftCategoryFilter,
+      event: draftEventFilter === EVENT_FILTER_ALL ? undefined : draftEventFilter,
+      featured: draftFeaturedFilter === BOOL_FILTER_ALL ? undefined : draftFeaturedFilter,
+      pin: draftPinFilter === BOOL_FILTER_ALL ? undefined : draftPinFilter,
+      status: draftStatusFilter === BOOL_FILTER_ALL ? undefined : draftStatusFilter,
+    });
     setShowFilterModal(false);
   }
 
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
-
-  const pagedIds = useMemo(() => paged.map((s) => s.id), [paged]);
+  const pagedIds = useMemo(() => stores.map((s) => s.id), [stores]);
   const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.has(id));
 
   function toggleSelectionMode() {
@@ -405,7 +392,7 @@ export function StoreTable({
             </tr>
           </thead>
           <tbody>
-            {paged.map((store) => {
+            {stores.map((store) => {
               const currentEventId = store.eventId ?? null;
               return (
                 <tr key={store.id} className="border-t border-muted-200">
@@ -512,7 +499,7 @@ export function StoreTable({
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {stores.length === 0 && (
               <tr>
                 <td colSpan={selectionMode ? 10 : 9} className="px-4 py-6 text-center text-muted-500">
                   No stores found.
@@ -527,8 +514,8 @@ export function StoreTable({
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 import type { BlogPost } from "@/types";
 
@@ -16,11 +15,6 @@ export function BlogCard({ post }: { post: BlogPost }) {
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
         />
-        {post.tags[0] && (
-          <span className="absolute left-3 top-3">
-            <Badge variant="solid">{post.tags[0]}</Badge>
-          </span>
-        )}
       </Link>
       <div className="flex flex-1 flex-col p-4">
         <Link href={`/blog/${post.slug}`}>

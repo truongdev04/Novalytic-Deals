@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { buildQueryUrl } from "@/lib/utils";
 import type { BlogPost } from "@/types";
 
 const BOOL_FILTER_ALL = "all";
@@ -27,32 +29,42 @@ const firstFilterOptions = [
 
 const statusFilterOptions = [
   { value: BOOL_FILTER_ALL, label: "All statuses" },
-  { value: "true", label: "Active" },
-  { value: "false", label: "Hidden" },
+  { value: "active", label: "Active" },
+  { value: "hidden", label: "Hidden" },
 ];
 
-export function BlogTable({ posts }: { posts: BlogPost[] }) {
-  const [query, setQuery] = useState("");
-  const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
-  const [firstFilter, setFirstFilter] = useState(BOOL_FILTER_ALL);
-  const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
+export function BlogTable({
+  posts,
+  total,
+  page,
+  pageSize,
+}: {
+  posts: BlogPost[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return posts.filter((p) => {
-      if (q) {
-        const matchesQuery =
-          p.title.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
-      }
-      if (featuredFilter !== BOOL_FILTER_ALL && String(p.isFeatured) !== featuredFilter) return false;
-      if (firstFilter !== BOOL_FILTER_ALL && String(p.isFirst) !== firstFilter) return false;
-      if (statusFilter !== BOOL_FILTER_ALL && String(p.isActive) !== statusFilter) return false;
-      return true;
-    });
-  }, [posts, query, featuredFilter, firstFilter, statusFilter]);
+  const featuredFilter = searchParams.get("featured") ?? BOOL_FILTER_ALL;
+  const firstFilter = searchParams.get("first") ?? BOOL_FILTER_ALL;
+  const statusFilter = searchParams.get("status") ?? BOOL_FILTER_ALL;
+  const urlQuery = searchParams.get("q") ?? "";
 
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
+  const [query, setQuery] = useState(urlQuery);
+  const debouncedQuery = useDebouncedValue(query);
+
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
+
+  useEffect(() => {
+    if (debouncedQuery === urlQuery) return;
+    navigate({ q: debouncedQuery || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
 
   return (
     <div>
@@ -72,7 +84,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
           <SingleSelectDropdown
             options={featuredFilterOptions}
             value={featuredFilter}
-            onChange={setFeaturedFilter}
+            onChange={(value) => navigate({ featured: value === BOOL_FILTER_ALL ? undefined : value })}
             placeholder="All featured"
           />
         </div>
@@ -81,7 +93,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
           <SingleSelectDropdown
             options={firstFilterOptions}
             value={firstFilter}
-            onChange={setFirstFilter}
+            onChange={(value) => navigate({ first: value === BOOL_FILTER_ALL ? undefined : value })}
             placeholder="All first"
           />
         </div>
@@ -90,7 +102,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
           <SingleSelectDropdown
             options={statusFilterOptions}
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={(value) => navigate({ status: value === BOOL_FILTER_ALL ? undefined : value })}
             placeholder="All statuses"
           />
         </div>
@@ -112,7 +124,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
             </tr>
           </thead>
           <tbody>
-            {paged.map((post) => (
+            {posts.map((post) => (
               <tr key={post.id} className="border-t border-muted-200">
                 <td className="px-4 py-3">
                   <div className="relative h-10 w-16 overflow-hidden rounded border border-muted-200 bg-surface-100">
@@ -192,7 +204,7 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {posts.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-6 text-center text-muted-500">
                   No posts found.
@@ -207,8 +219,8 @@ export function BlogTable({ posts }: { posts: BlogPost[] }) {
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

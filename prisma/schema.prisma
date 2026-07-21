@@ -105,6 +105,7 @@ model Store {
   @@index([isPin])
   @@index([isActive])
   @@index([eventId])
+  @@index([categoryIds], type: Gin)
   @@map("stores")
 }
 
@@ -129,6 +130,7 @@ model Category {
   deals     Deal[]
 
   @@index([parentId])
+  @@index([isFeatured])
   @@map("categories")
 }
 
@@ -157,6 +159,11 @@ model Coupon {
   isFeatured     Boolean      @default(false)
   isTrending     Boolean      @default(false)
   isActive       Boolean      @default(true)
+  // Rolling 8-hour click counters (lib/content/couponsRefresh.ts) — currentHourClicks
+  // increments on every affiliate-redirect click (app/go/[couponId]/route.ts),
+  // lastHourClicks is its frozen value from the last Auto Coupon rollover.
+  currentHourClicks Int       @default(0)
+  lastHourClicks    Int       @default(0)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -214,7 +221,6 @@ model BlogPost {
   coverImage      String
   authorName      String
   authorAvatarUrl String?
-  tags            String[]
   categoryId      String?
   category        Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   topicId         String?
@@ -233,6 +239,7 @@ model BlogPost {
   @@index([topicId])
   @@index([publishedAt])
   @@index([isActive])
+  @@index([isFeatured])
   @@map("blog_posts")
 }
 

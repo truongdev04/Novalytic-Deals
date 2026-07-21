@@ -31,8 +31,12 @@ export const getCategories = unstable_cache(
 
 export const getFeaturedCategories = unstable_cache(
   async (limit = 8): Promise<Category[]> => {
-    const all = await getCategories();
-    return all.filter((c) => c.isFeatured).slice(0, limit);
+    const rows = await prisma.category.findMany({
+      where: { isFeatured: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return rows.map(toCategory);
   },
   ["categories:featured"],
   { tags: ["categories:list"], revalidate: 300 }
@@ -50,8 +54,8 @@ export async function getCategoryBySlug(slug: string): Promise<Category | undefi
 }
 
 export async function getCategoryById(id: string): Promise<Category | undefined> {
-  const all = await getCategories();
-  return all.find((c) => c.id === id);
+  const row = await prisma.category.findUnique({ where: { id } });
+  return row ? toCategory(row) : undefined;
 }
 
 export interface AdminCategoryFields {

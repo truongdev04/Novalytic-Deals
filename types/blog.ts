@@ -11,7 +11,6 @@ export interface BlogPost {
   coverImage: string;
   authorName: string;
   authorAvatarUrl?: string;
-  tags: string[];
   categoryId?: string;
   topicId?: string;
   body: string;

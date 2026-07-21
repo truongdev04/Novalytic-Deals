@@ -62,23 +62,80 @@ export async function getAllStores(): Promise<Store[]> {
   return getAllStoresCached();
 }
 
+export interface AdminStoreFilters {
+  query?: string;
+  categoryId?: string;
+  // undefined = no filter, null = "Uncategorized" (eventId is null), string = specific event
+  eventId?: string | null;
+  isFeatured?: boolean;
+  isPin?: boolean;
+  isActive?: boolean;
+}
+
+// Admin-facing paginated list — sees hidden stores too, status is just
+// another optional filter (unlike the public getStores()/getFeaturedStores()).
+export async function getStoresAdminPaginated(
+  filters: AdminStoreFilters,
+  page: number,
+  pageSize: number
+): Promise<{ items: Store[]; total: number }> {
+  const where: Prisma.StoreWhereInput = {};
+  if (filters.categoryId) where.categoryIds = { has: filters.categoryId };
+  if (filters.eventId !== undefined) where.eventId = filters.eventId;
+  if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
+  if (filters.isPin !== undefined) where.isPin = filters.isPin;
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+
+  const q = filters.query?.trim();
+  if (q) where.name = { contains: q, mode: "insensitive" };
+
+  const [rows, total] = await prisma.$transaction([
+    prisma.store.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.store.count({ where }),
+  ]);
+  return { items: rows.map(toStore), total };
+}
+
+// Own query (not derived from getAllStoresCached) so the public path never
+// pulls inactive stores into memory — `where` pushes the isActive filter
+// down to Postgres instead of fetching the full table and filtering in JS.
+// Same tag as getAllStoresCached so existing purgeTag("stores:list") calls
+// invalidate both; distinct keyParts keep the two cache entries separate.
+const getActiveStoresCached = unstable_cache(
+  async (): Promise<Store[]> => {
+    const rows = await prisma.store.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(toStore);
+  },
+  ["stores:active"],
+  { tags: ["stores:list"], revalidate: 300 }
+);
+
 export async function getStores(): Promise<Store[]> {
-  const all = await getAllStoresCached();
-  return all.filter((s) => s.isActive);
+  return getActiveStoresCached();
 }
 
 export const getFeaturedStores = unstable_cache(
   async (limit = 8): Promise<Store[]> => {
-    const all = await getStores();
-    const featured = all.filter((s) => s.isFeatured);
+    const featured = await prisma.store.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: { createdAt: "desc" },
+    });
     // Pin only takes effect combined with Featured — pinned stores lead the
     // list (most recently updated first), the rest keep the base createdAt
-    // desc order from getAllStoresCached.
-    const pinned = featured
+    // desc order from the query above.
+    const pinned = [...featured]
       .filter((s) => s.isPin)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
     const rest = featured.filter((s) => !s.isPin);
-    return [...pinned, ...rest].slice(0, limit);
+    return [...pinned, ...rest].slice(0, limit).map(toStore);
   },
   ["stores:featured"],
   { tags: ["stores:list"], revalidate: 300 }
@@ -119,40 +176,69 @@ export async function updateStoreSeoDiscountSnapshot(
 // (affiliate redirect, coupon detail) that must resolve a store even if
 // it's currently toggled off from public listings.
 export async function getStoreById(id: string): Promise<Store | undefined> {
-  const all = await getAllStores();
-  return all.find((s) => s.id === id);
+  const row = await prisma.store.findUnique({ where: { id } });
+  return row ? toStore(row) : undefined;
 }
 
 export async function getStoresByIds(ids: string[]): Promise<Store[]> {
-  const all = await getStores();
-  const map = new Map(all.map((s) => [s.id, s]));
+  if (ids.length === 0) return [];
+  const rows = await prisma.store.findMany({
+    where: { id: { in: ids }, isActive: true },
+  });
+  const map = new Map(rows.map((row) => [row.id, toStore(row)]));
   return ids.map((id) => map.get(id)).filter((s): s is Store => Boolean(s));
 }
 
 export async function getStoresByCategory(categoryId: string): Promise<Store[]> {
-  const all = await getStores();
-  return all.filter((s) => s.categoryIds.includes(categoryId));
+  const rows = await prisma.store.findMany({
+    where: { isActive: true, categoryIds: { has: categoryId } },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toStore);
 }
 
 export async function getRelatedStores(store: Store, limit = 4): Promise<Store[]> {
-  const all = await getStores();
-  return all
-    .filter(
-      (s) =>
-        s.id !== store.id &&
-        s.categoryIds.some((id) => store.categoryIds.includes(id))
-    )
-    .slice(0, limit);
+  if (store.categoryIds.length === 0) return [];
+  const rows = await prisma.store.findMany({
+    where: {
+      isActive: true,
+      id: { not: store.id },
+      categoryIds: { hasSome: store.categoryIds },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+  return rows.map(toStore);
 }
 
-export async function searchStores(query: string): Promise<Store[]> {
-  const q = query.trim().toLowerCase();
-  const all = await getStores();
-  if (!q) return all;
-  return all.filter(
-    (s) =>
-      s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
-  );
+export async function searchStores(
+  query: string,
+  opts: { take?: number; nameStartsWith?: boolean } = {}
+): Promise<Store[]> {
+  const q = query.trim();
+  if (!q) return getStores();
+  const rows = await prisma.store.findMany({
+    where: {
+      isActive: true,
+      // Autocomplete (nameStartsWith) only wants type-ahead suggestions —
+      // matching on name prefix at the DB level, not "contains" — otherwise
+      // `take` truncates the result set before alphabetically-later prefix
+      // matches (e.g. "The Wizards Box") ever get a chance to appear,
+      // since stores with "the" merely somewhere in their name/description
+      // fill the quota first.
+      ...(opts.nameStartsWith
+        ? { name: { startsWith: q, mode: "insensitive" as const } }
+        : {
+            OR: [
+              { name: { contains: q, mode: "insensitive" as const } },
+              { description: { contains: q, mode: "insensitive" as const } },
+            ],
+          }),
+    },
+    orderBy: { name: "asc" },
+    take: opts.take ?? 50,
+  });
+  return rows.map(toStore);
 }
 
 export async function setStoreFeatured(id: string, isFeatured: boolean): Promise<Store> {

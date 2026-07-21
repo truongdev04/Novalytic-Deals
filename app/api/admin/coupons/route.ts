@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
       startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : new Date(),
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
       isFeatured: parsed.data.isFeatured,
-      isTrending: parsed.data.isTrending,
     });
     return jsonOk(coupon, 201);
   } catch (error) {

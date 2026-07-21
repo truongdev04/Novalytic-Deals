@@ -1,39 +1,43 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
-  filterCoupons,
+  filterDealsPaginated,
   getCategories,
   getCategoryBySlug,
-  getContentConfigSettings,
   getStores,
-  getStoreBySlug,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { SearchBox } from "@/components/search/SearchBox";
+import { DealsHero } from "@/components/deal/DealsHero";
 import { FilterSidebar } from "@/components/search/FilterSidebar";
 import { SortDropdown } from "@/components/search/SortDropdown";
 import { ActiveFiltersBar, type ActiveFilter } from "@/components/search/ActiveFiltersBar";
-import { CouponCard } from "@/components/coupon/CouponCard";
-import { Pagination } from "@/components/ui/Pagination";
+import { DealProductCard } from "@/components/deal/DealProductCard";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { buildQueryUrl } from "@/lib/utils";
-import type { CouponFilters } from "@/lib/data/coupons";
+import type { DealFilters } from "@/lib/data/deals";
 
 export const revalidate = 300;
 
-const SORT_VALUES: CouponFilters["sort"][] = ["relevance", "expiring", "newest", "discount"];
+// Deal grid tops out at 5 columns (lg breakpoint) — a "batch" is 10 rows of
+// that widest layout, i.e. how many deals load per initial page view / each
+// "Show more" click.
+const DEALS_BATCH_SIZE = 50;
 
-function parseSort(value?: string): CouponFilters["sort"] {
-  return SORT_VALUES.includes(value as CouponFilters["sort"])
-    ? (value as CouponFilters["sort"])
+const SORT_VALUES: DealFilters["sort"][] = ["relevance", "newest", "trending", "discount"];
+
+function parseSort(value?: string): DealFilters["sort"] {
+  return SORT_VALUES.includes(value as DealFilters["sort"])
+    ? (value as DealFilters["sort"])
     : "relevance";
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "All Deals — Browse the Latest Coupon Codes & Offers",
-    description: "Browse all deals and save money today. Filter by category, store, and discount.",
+    description: "Browse all deals and save money today. Search by store, filter by category.",
     path: "/deals",
   });
 }
@@ -44,88 +48,83 @@ export default async function DealsPage({
   searchParams: Promise<{
     q?: string;
     category?: string;
-    store?: string;
     sort?: string;
     page?: string;
   }>;
 }) {
   const params = await searchParams;
-  const [categories, stores, category, store, config] = await Promise.all([
+  const [categories, stores, category] = await Promise.all([
     getCategories(),
     getStores(),
     params.category ? getCategoryBySlug(params.category) : undefined,
-    params.store ? getStoreBySlug(params.store) : undefined,
-    getContentConfigSettings(),
   ]);
 
-  const allFiltered = await filterCoupons({
-    query: params.q,
-    categoryId: category?.id,
-    storeSlug: params.store,
-    sort: parseSort(params.sort),
-  });
+  const currentBatch = Math.max(1, Number(params.page) || 1);
+  const itemsToShow = currentBatch * DEALS_BATCH_SIZE;
 
-  const pageSize = config.pagination.dealsPageSize;
-  const currentPage = Math.max(1, Number(params.page) || 1);
-  const totalPages = Math.max(1, Math.ceil(allFiltered.length / pageSize));
-  const pageItems = allFiltered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const { items: pageItems, total } = await filterDealsPaginated(
+    {
+      query: params.q,
+      categoryId: category?.id,
+      sort: parseSort(params.sort),
+    },
+    1,
+    itemsToShow
+  );
+
+  const hasMore = itemsToShow < total;
 
   const storeById = new Map(stores.map((s) => [s.id, s]));
 
   const activeFilters: ActiveFilter[] = [];
   if (params.q) activeFilters.push({ key: "q", label: `"${params.q}"` });
   if (category) activeFilters.push({ key: "category", label: category.name });
-  if (store) activeFilters.push({ key: "store", label: store.name });
 
   return (
-    <Container className="py-10">
-      <Breadcrumb items={[{ name: "Deals", path: "/deals" }]} />
+    <>
+      <DealsHero defaultQuery={params.q} />
 
-      <div className="mt-4">
-        <h1 className="font-heading text-3xl font-bold text-brand-950">All deals</h1>
-        <p className="mt-2 text-muted-600">
-          Discover the latest coupon codes and exclusive offers.
-        </p>
-      </div>
+      <Container className="py-10">
+        <Breadcrumb items={[{ name: "Deals", path: "/deals" }]} />
 
-      <div className="mt-6 flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBox defaultValue={params.q} placeholder="Search deals..." action="/deals" className="sm:max-w-xs" />
-          <div className="flex flex-wrap gap-3">
-            <FilterSidebar categories={categories} stores={stores} />
+        <div className="mt-6 flex flex-col gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
+            <FilterSidebar categories={categories} />
             <SortDropdown />
           </div>
-        </div>
-        <ActiveFiltersBar
-          basePath="/deals"
-          params={params}
-          filters={activeFilters}
-        />
-      </div>
-
-      <div className="mt-8">
-        {pageItems.length === 0 ? (
-          <EmptyState
-            title="No deals found matching your filters"
-            description="Try adjusting your search or clearing filters to see more results."
+          <ActiveFiltersBar
+            basePath="/deals"
+            params={params}
+            filters={activeFilters}
           />
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {pageItems.map((coupon) => {
-              const store = storeById.get(coupon.storeId);
-              return store ? <CouponCard key={coupon.id} coupon={coupon} store={store} /> : null;
-            })}
+        </div>
+
+        <div className="mt-8">
+          {pageItems.length === 0 ? (
+            <EmptyState
+              title="No deals found matching your filters"
+              description="Try adjusting your search or clearing filters to see more results."
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {pageItems.map((deal) => {
+                const store = storeById.get(deal.storeId);
+                return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
+              })}
+            </div>
+          )}
+        </div>
+
+        {hasMore && (
+          <div className="mt-10 flex justify-center">
+            <Button asChild variant="outline" size="lg" className="rounded-xl">
+              <Link href={buildQueryUrl("/deals", params, { page: String(currentBatch + 1) })}>
+                Show more
+              </Link>
+            </Button>
           </div>
         )}
-      </div>
-
-      <div className="mt-10">
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          buildHref={(page) => buildQueryUrl("/deals", params, { page: String(page) })}
-        />
-      </div>
-    </Container>
+      </Container>
+    </>
   );
 }

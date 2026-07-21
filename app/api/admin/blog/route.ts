@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     authorName: parsed.data.authorName || author?.name || "NovalyticDeals",
     authorAvatarUrl:
       parsed.data.authorAvatarUrl || author?.avatarUrl || "/images/logo/logo/app-icon.png",
-    tags: parsed.data.tags,
     categoryId: parsed.data.categoryId || null,
     topicId: parsed.data.topicId || null,
     body: parsed.data.body,

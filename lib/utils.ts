@@ -71,6 +71,38 @@ export function formatDate(dateStr: string) {
   });
 }
 
+// Deterministic string hash (cyrb53-style) — turns an arbitrary seed string
+// into a 32-bit int for seededShuffle's PRNG below.
+function hashSeed(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+  }
+  return h;
+}
+
+// Seeded Fisher-Yates shuffle (mulberry32 PRNG) — same seed always produces
+// the same order, so callers can get a "random" selection that's stable
+// across requests within a given cache window (e.g. one calendar month)
+// without persisting the chosen order anywhere.
+export function seededShuffle<T>(items: T[], seed: string): T[] {
+  let state = hashSeed(seed) || 1;
+  const next = () => {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function buildQueryUrl(
   pathname: string,
   currentParams: URLSearchParams | Record<string, string | undefined>,
@@ -89,7 +121,12 @@ export function buildQueryUrl(
       params.set(key, value);
     }
   }
-  params.delete("page");
+  // Changing a filter/sort should reset back to page 1 — but only when the
+  // caller isn't explicitly setting `page` itself (e.g. pagination links),
+  // otherwise every page link would collapse back to page 1.
+  if (!("page" in updates)) {
+    params.delete("page");
+  }
 
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;

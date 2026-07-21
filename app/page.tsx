@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import {
-  getStores,
+  getStoresByIds,
   getFeaturedStores,
   getFeaturedCategories,
   getFeaturedBlogPosts,
   getFeaturedDeals,
-  getFeaturedCoupons,
+  getTrendingCoupons,
   getExclusiveCoupons,
   getContentConfigSettings,
 } from "@/lib/data";
@@ -24,6 +24,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { getSeoSettings } from "@/lib/data";
 import { ensurePopularStoresAutoRollover } from "@/lib/content/popularStoresRefresh";
 import { ensureAutoDealRollover } from "@/lib/content/dealsRefresh";
+import { ensureAutoCouponRollover } from "@/lib/content/couponsRefresh";
 
 export const revalidate = 300;
 
@@ -46,20 +47,33 @@ export default async function HomePage() {
   // Lazy 8-hour rollover for "Auto Deal" (see lib/content/dealsRefresh.ts) —
   // same reasoning, must complete before getFeaturedDeals() reads the list.
   await ensureAutoDealRollover();
+  // Lazy 8-hour rollover for "Auto Coupon" (see lib/content/couponsRefresh.ts) —
+  // same reasoning, must complete before getTrendingCoupons() reads the list.
+  await ensureAutoCouponRollover();
 
   const config = await getContentConfigSettings();
-  const [stores, allStores, categories, deals, trendingCoupons, exclusiveCoupons, posts] =
+  const [stores, categories, deals, trendingCoupons, exclusiveCoupons, posts] =
     await Promise.all([
       getFeaturedStores(config.pagination.featuredStoresCount),
-      getStores(),
       getFeaturedCategories(config.pagination.featuredCategoriesCount),
       getFeaturedDeals(config.pagination.bestDealsCount),
-      getFeaturedCoupons(config.pagination.trendingDealsCount),
+      getTrendingCoupons(config.pagination.trendingDealsCount),
       getExclusiveCoupons(config.pagination.exclusiveCodesCount),
       getFeaturedBlogPosts(config.pagination.featuredBlogCount),
     ]);
 
-  const storeById = new Map(allStores.map((s) => [s.id, s]));
+  // Only resolve the handful of stores actually referenced by the cards
+  // above, instead of pulling the entire active-store table just to build a
+  // lookup map.
+  const cardStoreIds = [
+    ...new Set([
+      ...deals.map((d) => d.storeId),
+      ...trendingCoupons.map((c) => c.storeId),
+      ...exclusiveCoupons.map((c) => c.storeId),
+    ]),
+  ];
+  const cardStores = await getStoresByIds(cardStoreIds);
+  const storeById = new Map(cardStores.map((s) => [s.id, s]));
 
   return (
     <>

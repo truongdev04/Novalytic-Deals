@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ListChecks, Pencil, Search, Trash2 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { AdminPagination } from "@/components/admin/AdminPagination";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { buildQueryUrl } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -17,6 +18,14 @@ import type { Coupon, Store } from "@/types";
 
 const STORE_FILTER_ALL = "all";
 const BOOL_FILTER_ALL = "all";
+const TYPE_FILTER_ALL = "all";
+
+const typeFilterOptions = [
+  { value: TYPE_FILTER_ALL, label: "All types" },
+  { value: "CODE", label: "CODE" },
+  { value: "DEAL", label: "DEAL" },
+  { value: "FREESHIP", label: "FREESHIP" },
+];
 
 const featuredFilterOptions = [
   { value: BOOL_FILTER_ALL, label: "All featured" },
@@ -26,8 +35,8 @@ const featuredFilterOptions = [
 
 const statusFilterOptions = [
   { value: BOOL_FILTER_ALL, label: "All statuses" },
-  { value: "true", label: "Active" },
-  { value: "false", label: "Hidden" },
+  { value: "active", label: "Active" },
+  { value: "hidden", label: "Hidden" },
 ];
 
 const verifiedFilterOptions = [
@@ -36,13 +45,52 @@ const verifiedFilterOptions = [
   { value: "false", label: "Unverified" },
 ];
 
-export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: Store[] }) {
+const exclusiveFilterOptions = [
+  { value: BOOL_FILTER_ALL, label: "All exclusive" },
+  { value: "true", label: "Exclusive" },
+  { value: "false", label: "Not exclusive" },
+];
+
+export function CouponTable({
+  coupons,
+  stores,
+  total,
+  page,
+  pageSize,
+}: {
+  coupons: Coupon[];
+  stores: Store[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [storeFilter, setStoreFilter] = useState(STORE_FILTER_ALL);
-  const [featuredFilter, setFeaturedFilter] = useState(BOOL_FILTER_ALL);
-  const [statusFilter, setStatusFilter] = useState(BOOL_FILTER_ALL);
-  const [verifiedFilter, setVerifiedFilter] = useState(BOOL_FILTER_ALL);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const storeFilter = searchParams.get("store") ?? STORE_FILTER_ALL;
+  const typeFilter = searchParams.get("type") ?? TYPE_FILTER_ALL;
+  const featuredFilter = searchParams.get("featured") ?? BOOL_FILTER_ALL;
+  const statusFilter = searchParams.get("status") ?? BOOL_FILTER_ALL;
+  const verifiedFilter = searchParams.get("verified") ?? BOOL_FILTER_ALL;
+  const exclusiveFilter = searchParams.get("exclusive") ?? BOOL_FILTER_ALL;
+  const urlQuery = searchParams.get("q") ?? "";
+
+  const [query, setQuery] = useState(urlQuery);
+  const debouncedQuery = useDebouncedValue(query);
+
+  useEffect(() => {
+    if (debouncedQuery === urlQuery) return;
+    navigate({ q: debouncedQuery || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
+  const [draftTypeFilter, setDraftTypeFilter] = useState(TYPE_FILTER_ALL);
+  const [draftFeaturedFilter, setDraftFeaturedFilter] = useState(BOOL_FILTER_ALL);
+  const [draftStatusFilter, setDraftStatusFilter] = useState(BOOL_FILTER_ALL);
+  const [draftVerifiedFilter, setDraftVerifiedFilter] = useState(BOOL_FILTER_ALL);
+  const [draftExclusiveFilter, setDraftExclusiveFilter] = useState(BOOL_FILTER_ALL);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -56,28 +104,51 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
     [stores]
   );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return coupons.filter((coupon) => {
-      if (q) {
-        const matchesQuery =
-          coupon.title.toLowerCase().includes(q) ||
-          storeById.get(coupon.storeId)?.name.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
-      }
+  // buildQueryUrl resets `page` back to 1 automatically for any update that
+  // doesn't itself set `page` — so filter/search changes reset pagination,
+  // while pagination controls (which pass `page` explicitly) keep it.
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
 
-      if (storeFilter !== STORE_FILTER_ALL && coupon.storeId !== storeFilter) return false;
-      if (featuredFilter !== BOOL_FILTER_ALL && String(coupon.isFeatured) !== featuredFilter) return false;
-      if (statusFilter !== BOOL_FILTER_ALL && String(coupon.isActive) !== statusFilter) return false;
-      if (verifiedFilter !== BOOL_FILTER_ALL && String(coupon.verified) !== verifiedFilter) return false;
+  const hasActiveFilters =
+    typeFilter !== TYPE_FILTER_ALL ||
+    featuredFilter !== BOOL_FILTER_ALL ||
+    statusFilter !== BOOL_FILTER_ALL ||
+    verifiedFilter !== BOOL_FILTER_ALL ||
+    exclusiveFilter !== BOOL_FILTER_ALL;
 
-      return true;
+  function openFilterModal() {
+    setDraftTypeFilter(typeFilter);
+    setDraftFeaturedFilter(featuredFilter);
+    setDraftStatusFilter(statusFilter);
+    setDraftVerifiedFilter(verifiedFilter);
+    setDraftExclusiveFilter(exclusiveFilter);
+    setShowFilterModal(true);
+  }
+
+  function applyFilters() {
+    navigate({
+      type: draftTypeFilter === TYPE_FILTER_ALL ? undefined : draftTypeFilter,
+      featured: draftFeaturedFilter === BOOL_FILTER_ALL ? undefined : draftFeaturedFilter,
+      status: draftStatusFilter === BOOL_FILTER_ALL ? undefined : draftStatusFilter,
+      verified: draftVerifiedFilter === BOOL_FILTER_ALL ? undefined : draftVerifiedFilter,
+      exclusive: draftExclusiveFilter === BOOL_FILTER_ALL ? undefined : draftExclusiveFilter,
     });
-  }, [coupons, query, storeFilter, featuredFilter, statusFilter, verifiedFilter, storeById]);
+    setShowFilterModal(false);
+  }
 
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
+  function clearAllFilters() {
+    navigate({
+      type: undefined,
+      featured: undefined,
+      status: undefined,
+      verified: undefined,
+      exclusive: undefined,
+    });
+  }
 
-  const pagedIds = useMemo(() => paged.map((c) => c.id), [paged]);
+  const pagedIds = useMemo(() => coupons.map((c) => c.id), [coupons]);
   const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.has(id));
 
   function toggleSelectionMode() {
@@ -146,39 +217,89 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
           <SingleSelectDropdown
             options={storeOptions}
             value={storeFilter}
-            onChange={setStoreFilter}
+            onChange={(value) => navigate({ store: value === STORE_FILTER_ALL ? undefined : value })}
             searchable
             searchPlaceholder="Search store..."
           />
         </div>
 
-        <div className="w-36">
-          <SingleSelectDropdown
-            options={featuredFilterOptions}
-            value={featuredFilter}
-            onChange={setFeaturedFilter}
-            placeholder="All featured"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={openFilterModal}
+          className="flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+        >
+          <Filter className="h-4 w-4" />
+          Filter
+        </button>
 
-        <div className="w-36">
-          <SingleSelectDropdown
-            options={statusFilterOptions}
-            value={statusFilter}
-            onChange={setStatusFilter}
-            placeholder="All statuses"
-          />
-        </div>
-
-        <div className="w-36">
-          <SingleSelectDropdown
-            options={verifiedFilterOptions}
-            value={verifiedFilter}
-            onChange={setVerifiedFilter}
-            placeholder="All verified"
-          />
-        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-sm font-medium text-brand-600 hover:text-brand-700"
+          >
+            Clear All
+          </button>
+        )}
       </div>
+
+      <Modal open={showFilterModal} onOpenChange={setShowFilterModal} title="Filters">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Type</label>
+            <SingleSelectDropdown
+              options={typeFilterOptions}
+              value={draftTypeFilter}
+              onChange={setDraftTypeFilter}
+              placeholder="All types"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Featured</label>
+            <SingleSelectDropdown
+              options={featuredFilterOptions}
+              value={draftFeaturedFilter}
+              onChange={setDraftFeaturedFilter}
+              placeholder="All featured"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Status</label>
+            <SingleSelectDropdown
+              options={statusFilterOptions}
+              value={draftStatusFilter}
+              onChange={setDraftStatusFilter}
+              placeholder="All statuses"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Verified</label>
+            <SingleSelectDropdown
+              options={verifiedFilterOptions}
+              value={draftVerifiedFilter}
+              onChange={setDraftVerifiedFilter}
+              placeholder="All verified"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-950">Exclusive</label>
+            <SingleSelectDropdown
+              options={exclusiveFilterOptions}
+              value={draftExclusiveFilter}
+              onChange={setDraftExclusiveFilter}
+              placeholder="All exclusive"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowFilterModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={applyFilters}>
+            Apply filter
+          </Button>
+        </div>
+      </Modal>
 
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -263,7 +384,7 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
             </tr>
           </thead>
           <tbody>
-            {paged.map((coupon) => {
+            {coupons.map((coupon) => {
               const store = storeById.get(coupon.storeId);
               return (
                 <tr key={coupon.id} className="border-t border-muted-200">
@@ -359,7 +480,7 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {coupons.length === 0 && (
               <tr>
                 <td colSpan={selectionMode ? 9 : 8} className="px-4 py-6 text-center text-muted-500">
                   No coupons found.
@@ -374,8 +495,8 @@ export function CouponTable({ coupons, stores }: { coupons: Coupon[]; stores: St
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

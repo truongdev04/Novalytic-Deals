@@ -107,7 +107,13 @@ export function SingleSelectDropdown({
         createPortal(
           <div
             ref={panelRef}
-            style={{ position: "fixed", top: position.top, left: position.left, width: position.width }}
+            style={{
+              position: "fixed",
+              top: position.top,
+              left: position.left,
+              width: position.width,
+              pointerEvents: "auto",
+            }}
             className="z-100 rounded-lg border border-muted-200 bg-surface-0 shadow-lg"
           >
             {searchable && (

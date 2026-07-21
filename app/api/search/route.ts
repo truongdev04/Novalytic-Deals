@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
     return jsonOk({ stores: [], coupons: [] });
   }
 
+  // Quick-search endpoint (SearchAutocomplete) — only ever needs a short
+  // suggestion list, not the full matching set, so cap both queries at the
+  // DB level instead of fetching everything.
   const [stores, coupons] = await Promise.all([
-    searchStores(q),
-    filterCoupons({ query: q }),
+    searchStores(q, { take: 10, nameStartsWith: true }),
+    filterCoupons({ query: q, limit: 8 }),
   ]);
 
   return jsonOk({ stores, coupons });

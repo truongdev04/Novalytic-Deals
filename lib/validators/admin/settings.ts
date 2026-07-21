@@ -116,6 +116,7 @@ export const adminContentConfigSettingsSchema = z.object({
     blogSeoTitleTemplate: z.string().optional().or(z.literal("")),
     blogExcerptTemplate: z.string().optional().or(z.literal("")),
     blogSeoDescriptionTemplate: z.string().optional().or(z.literal("")),
+    eventFaqTemplate: z.array(storeFaqItemSchema).optional(),
   }),
 });
 export type AdminContentConfigSettingsInput = z.infer<typeof adminContentConfigSettingsSchema>;

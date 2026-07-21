@@ -7,7 +7,6 @@ export const adminBlogPostSchema = z.object({
   coverImage: z.string().min(1, "Cover image is required"),
   authorName: z.string().optional().or(z.literal("")),
   authorAvatarUrl: z.string().optional().or(z.literal("")),
-  tags: z.array(z.string()),
   categoryId: z.string().optional().or(z.literal("")),
   topicId: z.string().optional().or(z.literal("")),
   body: z.string().min(1, "Body is required"),

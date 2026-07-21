@@ -9,7 +9,7 @@ import {
   getUtcMonthName,
 } from "@/lib/content/template";
 import { resolveStoreDiscountLabel } from "@/lib/content/storeSeoSnapshot";
-import type { Store, BlogPost, Coupon } from "@/types";
+import type { Store, BlogPost, Coupon, StoreFaqTemplateItem } from "@/types";
 
 // Fills in Store fields left blank by the admin, using the site-wide
 // templates from Content Configuration settings. Never called from
@@ -115,4 +115,16 @@ export async function resolveBlogContent(post: BlogPost): Promise<BlogPost> {
       description: post.seo.description || applyTemplate(t.blogSeoDescriptionTemplate, name),
     },
   };
+}
+
+// Events have no per-event faq field — unlike Store/Category, every event's
+// FAQ block is generated from the single site-wide eventFaqTemplate (with
+// {name} resolving to the event's name), not admin-editable per event.
+export async function resolveEventFaq(eventName: string): Promise<StoreFaqTemplateItem[]> {
+  const config = await getContentConfigSettings();
+  const t = config.templates;
+  return (t.eventFaqTemplate ?? []).map((item) => ({
+    question: applyTemplate(item.question, eventName),
+    answer: applyTemplate(item.answer, eventName),
+  }));
 }

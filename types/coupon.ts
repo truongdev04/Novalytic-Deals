@@ -25,6 +25,8 @@ export interface Coupon {
   isFeatured: boolean;
   isTrending: boolean;
   isActive: boolean;
+  currentHourClicks: number;
+  lastHourClicks: number;
   createdAt: string;
   updatedAt: string;
 }

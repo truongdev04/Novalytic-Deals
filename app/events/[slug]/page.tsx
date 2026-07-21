@@ -6,18 +6,25 @@ import {
   getEvents,
   getCouponsByIds,
   getStoresByIds,
+  getVerifiedCouponCountByStoreIds,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
-import { CountdownTimer } from "@/components/event/CountdownTimer";
-import { CouponCard } from "@/components/coupon/CouponCard";
-import { StoreCard } from "@/components/store/StoreCard";
+import { StoreGrid } from "@/components/store/StoreGrid";
+import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { renderCategoryIcon } from "@/lib/icons";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/lib/seo/JsonLdScript";
+import { faqPageJsonLd } from "@/lib/seo/jsonld";
+import { resolveEventFaq } from "@/lib/content/defaults";
 
 export const revalidate = 300;
+
+// Curated deals grid tops out at 5 columns (lg breakpoint) — cap to 4 rows.
+const CURATED_DEALS_LIMIT = 20;
 
 export async function generateStaticParams() {
   const events = await getEvents();
@@ -49,30 +56,32 @@ export default async function EventPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const [coupons, stores] = await Promise.all([
+  const [coupons, stores, faq] = await Promise.all([
     getCouponsByIds(event.featuredCouponIds),
     getStoresByIds(event.featuredStoreIds),
+    resolveEventFaq(event.name),
   ]);
   const storeById = new Map(stores.map((s) => [s.id, s]));
-  const couponCountByStore = new Map<string, number>();
-  for (const coupon of coupons) {
-    couponCountByStore.set(coupon.storeId, (couponCountByStore.get(coupon.storeId) ?? 0) + 1);
-  }
+  const verifiedCouponCountByStore = await getVerifiedCouponCountByStoreIds(
+    stores.map((s) => s.id)
+  );
+  const visibleCoupons = coupons.slice(0, CURATED_DEALS_LIMIT);
+
   return (
     <div>
+      {faq.length > 0 && <JsonLd data={faqPageJsonLd(faq)} />}
       <section className="relative overflow-hidden">
         {event.bannerUrl && (
           <div className="absolute inset-0 -z-10">
             <Image src={event.bannerUrl} alt="" fill priority className="object-cover" />
           </div>
         )}
-        <Container className="flex flex-col items-center gap-4 py-16 text-center">
+        <Container className="flex flex-col items-center gap-4 py-14 text-center sm:py-25">
           <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/15 text-white">
             {renderCategoryIcon(event, { iconClassName: "h-6 w-6" })}
           </span>
-          <h1 className="font-heading text-3xl font-bold text-white sm:text-4xl">{event.name}</h1>
+          <h1 className="font-heading text-4xl font-bold text-white sm:text-5xl">{event.name}</h1>
           <p className="max-w-xl text-brand-100">{event.description}</p>
-          {event.endsAt && <CountdownTimer endsAt={event.endsAt} />}
         </Container>
       </section>
 
@@ -87,15 +96,11 @@ export default async function EventPage({
         {stores.length > 0 && (
           <div className="mt-10">
             <SectionHeader title="Featured stores" align="left" />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {stores.map((store) => (
-                <StoreCard
-                  key={store.id}
-                  store={store}
-                  couponCount={couponCountByStore.get(store.id) ?? 0}
-                />
-              ))}
-            </div>
+            <StoreGrid
+              stores={stores}
+              verifiedCouponCountByStore={verifiedCouponCountByStore}
+              viewAllHref={`/events/${event.slug}/stores`}
+            />
           </div>
         )}
 
@@ -107,16 +112,23 @@ export default async function EventPage({
               description="Check back soon — we're curating the best offers for this event."
             />
           ) : (
-            <div className="space-y-4">
-              {coupons.map((coupon) => {
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {visibleCoupons.map((coupon) => {
                 const store = storeById.get(coupon.storeId);
                 return store ? (
-                  <CouponCard key={coupon.id} coupon={coupon} store={store} />
+                  <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
                 ) : null;
               })}
             </div>
           )}
         </div>
+
+        {faq.length > 0 && (
+          <div className="mt-12">
+            <SectionHeader title="Frequently asked questions" align="left" />
+            <FAQAccordion items={faq} />
+          </div>
+        )}
       </Container>
     </div>
   );

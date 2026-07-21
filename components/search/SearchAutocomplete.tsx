@@ -9,20 +9,38 @@ import type { Store } from "@/types";
 
 type StoreResult = Pick<Store, "id" | "name" | "slug">;
 
+// Destination for a suggestion — "store" (default) jumps to the store's own
+// page (header/home/stores-directory searches). "deals-filter" (/deals)
+// instead filters that page's own grid, since a store suggestion there
+// should narrow the current listing, not navigate away. A string enum
+// (rather than a callback prop) because this component is rendered from
+// Server Component callers, which can't pass functions across the boundary.
+type ResultMode = "store" | "deals-filter";
+
+function buildResultHref(mode: ResultMode, store: StoreResult): string {
+  return mode === "deals-filter"
+    ? `/deals?q=${encodeURIComponent(store.name)}`
+    : `/store/${store.slug}`;
+}
+
 export function SearchAutocomplete({
   id,
   placeholder = "Search stores...",
   className,
   inputClassName,
+  defaultValue = "",
+  resultMode = "store",
 }: {
   id: string;
   placeholder?: string;
   className?: string;
   inputClassName?: string;
+  defaultValue?: string;
+  resultMode?: ResultMode;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   // null = a search for the current query is in flight, [] = it finished with
   // zero matches (renders "No results found" and disables Enter).
@@ -37,19 +55,11 @@ export function SearchAutocomplete({
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         const body = await res.json();
         if (cancelled) return;
+        // /api/search already restricts stores to name-prefix matches
+        // (nameStartsWith) sorted alphabetically — a real type-ahead, like
+        // typing "ho" suggesting "Hobby Lobby", not "Yahoo".
         const stores: StoreResult[] = body?.data?.stores ?? [];
-        // The API's searchStores() also matches store descriptions and
-        // matches anywhere in the name (useful for the full /stores search
-        // page), which surfaces irrelevant suggestions here — e.g. typing
-        // "swi" matched Chosfox because its description mentions keyboard
-        // "switches". An autocomplete dropdown should only suggest stores
-        // whose name actually starts with what's typed, like a real
-        // type-ahead (typing "ho" suggests "Hobby Lobby", not "Yahoo").
-        const lowerQ = q.toLowerCase();
-        const prefixMatches = stores
-          .filter((s) => s.name.toLowerCase().startsWith(lowerQ))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        setResults(prefixMatches.slice(0, 6));
+        setResults(stores.slice(0, 6));
       } catch {
         if (!cancelled) setResults([]);
       }
@@ -81,7 +91,7 @@ export function SearchAutocomplete({
     e.preventDefault();
     if (results && results.length > 0) {
       setOpen(false);
-      router.push(`/store/${results[0].slug}`);
+      router.push(buildResultHref(resultMode, results[0]));
     }
   }
 
@@ -136,7 +146,7 @@ export function SearchAutocomplete({
               {results.map((store) => (
                 <li key={store.id}>
                   <Link
-                    href={`/store/${store.slug}`}
+                    href={buildResultHref(resultMode, store)}
                     onClick={() => setOpen(false)}
                     className="block px-4 py-2.5 text-sm text-brand-950 hover:bg-surface-100"
                   >

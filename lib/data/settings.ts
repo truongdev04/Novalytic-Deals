@@ -4,6 +4,7 @@ import { prisma, Prisma } from "@/lib/server/db";
 import type {
   AffiliateSettings,
   ContentConfigSettings,
+  CouponRefreshSettings,
   DealRefreshSettings,
   FooterColumn,
   FooterItem,
@@ -25,6 +26,7 @@ const CONTENT_CONFIG_KEY = "content_config";
 const FOOTER_KEY = "footer_links";
 const POPULAR_STORES_KEY = "popular_stores_config";
 const DEAL_REFRESH_KEY = "deal_refresh_config";
+const COUPON_REFRESH_KEY = "coupon_refresh_config";
 
 const DEFAULT_POPULAR_STORES_SETTINGS: PopularStoresSettings = {
   autoPopularEnabled: false,
@@ -34,6 +36,12 @@ const DEFAULT_POPULAR_STORES_SETTINGS: PopularStoresSettings = {
 
 const DEFAULT_DEAL_REFRESH_SETTINGS: DealRefreshSettings = {
   autoDealEnabled: false,
+  lastRefreshedAt: null,
+  lastRolloverAt: null,
+};
+
+const DEFAULT_COUPON_REFRESH_SETTINGS: CouponRefreshSettings = {
+  autoCouponEnabled: false,
   lastRefreshedAt: null,
   lastRolloverAt: null,
 };
@@ -395,6 +403,33 @@ export async function setDealRefreshSettings(
   await prisma.siteSetting.upsert({
     where: { key: DEAL_REFRESH_KEY },
     create: { key: DEAL_REFRESH_KEY, value: next as unknown as Prisma.InputJsonValue },
+    update: { value: next as unknown as Prisma.InputJsonValue },
+  });
+  return next;
+}
+
+export const getCouponRefreshSettings = unstable_cache(
+  async (): Promise<CouponRefreshSettings> => {
+    const row = await prisma.siteSetting.findUnique({ where: { key: COUPON_REFRESH_KEY } });
+    const stored = (row?.value as unknown as Partial<CouponRefreshSettings>) ?? {};
+    return { ...DEFAULT_COUPON_REFRESH_SETTINGS, ...stored };
+  },
+  ["settings:coupon-refresh"],
+  { tags: ["settings:coupon-refresh"], revalidate: 60 }
+);
+
+// No purgeTag here: one caller (ensureAutoCouponRollover) runs inside the home
+// page's own render, where revalidateTag is disallowed. Callers outside a
+// render (route handlers) purge "settings:coupon-refresh" themselves; the
+// render-path caller relies on this setting's own 60s revalidate window.
+export async function setCouponRefreshSettings(
+  patch: Partial<CouponRefreshSettings>
+): Promise<CouponRefreshSettings> {
+  const current = await getCouponRefreshSettings();
+  const next: CouponRefreshSettings = { ...current, ...patch };
+  await prisma.siteSetting.upsert({
+    where: { key: COUPON_REFRESH_KEY },
+    create: { key: COUPON_REFRESH_KEY, value: next as unknown as Prisma.InputJsonValue },
     update: { value: next as unknown as Prisma.InputJsonValue },
   });
   return next;

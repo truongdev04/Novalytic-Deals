@@ -31,7 +31,6 @@ export const adminCouponSchema = z.object({
   startsAt: z.string(),
   expiresAt: z.string().optional().or(z.literal("")),
   isFeatured: z.boolean(),
-  isTrending: z.boolean(),
 });
 
 export type AdminCouponInput = z.infer<typeof adminCouponSchema>;

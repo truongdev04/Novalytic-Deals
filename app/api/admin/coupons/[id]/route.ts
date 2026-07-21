@@ -46,7 +46,6 @@ export async function PATCH(
         startsAt: fullUpdate.data.startsAt ? new Date(fullUpdate.data.startsAt) : new Date(),
         expiresAt: fullUpdate.data.expiresAt ? new Date(fullUpdate.data.expiresAt) : null,
         isFeatured: fullUpdate.data.isFeatured,
-        isTrending: fullUpdate.data.isTrending,
       });
       return jsonOk(coupon);
     } catch (error) {

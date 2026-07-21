@@ -2,13 +2,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   getCouponById,
   getStoreById,
+  incrementCouponCurrentHourClicks,
   incrementCouponUsage,
   incrementStoreCurrentMonthClicks,
 } from "@/lib/data";
 import { buildAffiliateRedirectUrl } from "@/lib/server/affiliate/redirect";
 
 // Never expose the affiliate URL in the DOM: this is the only place it is
-// resolved server-side. Bumps usageCount/currentMonthClicks, then 302s.
+// resolved server-side. Bumps usageCount/currentMonthClicks/currentHourClicks, then 302s.
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ couponId: string }> }
@@ -25,7 +26,11 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  await Promise.all([incrementCouponUsage(coupon.id), incrementStoreCurrentMonthClicks(store.id)]);
+  await Promise.all([
+    incrementCouponUsage(coupon.id),
+    incrementCouponCurrentHourClicks(coupon.id),
+    incrementStoreCurrentMonthClicks(store.id),
+  ]);
 
   const redirectUrl = buildAffiliateRedirectUrl(coupon, store);
   return NextResponse.redirect(redirectUrl, 302);

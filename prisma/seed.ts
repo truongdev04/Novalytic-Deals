@@ -115,7 +115,6 @@ async function seedBlogPosts(posts: JsonBlogPost[]) {
         coverImage: p.coverImage,
         authorName: p.author.name,
         authorAvatarUrl: p.author.avatarUrl ?? null,
-        tags: p.tags,
         categoryId: p.categoryId ?? null,
         body: p.body,
         readingMinutes: p.readingMinutes,

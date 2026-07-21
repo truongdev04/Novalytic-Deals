@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getStoreBySlug,
   getStores,
   getCouponsByStore,
   getRelatedStores,
+  getCategoryById,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -19,6 +21,7 @@ import { faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { formatDiscount, isExpired } from "@/lib/utils";
 import { resolveStoreContent } from "@/lib/content/defaults";
+import { getUtcMonthName } from "@/lib/content/template";
 
 export const revalidate = 86400;
 
@@ -56,7 +59,7 @@ export default async function StorePage({
 
   const [coupons, relatedStores] = await Promise.all([
     getCouponsByStore(store.id),
-    getRelatedStores(store, 4),
+    getRelatedStores(store, 10),
   ]);
 
   const activeCoupons = coupons.filter((c) => !isExpired(c.expiresAt));
@@ -65,9 +68,16 @@ export default async function StorePage({
     null
   );
 
-  const relatedCouponCounts = await Promise.all(
-    relatedStores.map((s) => getCouponsByStore(s.id))
+  const relatedCoupons = await Promise.all(relatedStores.map((s) => getCouponsByStore(s.id)));
+  const relatedVerifiedCouponCounts = relatedCoupons.map(
+    (storeCoupons) => storeCoupons.filter((c) => c.verified).length
   );
+
+  // relatedStores is only ever non-empty when store.categoryIds has at
+  // least one entry (see getRelatedStores' early return), so this is safe
+  // to look up only inside the `relatedStores.length > 0` block below.
+  const primaryCategory =
+    relatedStores.length > 0 ? await getCategoryById(store.categoryIds[0]) : undefined;
 
   return (
     <Container className="py-10">
@@ -96,8 +106,9 @@ export default async function StorePage({
         </div>
 
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-brand-950">
-            {store.name} coupons & deals
+          <h1 className="font-heading text-3xl font-bold text-brand-950 sm:text-4xl">
+            {store.name} Promo Codes &amp; Coupons - {getUtcMonthName(new Date())}{" "}
+            {new Date().getUTCFullYear()}
           </h1>
           <p className="mt-1 text-sm text-muted-600">
             {activeCoupons.length} active {activeCoupons.length === 1 ? "offer" : "offers"} available
@@ -133,15 +144,28 @@ export default async function StorePage({
       {relatedStores.length > 0 && (
         <div className="mt-16">
           <SectionHeader title="Related stores" align="left" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {relatedStores.map((related, i) => (
               <StoreCard
                 key={related.id}
                 store={related}
-                couponCount={relatedCouponCounts[i].length}
+                couponCount={relatedVerifiedCouponCounts[i]}
+                countLabel="verified"
+                pluralizeLabel={false}
               />
             ))}
           </div>
+
+          {primaryCategory && (
+            <div className="mt-6 flex justify-center">
+              <Link
+                href={`/categories/${primaryCategory.slug}`}
+                className="rounded-xl border border-muted-300 px-5 py-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-surface-100"
+              >
+                View all
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </Container>

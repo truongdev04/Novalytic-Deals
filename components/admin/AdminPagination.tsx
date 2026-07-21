@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
 
-const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 const MIN_ITEMS_TO_PAGINATE = 20;
 
 export function AdminPagination({
