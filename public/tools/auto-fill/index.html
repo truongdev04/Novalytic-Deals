@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store &amp; Coupon Auto Fill — NovalyticDeals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div class="brand-text">
+        <strong>NovalyticDeals</strong>
+        <span>Internal Tool · Admin Import</span>
+      </div>
+    </div>
+    <a class="ghost-link" href="#tool">Mở tool</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Auto Fill · Store &amp; Coupon</span>
+      <h1>Chuẩn hóa dữ liệu Store &amp; Coupon,<br>sẵn sàng import chỉ trong vài phút</h1>
+      <p class="lead">Dán sheet thô từ Google Sheets (gộp theo store, discount viết tự do) — tool tự tách store/coupon, chuẩn hóa discount, gắn cờ dòng cần review, và có thể nhờ AI viết About + SEO riêng cho từng store.</p>
+      <div class="hero-cta">
+        <a href="#tool" class="btn btn-accent">Bắt đầu dùng tool</a>
+        <a href="#steps" class="btn btn-ghost">Xem cách hoạt động</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><span class="n">3</span><span class="t">Sheet Excel xuất ra</span></div>
+        <div class="hstat"><span class="n">4</span><span class="t">AI provider hỗ trợ</span></div>
+        <div class="hstat"><span class="n">0</span><span class="t">Cần dev can thiệp</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="steps" id="steps">
+    <div class="wrap">
+      <h2>Quy trình 4 bước</h2>
+      <div class="step-grid">
+        <div class="step-card">
+          <span class="step-n">1</span>
+          <h3>Dán hoặc upload sheet</h3>
+          <p>Copy vùng dữ liệu từ Google Sheets, hoặc tải file .xlsx/.csv lên thẳng.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-n">2</span>
+          <h3>Tool tự chuẩn hóa</h3>
+          <p>Tách store/coupon, nhận diện loại discount (%, $, Free Ship, Deal), gắn cờ dòng thiếu dữ liệu để review.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-n">3</span>
+          <h3>AI viết Description + About</h3>
+          <p>Chọn provider bạn có sẵn key (OpenAI, Anthropic Claude, Gemini, OpenRouter) để sinh nội dung riêng cho từng store.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-n">4</span>
+          <h3>Tải Excel sạch</h3>
+          <p>File gồm 3 sheet Stores · Coupons · Review, import thẳng vào admin NovalyticDeals.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tool-section" id="tool">
+    <div class="wrap">
+      <h2>Tool</h2>
+
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" id="tabUpload">Upload file</button>
+          <button class="tab" id="tabPaste">Dán dữ liệu</button>
+        </div>
+
+        <div id="paneUpload">
+          <label class="drop" id="dropZone" tabindex="0">
+            <input type="file" id="file" accept=".xlsx,.xls,.csv">
+            <strong id="dropTitle">Chọn file .xlsx / .csv</strong>
+            <small id="dropHint">Trong Google Sheets: File → Download → Microsoft Excel (.xlsx), rồi thả vào đây</small>
+          </label>
+        </div>
+
+        <div id="panePaste" class="hidden">
+          <label class="label">Dán dữ liệu (bôi vùng trong Google Sheets rồi Ctrl+C → dán vào đây)</label>
+          <textarea id="paste" placeholder="Store&#9;Link Affiliate&#9;Coupon Code&#9;Discount value&#9;Title&#10;Weston Store&#9;https://...&#9;NOVALYTIC&#9;5%&#9;5% off entire order&#10;(để trống 2 ô đầu)&#9;&#9;no code&#9;Free Shipping&#9;Free US Shipping"></textarea>
+          <p class="hint">Copy từ Sheets ra dạng tab (an toàn với dấu phẩy trong tiêu đề). Giữ nguyên hàng tiêu đề cột.</p>
+        </div>
+
+        <div class="row">
+          <button class="btn btn-primary" id="run">Chuẩn hóa</button>
+          <button class="btn btn-ghost" id="loadSample">Dùng dữ liệu mẫu</button>
+        </div>
+        <div id="error"></div>
+      </div>
+
+      <div id="results" class="hidden">
+        <h3 class="sec-title">Kết quả</h3>
+        <div class="stats">
+          <div class="stat"><div class="n" id="nStore">0</div><div class="t">Store</div></div>
+          <div class="stat"><div class="n" id="nCoupon">0</div><div class="t">Coupon</div></div>
+          <div class="stat warn"><div class="n" id="nReview">0</div><div class="t">Cần review</div></div>
+        </div>
+
+        <div class="card ai-card">
+          <div class="ai-head">
+            <div>
+              <div class="ai-title">Viết Description + About Store bằng AI</div>
+              <p class="hint">Tạo nội dung <b>độc nhất cho từng store</b> (description ngắn, about_store chi tiết) để tránh trùng. Điền thẳng vào file Excel.</p>
+            </div>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <label for="provider">AI Provider</label>
+              <select id="provider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic Claude</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="model">Model</label>
+              <input type="text" id="model">
+              <p class="model-link"><a id="modelsLink" href="#" target="_blank" rel="noopener">Xem danh sách model</a></p>
+            </div>
+            <div class="field grow">
+              <label for="apiKey" id="apiKeyLabel">API key</label>
+              <input type="password" id="apiKey" autocomplete="off" placeholder="Dán API key...">
+            </div>
+          </div>
+          <p class="provider-note" id="providerNote"></p>
+          <div class="fallback-block">
+            <label class="fallback-toggle" for="autoSwitch">
+              <input type="checkbox" id="autoSwitch">
+              Tự động chuyển provider/model khác khi gặp lỗi (rate limit, quá tải...)
+            </label>
+            <div id="fallbackChainWrap" class="fallback-chain-wrap">
+              <label for="fallbackChain" class="label">Chuỗi fallback (mỗi dòng 1 <code>provider:model</code>, thử lần lượt khi lỗi)</label>
+              <textarea id="fallbackChain" class="fallback-chain"></textarea>
+              <p class="hint">Chỉ dòng có provider đã lưu API key mới được dùng; dòng trùng lựa chọn ở trên bị bỏ qua tự động. Gemini free tính quota riêng theo từng model (đổi model né limit khá hiệu quả); OpenRouter free (":free") giới hạn chủ yếu theo tài khoản/key, nên đổi qua lại các model ":free" trong cùng OpenRouter chưa chắc né được limit — vẫn hữu ích như một danh tính fallback riêng biệt.</p>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn btn-accent" id="genAI">Viết cho tất cả store</button>
+          </div>
+          <div id="aiProgress" class="hint"></div>
+        </div>
+
+        <div id="reviewSec" class="hidden">
+          <h3 class="sec-title">Cần review <span class="count" id="cReview">0</span></h3>
+          <div class="review" id="reviewList"></div>
+        </div>
+
+        <h3 class="sec-title">Stores <span class="count" id="cStore">0</span></h3>
+        <div class="tablewrap"><table id="tStore"></table></div>
+
+        <h3 class="sec-title">Coupons <span class="count" id="cCoupon">0</span></h3>
+        <div class="tablewrap"><table id="tCoupon"></table></div>
+
+        <div class="dl row">
+          <button class="btn btn-primary" id="download">Tải Excel sạch (.xlsx)</button>
+          <span class="hint">3 sheet: Stores · Coupons · Review. Cột slug để trống (admin tự sinh).</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>API key của bạn chỉ lưu trong trình duyệt này (localStorage) — không gửi đi đâu ngoài provider AI đã chọn. Công cụ nội bộ cho quy trình import admin NovalyticDeals.</p>
+  </div>
+</footer>
+
+<script src="js/app.js" defer></script>
+</body>
+</html>

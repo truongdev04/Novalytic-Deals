@@ -106,7 +106,7 @@ export function PopularStoresControls({
 
       <p className="mt-2 text-xs text-muted-500">
         Popular Stores last refreshed:{" "}
-        {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : "Never"}
+        {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString("vi-VN") : "Never"}
       </p>
     </div>
   );

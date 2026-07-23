@@ -1,4 +1,4 @@
-import { Store, Tag, Tags, Network, FileText, Mail, MessageSquare, Inbox } from "lucide-react";
+import { Store, Tag, Tags, Network, FileText, Mail, MessageSquare, Inbox, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import {
   getOverviewCounts,
@@ -34,7 +34,18 @@ export default async function AdminDashboardPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-2xl font-bold text-brand-950">Dashboard</h1>
-        <AutoFillStoreButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <AutoFillStoreButton />
+          <a
+            href="/tools/auto-fill/index.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-brand-600 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Auto Fill Tool
+          </a>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
