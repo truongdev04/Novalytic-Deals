@@ -24,6 +24,7 @@ export function CouponCodeModal({
   size = "md",
   className,
   newTabHref,
+  revealBreakpoint,
 }: {
   coupon: Coupon;
   store: Store;
@@ -36,6 +37,19 @@ export function CouponCodeModal({
    * so that tab lands on the right store instead of duplicating the listing.
    */
   newTabHref?: string;
+  /**
+   * Set only when a mobile-layout and a desktop-layout instance of this same
+   * coupon are BOTH mounted at once (CSS-toggled visibility, e.g.
+   * StoreCouponCard's `sm:hidden` / `hidden sm:flex` pair) rather than truly
+   * one-or-the-other. Without this, both instances' pending-reveal effects
+   * race for the same one-shot localStorage flag (see consumePendingCodeReveal)
+   * and whichever runs first "wins" it — possibly the CSS-hidden one, leaving
+   * the visible button stuck on "Show Code" forever. Passing this restricts
+   * each instance to only claim the flag when its own breakpoint is the one
+   * actually on screen (checked via matchMedia, client-only — no SSR/hydration
+   * impact since this only gates an effect, not what's rendered).
+   */
+  revealBreakpoint?: "mobile" | "desktop";
 }) {
   const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -55,8 +69,13 @@ export function CouponCodeModal({
   // setOpen is deferred to a microtask so it isn't called synchronously
   // within the effect body (react-hooks/set-state-in-effect).
   useEffect(() => {
+    if (revealBreakpoint) {
+      const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+      const isOwnBreakpoint = revealBreakpoint === "desktop" ? isDesktop : !isDesktop;
+      if (!isOwnBreakpoint) return;
+    }
     if (consumePendingCodeReveal(coupon.id)) queueMicrotask(() => setOpen(true));
-  }, [coupon.id]);
+  }, [coupon.id, revealBreakpoint]);
 
   // "Show Code" sends the current tab straight to the store and opens a
   // duplicate tab that auto-reveals the code there instead (matches how
@@ -104,7 +123,6 @@ export function CouponCodeModal({
             onClick={() => setOpen(true)}
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
           >
-            <Ticket className="h-4 w-4 shrink-0 text-brand-700" />
             <span className="truncate font-mono text-sm font-bold text-brand-700">
               {coupon.code}
             </span>
@@ -112,10 +130,10 @@ export function CouponCodeModal({
           <button
             type="button"
             onClick={handleCopy}
-            className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+            aria-label={justCopied ? "Copied" : "Copy code"}
+            className="flex shrink-0 items-center rounded-lg p-2 text-brand-700 transition-colors hover:text-brand-900"
           >
-            {justCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {justCopied ? "Copied" : "Copy"}
+            {justCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       ) : (

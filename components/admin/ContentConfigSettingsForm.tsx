@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  useFieldArray,
+  useWatch,
+  type Control,
+  type UseFormRegister,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { useRouter } from "nextjs-toploader/app";
+import * as Accordion from "@radix-ui/react-accordion";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import {
   adminContentConfigSettingsSchema,
@@ -152,6 +160,86 @@ function TemplateField({
   );
 }
 
+function FaqSetFields({
+  control,
+  register,
+  setIndex,
+  onRemoveSet,
+}: {
+  control: Control<AdminContentConfigSettingsInput>;
+  register: UseFormRegister<AdminContentConfigSettingsInput>;
+  setIndex: number;
+  onRemoveSet: () => void;
+}) {
+  const itemsArray = useFieldArray({
+    control,
+    name: `templates.storeFaqTemplateSets.${setIndex}.items`,
+  });
+
+  return (
+    <Accordion.Item value={String(setIndex)} className="overflow-hidden rounded-lg border border-muted-200">
+      <div className="flex items-center justify-between gap-2 bg-surface-0 px-4 py-3">
+        <Accordion.Header className="min-w-0 flex-1">
+          <Accordion.Trigger className="group flex w-full items-center gap-3 text-left focus-visible:outline-none">
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-500 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180" />
+            <span className="truncate font-medium text-brand-950">FAQ Set {setIndex + 1}</span>
+            <span className="shrink-0 text-xs text-muted-500">{itemsArray.fields.length} questions</span>
+          </Accordion.Trigger>
+        </Accordion.Header>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveSet();
+          }}
+          aria-label="Remove FAQ set"
+          className="shrink-0 rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <Accordion.Content className="space-y-3 border-t border-muted-200 bg-surface-0 p-4 data-[state=open]:animate-fade-in">
+        {itemsArray.fields.map((item, itemIndex) => (
+          <div key={item.id} className="rounded-lg border border-muted-200 p-3">
+            <div className="flex items-start gap-2">
+              <div className="flex-1 space-y-2">
+                <input
+                  placeholder="Question"
+                  className={fieldClassName}
+                  {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.question` as const)}
+                />
+                <textarea
+                  placeholder="Answer"
+                  rows={2}
+                  className={fieldClassName}
+                  {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.answer` as const)}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => itemsArray.remove(itemIndex)}
+                aria-label="Remove question"
+                className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => itemsArray.append({ question: "", answer: "" })}
+          className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Question
+        </button>
+      </Accordion.Content>
+    </Accordion.Item>
+  );
+}
+
 export function ContentConfigSettingsForm({ settings }: { settings: ContentConfigSettings }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("pagination");
@@ -170,7 +258,7 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
         storeDescriptionTemplate: settings.templates.storeDescriptionTemplate ?? "",
         storeAboutTemplate: settings.templates.storeAboutTemplate ?? "",
         storeHowToApplyTemplate: settings.templates.storeHowToApplyTemplate ?? "",
-        storeFaqTemplate: settings.templates.storeFaqTemplate ?? [],
+        storeFaqTemplateSets: settings.templates.storeFaqTemplateSets ?? [],
         storeSeoDescriptionTemplate: settings.templates.storeSeoDescriptionTemplate ?? "",
         storeSeoDescriptionFallbackTemplate:
           settings.templates.storeSeoDescriptionFallbackTemplate ?? "",
@@ -184,8 +272,42 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
     },
   });
 
-  const faqArray = useFieldArray({ control, name: "templates.storeFaqTemplate" });
+  const faqSetsArray = useFieldArray({ control, name: "templates.storeFaqTemplateSets" });
   const eventFaqArray = useFieldArray({ control, name: "templates.eventFaqTemplate" });
+  const [openFaqSets, setOpenFaqSets] = useState<string[]>([]);
+  const [pendingDeleteFaqSetIndex, setPendingDeleteFaqSetIndex] = useState<number | null>(null);
+  const pendingDeleteFaqSetItems =
+    useWatch({
+      control,
+      name:
+        pendingDeleteFaqSetIndex !== null
+          ? (`templates.storeFaqTemplateSets.${pendingDeleteFaqSetIndex}.items` as const)
+          : "templates.storeFaqTemplateSets.0.items",
+    }) ?? [];
+
+  function handleAddFaqSet() {
+    const newIndex = faqSetsArray.fields.length;
+    faqSetsArray.append({
+      setId: crypto.randomUUID(),
+      items: Array.from({ length: 5 }, () => ({ question: "", answer: "" })),
+    });
+    setOpenFaqSets((prev) => [...prev, String(newIndex)]);
+  }
+
+  function handleRemoveFaqSet(index: number) {
+    faqSetsArray.remove(index);
+    setOpenFaqSets((prev) =>
+      prev
+        .filter((value) => value !== String(index))
+        .map((value) => (Number(value) > index ? String(Number(value) - 1) : value))
+    );
+  }
+
+  function confirmRemoveFaqSet() {
+    if (pendingDeleteFaqSetIndex === null) return;
+    handleRemoveFaqSet(pendingDeleteFaqSetIndex);
+    setPendingDeleteFaqSetIndex(null);
+  }
 
   async function onSubmit(data: AdminContentConfigSettingsInput) {
     try {
@@ -257,45 +379,40 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-brand-950">Store — FAQ template</span>
+              <span className="text-sm font-medium text-brand-950">Store — FAQ template sets</span>
               <button
                 type="button"
-                onClick={() => faqArray.append({ question: "", answer: "" })}
-                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                onClick={handleAddFaqSet}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
               >
-                <Plus className="h-3.5 w-3.5" />
-                Add FAQ
+                <Plus className="h-4 w-4" />
+                Add FAQ Set
               </button>
             </div>
-            <div className="space-y-3">
-              {faqArray.fields.map((item, index) => (
-                <div key={item.id} className="rounded-lg border border-muted-200 p-3">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 space-y-2">
-                      <input
-                        placeholder="Question"
-                        className={fieldClassName}
-                        {...register(`templates.storeFaqTemplate.${index}.question` as const)}
-                      />
-                      <textarea
-                        placeholder="Answer"
-                        rows={2}
-                        className={fieldClassName}
-                        {...register(`templates.storeFaqTemplate.${index}.answer` as const)}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => faqArray.remove(index)}
-                      aria-label="Remove FAQ"
-                      className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+            <p className="mb-2 text-xs text-muted-500">
+              Each store with no FAQ of its own is deterministically assigned to exactly one set
+              below (based on a stable hash of the store), not all sets combined. Deleting a set
+              only reassigns the stores that were on it — other stores are unaffected.
+            </p>
+            <Accordion.Root
+              type="multiple"
+              value={openFaqSets}
+              onValueChange={setOpenFaqSets}
+              className="space-y-3"
+            >
+              {faqSetsArray.fields.map((field, setIndex) => (
+                <FaqSetFields
+                  key={field.id}
+                  control={control}
+                  register={register}
+                  setIndex={setIndex}
+                  onRemoveSet={() => setPendingDeleteFaqSetIndex(setIndex)}
+                />
               ))}
-            </div>
+            </Accordion.Root>
+            {faqSetsArray.fields.length === 0 && (
+              <p className="text-xs text-muted-400">No FAQ sets yet.</p>
+            )}
           </div>
         </section>
 
@@ -365,6 +482,32 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
           {isSubmitting ? "Saving..." : "Save settings"}
         </Button>
       </div>
+
+      <Modal
+        open={pendingDeleteFaqSetIndex !== null}
+        onOpenChange={(open) => !open && setPendingDeleteFaqSetIndex(null)}
+        title="Delete FAQ set?"
+      >
+        <p className="text-sm text-muted-600">
+          Delete FAQ Set {pendingDeleteFaqSetIndex !== null ? pendingDeleteFaqSetIndex + 1 : ""} and
+          its {pendingDeleteFaqSetItems.length} question
+          {pendingDeleteFaqSetItems.length === 1 ? "" : "s"}? This can&apos;t be undone once you
+          save.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setPendingDeleteFaqSetIndex(null)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            className="bg-red-600 hover:bg-red-700"
+            onClick={confirmRemoveFaqSet}
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
     </form>
   );
 }

@@ -5,7 +5,15 @@ import { VerifiedBadge } from "@/components/coupon/VerifiedBadge";
 import { CouponCodeModal } from "@/components/coupon/CouponCodeModal";
 import type { Coupon, Store } from "@/types";
 
-export function CouponGridCard({ coupon, store }: { coupon: Coupon; store: Store }) {
+export function CouponGridCard({
+  coupon,
+  store,
+  revealBreakpoint,
+}: {
+  coupon: Coupon;
+  store: Store;
+  revealBreakpoint?: "mobile" | "desktop";
+}) {
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-lg border border-muted-200 bg-surface-0 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md">
       <Link
@@ -41,6 +49,7 @@ export function CouponGridCard({ coupon, store }: { coupon: Coupon; store: Store
             size="md"
             className="w-full"
             newTabHref={`/store/${store.slug}`}
+            revealBreakpoint={revealBreakpoint}
           />
         </div>
       </div>

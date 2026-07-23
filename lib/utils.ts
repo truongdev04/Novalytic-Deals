@@ -72,8 +72,9 @@ export function formatDate(dateStr: string) {
 }
 
 // Deterministic string hash (cyrb53-style) — turns an arbitrary seed string
-// into a 32-bit int for seededShuffle's PRNG below.
-function hashSeed(seed: string): number {
+// into a 32-bit int. Used for seededShuffle's PRNG below, and reused by
+// lib/content/template.ts's pickFaqSet for its consistent-hashing ring.
+export function hashSeed(seed: string): number {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
     h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;

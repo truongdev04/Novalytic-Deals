@@ -29,7 +29,16 @@ export function StoreLogo({
       )}
       style={{ width: px, height: px }}
     >
-      <Image src={logoUrl} alt={`${name} logo`} width={px} height={px} />
+      {logoUrl ? (
+        <Image src={logoUrl} alt={`${name} logo`} width={px} height={px} />
+      ) : (
+        <span
+          className="flex h-full w-full items-center justify-center bg-brand-50 font-heading font-semibold text-brand-600"
+          style={{ fontSize: px / 2.5 }}
+        >
+          {name.charAt(0).toUpperCase()}
+        </span>
+      )}
     </span>
   );
 }

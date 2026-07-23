@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useWatch, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowLeft, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { adminStoreSchema, type AdminStoreInput } from "@/lib/validators/admin/store";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,7 @@ import {
   applyTemplate,
   applyTemplateVars,
   pickRandomBlock,
+  pickFaqSet,
   flattenBlock,
   getUtcMonthName,
 } from "@/lib/content/template";
@@ -154,7 +155,11 @@ export function StoreForm({
   const howToApplyPlaceholder =
     applyTemplate(templates.storeHowToApplyTemplate, nameValue) ||
     "Steps shoppers should follow to redeem a coupon at checkout";
-  const faqTemplatePreview = (templates.storeFaqTemplate ?? []).map((item) => ({
+  const faqSets = templates.storeFaqTemplateSets ?? [];
+  const previewFaqSet = store
+    ? pickFaqSet(store.id, faqSets)
+    : faqSets.find((set) => set.items.length > 0);
+  const faqTemplatePreview = (previewFaqSet?.items ?? []).map((item) => ({
     question: applyTemplate(item.question, nameValue),
     answer: applyTemplate(item.answer, nameValue),
   }));
@@ -258,7 +263,6 @@ export function StoreForm({
               render={({ field }) => (
                 <ImageUploadField
                   label="Logo"
-                  required
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.logoUrl?.message}
@@ -321,19 +325,23 @@ export function StoreForm({
           </div>
 
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-brand-950">
-              Category{requiredMark()}
-            </span>
+            <span className="mb-1.5 block text-sm font-medium text-brand-950">Category</span>
             <Controller
               control={control}
               name="categoryIds"
               render={({ field }) => (
                 <SingleSelectDropdown
-                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                  options={[
+                    { value: "", label: "Uncategorized" },
+                    ...[...categories]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((c) => ({ value: c.id, label: c.name })),
+                  ]}
                   value={field.value[0] ?? ""}
                   onChange={(next) => field.onChange(next ? [next] : [])}
-                  placeholder="Select a category..."
-                  visibleCount={15}
+                  placeholder="Uncategorized"
+                  searchable
+                  searchPlaceholder="Search categories..."
                 />
               )}
             />
@@ -351,7 +359,9 @@ export function StoreForm({
                 <SingleSelectDropdown
                   options={[
                     { value: "", label: "Uncategorized" },
-                    ...events.map((event) => ({ value: event.id, label: event.name })),
+                    ...[...events]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((event) => ({ value: event.id, label: event.name })),
                   ]}
                   value={field.value ?? ""}
                   onChange={(value) => field.onChange(value || null)}

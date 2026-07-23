@@ -92,6 +92,11 @@ export const adminSeoSettingsSchema = z.object({
 });
 export type AdminSeoSettingsInput = z.infer<typeof adminSeoSettingsSchema>;
 
+const storeFaqTemplateSetSchema = z.object({
+  setId: z.string().min(1),
+  items: z.array(storeFaqItemSchema),
+});
+
 export const adminContentConfigSettingsSchema = z.object({
   pagination: z.object({
     dealsPageSize: z.number().int().min(1),
@@ -108,7 +113,7 @@ export const adminContentConfigSettingsSchema = z.object({
     storeDescriptionTemplate: z.string().optional().or(z.literal("")),
     storeAboutTemplate: z.string().optional().or(z.literal("")),
     storeHowToApplyTemplate: z.string().optional().or(z.literal("")),
-    storeFaqTemplate: z.array(storeFaqItemSchema).optional(),
+    storeFaqTemplateSets: z.array(storeFaqTemplateSetSchema).optional(),
     storeSeoDescriptionTemplate: z.string().optional().or(z.literal("")),
     storeSeoDescriptionFallbackTemplate: z.string().optional().or(z.literal("")),
     couponDescriptionTemplate: z.string().optional().or(z.literal("")),

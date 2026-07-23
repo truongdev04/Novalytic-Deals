@@ -138,13 +138,18 @@ export interface StoreFaqTemplateItem {
   answer: string;
 }
 
+export interface StoreFaqTemplateSet {
+  setId: string;
+  items: StoreFaqTemplateItem[];
+}
+
 export interface ContentConfigTemplates {
   storeSeoTitleTemplate?: string;
   storeSeoTitleFallbackTemplate?: string;
   storeDescriptionTemplate?: string;
   storeAboutTemplate?: string;
   storeHowToApplyTemplate?: string;
-  storeFaqTemplate?: StoreFaqTemplateItem[];
+  storeFaqTemplateSets?: StoreFaqTemplateSet[];
   storeSeoDescriptionTemplate?: string;
   storeSeoDescriptionFallbackTemplate?: string;
   couponDescriptionTemplate?: string;

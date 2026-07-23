@@ -211,6 +211,19 @@ export async function getRelatedStores(store: Store, limit = 4): Promise<Store[]
   return rows.map(toStore);
 }
 
+// Total count backing getRelatedStores' `where` (no `take`) — lets a page
+// show "View all" only when there are more related stores than it displays.
+export async function getRelatedStoresCount(store: Store): Promise<number> {
+  if (store.categoryIds.length === 0) return 0;
+  return prisma.store.count({
+    where: {
+      isActive: true,
+      id: { not: store.id },
+      categoryIds: { hasSome: store.categoryIds },
+    },
+  });
+}
+
 export async function searchStores(
   query: string,
   opts: { take?: number; nameStartsWith?: boolean } = {}

@@ -1,3 +1,6 @@
+import { hashSeed } from "@/lib/utils";
+import type { StoreFaqTemplateSet } from "@/types";
+
 // Pure string substitution shared by the server-side auto-fill resolvers
 // (lib/content/defaults.ts) and admin form placeholder previews — kept
 // dependency-free so it's safe to import from client components.
@@ -69,6 +72,28 @@ export function pickRandomBlock(template: string | undefined): string | undefine
   const blocks = splitTemplateBlocks(template);
   if (blocks.length === 0) return undefined;
   return blocks[Math.floor(Math.random() * blocks.length)];
+}
+
+// Deterministically assigns storeId to exactly one set via consistent
+// hashing (hash-ring lookup): the set whose hash is the smallest value
+// >= hash(storeId), wrapping to the globally smallest-hash set if none
+// qualify. Pure function of (storeId, sets) — nothing persisted, so
+// removing a set only remaps the stores whose nearest ring neighbor WAS
+// that set; every other store's assignment is unaffected. Sets with no
+// items are treated as not existing, so a store never lands on an empty
+// set while another set still has content.
+export function pickFaqSet(
+  storeId: string,
+  sets: StoreFaqTemplateSet[]
+): StoreFaqTemplateSet | undefined {
+  const eligible = sets.filter((set) => set.items.length > 0);
+  if (eligible.length === 0) return undefined;
+  const target = hashSeed(storeId);
+  const ring = eligible
+    .map((set) => ({ set, hash: hashSeed(set.setId) }))
+    .sort((a, b) => a.hash - b.hash || a.set.setId.localeCompare(b.set.setId));
+  const match = ring.find((entry) => entry.hash >= target);
+  return (match ?? ring[0]).set;
 }
 
 // Collapses a block's internal line breaks into single spaces — for

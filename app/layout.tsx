@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Header } from "@/components/layout/Header";
@@ -79,6 +80,7 @@ export default async function RootLayout({
       className={`${inter.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-surface-50 text-foreground">
+        <NextTopLoader color="var(--brand-500)" height={3} showSpinner={false} />
         <JsonLd data={await organizationJsonLd()} />
         <JsonLd data={await websiteJsonLd()} />
         <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>

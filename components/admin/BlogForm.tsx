@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowLeft } from "lucide-react";
 import { adminBlogPostSchema, type AdminBlogPostInput } from "@/lib/validators/admin/blog";
 import { Button } from "@/components/ui/Button";
@@ -288,7 +288,9 @@ export function BlogForm({
                 <SingleSelectDropdown
                   options={[
                     { value: "", label: "None" },
-                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                    ...[...categories]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((category) => ({ value: category.id, label: category.name })),
                   ]}
                   value={field.value ?? ""}
                   onChange={field.onChange}

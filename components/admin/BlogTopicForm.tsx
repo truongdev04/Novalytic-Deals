@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowLeft } from "lucide-react";
 import { adminBlogTopicSchema, type AdminBlogTopicInput } from "@/lib/validators/admin/blogTopic";
 import { Button } from "@/components/ui/Button";

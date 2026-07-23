@@ -43,7 +43,7 @@ export function StoreCouponCard({
           CouponGridCard so 2-up mobile cards line up evenly regardless of
           how many lines their badges/title wrap to. */}
       <div className="h-full sm:hidden">
-        <CouponGridCard coupon={coupon} store={store} />
+        <CouponGridCard coupon={coupon} store={store} revealBreakpoint="mobile" />
       </div>
 
       <div className="hidden rounded-lg border border-muted-200 bg-surface-0 p-5 shadow-sm transition-shadow duration-200 ease-out hover:shadow-md sm:flex sm:items-center sm:gap-4">
@@ -75,7 +75,12 @@ export function StoreCouponCard({
           )}
         </div>
 
-        <CouponCodeModal coupon={coupon} store={store} className="w-full sm:w-40" />
+        <CouponCodeModal
+          coupon={coupon}
+          store={store}
+          className="w-full sm:w-40"
+          revealBreakpoint="desktop"
+        />
       </div>
     </div>
   );

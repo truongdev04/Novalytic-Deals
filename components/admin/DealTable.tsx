@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
@@ -82,7 +83,9 @@ export function DealTable({
   const eventOptions = useMemo(
     () => [
       { value: null, label: "Uncategorized" },
-      ...events.map((event) => ({ value: event.id, label: event.name })),
+      ...[...events]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((event) => ({ value: event.id, label: event.name })),
     ],
     [events]
   );
@@ -99,7 +102,9 @@ export function DealTable({
     () => [
       { value: EVENT_FILTER_ALL, label: "All events" },
       { value: EVENT_FILTER_UNCATEGORIZED, label: "Uncategorized" },
-      ...events.map((event) => ({ value: event.id, label: event.name })),
+      ...[...events]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((event) => ({ value: event.id, label: event.name })),
     ],
     [events]
   );

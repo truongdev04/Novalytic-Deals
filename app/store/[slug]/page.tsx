@@ -6,6 +6,7 @@ import {
   getStores,
   getCouponsByStore,
   getRelatedStores,
+  getRelatedStoresCount,
   getCategoryById,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
@@ -57,9 +58,10 @@ export default async function StorePage({
   if (!rawStore) notFound();
   const store = await resolveStoreContent(rawStore);
 
-  const [coupons, relatedStores] = await Promise.all([
+  const [coupons, relatedStores, relatedStoresCount] = await Promise.all([
     getCouponsByStore(store.id),
     getRelatedStores(store, 10),
+    getRelatedStoresCount(store),
   ]);
 
   const activeCoupons = coupons.filter((c) => !isExpired(c.expiresAt));
@@ -156,7 +158,7 @@ export default async function StorePage({
             ))}
           </div>
 
-          {primaryCategory && (
+          {primaryCategory && relatedStoresCount > relatedStores.length && (
             <div className="mt-6 flex justify-center">
               <Link
                 href={`/categories/${primaryCategory.slug}`}

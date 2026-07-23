@@ -22,11 +22,11 @@ function urlField(requiredMessage: string) {
 export const adminStoreSchema = z.object({
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Lowercase kebab-case only"),
   name: z.string().min(1, "Name is required"),
-  logoUrl: z.string().min(1, "Logo is required"),
+  logoUrl: z.string(),
   bannerUrl: z.string().optional().or(z.literal("")),
   website: urlField("Website is required"),
   affiliateNetwork: urlField("Affiliate link is required"),
-  categoryIds: z.array(z.string()).length(1, "Select a category"),
+  categoryIds: z.array(z.string()),
   eventId: z.string().nullable(),
   description: z.string().optional().or(z.literal("")),
   aboutStore: z.string().optional().or(z.literal("")),

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useSearchParams } from "next/navigation";
 import { buildQueryUrl } from "@/lib/utils";
 import { Dropdown } from "@/components/search/Dropdown";
 

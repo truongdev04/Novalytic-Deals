@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import Link from "next/link";
 import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/Toast";

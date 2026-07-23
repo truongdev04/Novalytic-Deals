@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";

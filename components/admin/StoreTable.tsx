@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
@@ -79,7 +80,9 @@ export function StoreTable({
   const eventOptions = useMemo(
     () => [
       { value: null, label: "Uncategorized" },
-      ...events.map((event) => ({ value: event.id, label: event.name })),
+      ...[...events]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((event) => ({ value: event.id, label: event.name })),
     ],
     [events]
   );
@@ -87,7 +90,9 @@ export function StoreTable({
   const categoryFilterOptions = useMemo(
     () => [
       { value: CATEGORY_FILTER_ALL, label: "All categories" },
-      ...categories.map((category) => ({ value: category.id, label: category.name })),
+      ...[...categories]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((category) => ({ value: category.id, label: category.name })),
     ],
     [categories]
   );
@@ -96,7 +101,9 @@ export function StoreTable({
     () => [
       { value: EVENT_FILTER_ALL, label: "All events" },
       { value: EVENT_FILTER_UNCATEGORIZED, label: "Uncategorized" },
-      ...events.map((event) => ({ value: event.id, label: event.name })),
+      ...[...events]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((event) => ({ value: event.id, label: event.name })),
     ],
     [events]
   );
@@ -408,8 +415,14 @@ export function StoreTable({
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    <div className="relative h-11 w-11 overflow-hidden rounded-full border border-muted-200 bg-surface-100">
-                      <Image src={store.logoUrl} alt={store.name} fill sizes="44px" className="object-cover" />
+                    <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-muted-200 bg-surface-100">
+                      {store.logoUrl ? (
+                        <Image src={store.logoUrl} alt={store.name} fill sizes="44px" className="object-cover" />
+                      ) : (
+                        <span className="font-heading font-semibold text-brand-600">
+                          {store.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 font-medium text-brand-950">{store.name}</td>

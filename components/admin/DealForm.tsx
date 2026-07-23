@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowLeft } from "lucide-react";
 import { adminDealSchema, type AdminDealInput } from "@/lib/validators/admin/deal";
 import { Button } from "@/components/ui/Button";
@@ -272,7 +272,9 @@ export function DealForm({
                 <SingleSelectDropdown
                   options={[
                     { value: "", label: "Uncategorized" },
-                    ...events.map((event) => ({ value: event.id, label: event.name })),
+                    ...[...events]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((event) => ({ value: event.id, label: event.name })),
                   ]}
                   value={field.value ?? ""}
                   onChange={(value) => field.onChange(value || null)}
@@ -295,7 +297,9 @@ export function DealForm({
                 <SingleSelectDropdown
                   options={[
                     { value: NONE_CATEGORY_VALUE, label: "None" },
-                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                    ...[...categories]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((category) => ({ value: category.id, label: category.name })),
                   ]}
                   value={field.value ?? NONE_CATEGORY_VALUE}
                   onChange={(value) => field.onChange(value || null)}

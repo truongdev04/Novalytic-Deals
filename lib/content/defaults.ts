@@ -4,6 +4,7 @@ import {
   applyTemplateVars,
   pickRandomLine,
   pickRandomBlock,
+  pickFaqSet,
   flattenBlock,
   blockToHtml,
   getUtcMonthName,
@@ -63,7 +64,7 @@ export async function resolveStoreContent(store: Store): Promise<Store> {
     faq:
       store.faq.length > 0
         ? store.faq
-        : (t.storeFaqTemplate ?? []).map((item) => ({
+        : (pickFaqSet(store.id, t.storeFaqTemplateSets ?? [])?.items ?? []).map((item) => ({
             question: applyTemplate(item.question, name),
             answer: applyTemplate(item.answer, name),
           })),

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useSearchParams } from "next/navigation";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { ToggleButton } from "@/components/admin/ToggleButton";
 import { AdminPagination } from "@/components/admin/AdminPagination";

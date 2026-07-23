@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowLeft } from "lucide-react";
 import { adminCouponSchema, type AdminCouponInput } from "@/lib/validators/admin/coupon";
 import { Button } from "@/components/ui/Button";
