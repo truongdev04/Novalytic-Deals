@@ -1,5 +1,5 @@
+import { Store, Tag, Tags, Network, FileText, Mail, MessageSquare, Inbox } from "lucide-react";
 import Link from "next/link";
-import { Store, Tag, Tags, Network, FileText, Mail, Plus, MessageSquare, Inbox } from "lucide-react";
 import {
   getOverviewCounts,
   getTopStoresByClickCount,
@@ -7,6 +7,7 @@ import {
   getModerationCounts,
 } from "@/lib/data/admin/analytics";
 import { TopStoresBarChart } from "@/components/admin/TopStoresBarChart";
+import { AutoFillStoreButton } from "@/components/admin/AutoFillStoreButton";
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("vi-VN");
@@ -33,13 +34,7 @@ export default async function AdminDashboardPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-2xl font-bold text-brand-950">Dashboard</h1>
-        <Link
-          href="/admin/stores/new"
-          className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          <Plus className="h-4 w-4" />
-          Store
-        </Link>
+        <AutoFillStoreButton />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
