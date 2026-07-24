@@ -6,7 +6,7 @@ import {
   getRecentActivity,
   getModerationCounts,
 } from "@/lib/data/admin/analytics";
-import { TopStoresBarChart } from "@/components/admin/TopStoresBarChart";
+import { TopStoresBarChartLazy } from "@/components/admin/TopStoresBarChartLazy";
 import { AutoFillStoreButton } from "@/components/admin/AutoFillStoreButton";
 
 function formatDate(date: Date) {
@@ -99,7 +99,7 @@ export default async function AdminDashboardPage() {
                   Chưa có dữ liệu click nào.
                 </p>
               ) : (
-                <TopStoresBarChart data={topStores} />
+                <TopStoresBarChartLazy data={topStores} />
               )}
             </div>
           </div>

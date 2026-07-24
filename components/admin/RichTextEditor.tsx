@@ -48,11 +48,22 @@ import {
   Undo2,
   Redo2,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
-import { ImageInsertModal, type EditingImage } from "@/components/admin/ImageInsertModal";
-import { LinkModal } from "@/components/admin/LinkModal";
+import type { EditingImage } from "@/components/admin/ImageInsertModal";
 import { registerPendingImage } from "@/lib/richTextImageUpload";
 import { borderStyleProps, hspaceStyleProps, vspaceStyleProps, styleObjectToCss } from "@/lib/richTextImageStyle";
+
+// Only needed once the toolbar's "Insert image"/"Link" buttons are clicked —
+// no need to pay for their JS until then.
+const ImageInsertModal = dynamic(
+  () => import("@/components/admin/ImageInsertModal").then((mod) => mod.ImageInsertModal),
+  { ssr: false }
+);
+const LinkModal = dynamic(
+  () => import("@/components/admin/LinkModal").then((mod) => mod.LinkModal),
+  { ssr: false }
+);
 
 const CustomImage = TiptapImage.extend({
   addAttributes() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import {
   getStoresByIds,
   getFeaturedStores,
@@ -14,15 +15,31 @@ import { SectionHeader } from "@/components/layout/SectionHeader";
 import { Hero } from "@/components/home/Hero";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { WhyTrustUs } from "@/components/home/WhyTrustUs";
-import { StoreCarousel } from "@/components/store/StoreCarousel";
 import { CategoryCard } from "@/components/category/CategoryCard";
 import { DealProductCard } from "@/components/deal/DealProductCard";
 import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { Newsletter } from "@/components/ui/Newsletter";
+import { CardSkeleton } from "@/components/ui/LoadingSkeleton";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { getSeoSettings } from "@/lib/data";
 import { ensurePopularStoresAutoRollover } from "@/lib/content/popularStoresRefresh";
+
+// Code-split embla-carousel out of the homepage's main bundle — kept
+// server-rendered (default ssr:true) since the store cards inside are real
+// internal links with SEO value, only the carousel JS itself is deferred.
+const StoreCarousel = dynamic(
+  () => import("@/components/store/StoreCarousel").then((mod) => mod.StoreCarousel),
+  {
+    loading: () => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    ),
+  }
+);
 import { ensureAutoDealRollover } from "@/lib/content/dealsRefresh";
 import { ensureAutoCouponRollover } from "@/lib/content/couponsRefresh";
 

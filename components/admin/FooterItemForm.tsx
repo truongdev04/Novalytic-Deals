@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "nextjs-toploader/app";
+import dynamic from "next/dynamic";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import { slugify } from "@/lib/utils";
 import {
@@ -16,6 +16,16 @@ import {
   type AdminFooterSettingsInput,
 } from "@/lib/validators/admin/settings";
 import type { FooterColumnType, FooterItem, FooterSettings } from "@/types";
+
+// Defers the whole Tiptap stack (core + extensions) out of this form's
+// initial bundle — only needed once the admin actually opens this page.
+const RichTextEditor = dynamic(
+  () => import("@/components/admin/RichTextEditor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-20 w-full animate-pulse rounded-lg bg-muted-100" />,
+  }
+);
 
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";

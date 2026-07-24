@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
+import dynamic from "next/dynamic";
 import { Check, Copy, ExternalLink, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { CodeRevealDialog } from "@/components/coupon/CodeRevealDialog";
 import { cn, consumePendingCodeReveal, formatDiscount, setPendingCodeReveal } from "@/lib/utils";
 import type { Coupon, Store } from "@/types";
+
+// Dialog content only matters once a user clicks "Show Code" — code-split
+// it out of the bundle shared by every coupon card (list/grid pages mount
+// one CouponCodeModal per card) and skip SSR since it's hidden until then.
+const CodeRevealDialog = dynamic(
+  () => import("@/components/coupon/CodeRevealDialog").then((mod) => mod.CodeRevealDialog),
+  { ssr: false }
+);
 
 // The real affiliateUrl is never exposed here — /go/[couponId] resolves it
 // server-side, logs the click, and 302s. Opening it also fires a reveal POST

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "sonner";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Header } from "@/components/layout/Header";
@@ -93,6 +94,7 @@ export default async function RootLayout({
         </SiteChrome>
         <Toaster position="bottom-right" richColors />
         <AnalyticsScripts />
+        <SpeedInsights />
       </body>
     </html>
   );
