@@ -31,13 +31,15 @@ Hướng dẫn cho Claude Code khi làm việc với repo này.
 
 ## Trạng thái & lệnh
 
-Đã scaffold Next.js App Router với các route stub. Cập nhật lệnh khi `package.json` có thật — không bịa lệnh:
+Đã lên production tại novalyticdeals.com (Vercel). Backend chạy Prisma + Supabase thật (không còn mock), admin dashboard đầy đủ CRUD. Cập nhật lệnh khi `package.json` đổi — không bịa lệnh:
 
 ```
 npm run dev         # dev server
 npm run build       # production build
 npm run lint        # ESLint
-npm run typecheck   # tsc --noEmit  (thêm nếu chưa có)
+npm run typecheck   # tsc --noEmit
+npm run test        # Vitest (unit)
+npm run test:e2e    # Playwright (e2e)
 ```
 
 ## Tech stack
