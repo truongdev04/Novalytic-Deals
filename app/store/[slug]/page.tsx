@@ -8,6 +8,7 @@ import {
   getRelatedStores,
   getRelatedStoresCount,
   getCategoryById,
+  getApprovedReviewsByStore,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -17,6 +18,8 @@ import { StoreCouponTabs } from "@/components/store/StoreCouponTabs";
 import { StoreCard } from "@/components/store/StoreCard";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { RichHtml } from "@/components/ui/RichHtml";
+import { ReviewList } from "@/components/store/ReviewList";
+import { ReviewForm } from "@/components/store/ReviewForm";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -58,10 +61,11 @@ export default async function StorePage({
   if (!rawStore) notFound();
   const store = await resolveStoreContent(rawStore);
 
-  const [coupons, relatedStores, relatedStoresCount] = await Promise.all([
+  const [coupons, relatedStores, relatedStoresCount, reviews] = await Promise.all([
     getCouponsByStore(store.id),
     getRelatedStores(store, 10),
     getRelatedStoresCount(store),
+    getApprovedReviewsByStore(store.id),
   ]);
 
   const activeCoupons = coupons.filter((c) => !isExpired(c.expiresAt));
@@ -140,6 +144,19 @@ export default async function StorePage({
               <FAQAccordion items={store.faq} />
             </div>
           )}
+
+          <div className="mt-12">
+            <SectionHeader title="Reviews" align="left" />
+            <ReviewList reviews={reviews} />
+            <div className="mt-8 border-t border-muted-200 pt-8">
+              <h3 className="font-heading text-sm font-semibold text-brand-950">
+                Leave a review
+              </h3>
+              <div className="mt-4">
+                <ReviewForm storeSlug={store.slug} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
