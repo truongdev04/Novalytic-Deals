@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { groupStoresByLetter } from "@/lib/data/stores";
 import { StoreLogo } from "@/components/store/StoreLogo";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { Mail, MapPin, Phone, Tag } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Newsletter } from "@/components/ui/Newsletter";

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { ArrowRight, CalendarDays, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { BlogPost } from "@/types";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { ChevronRight, Home } from "lucide-react";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { breadcrumbJsonLd, type BreadcrumbItem } from "@/lib/seo/jsonld";

@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "sonner";
+import { ViewTransitions } from "next-view-transitions";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -81,21 +82,23 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${poppins.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-surface-50 text-foreground">
-        <NextTopLoader color="var(--brand-500)" height={3} showSpinner={false} />
-        <JsonLd data={await organizationJsonLd()} />
-        <JsonLd data={await websiteJsonLd()} />
-        <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>
-          {children}
-        </SiteChrome>
-        <Toaster position="bottom-right" richColors />
-        <AnalyticsScripts />
-        <SpeedInsights />
-      </body>
-    </html>
+    <ViewTransitions>
+      <html
+        lang="en"
+        className={`${inter.variable} ${poppins.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col bg-surface-50 text-foreground">
+          <NextTopLoader color="var(--brand-500)" height={3} showSpinner={false} />
+          <JsonLd data={await organizationJsonLd()} />
+          <JsonLd data={await websiteJsonLd()} />
+          <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>
+            {children}
+          </SiteChrome>
+          <Toaster position="bottom-right" richColors />
+          <AnalyticsScripts />
+          <SpeedInsights />
+        </body>
+      </html>
+    </ViewTransitions>
   );
 }

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { X } from "lucide-react";
 import { buildQueryUrl } from "@/lib/utils";
 

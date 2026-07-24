@@ -28,6 +28,45 @@ const POPULAR_STORES_KEY = "popular_stores_config";
 const DEAL_REFRESH_KEY = "deal_refresh_config";
 const COUPON_REFRESH_KEY = "coupon_refresh_config";
 
+// Keys fetched together on nearly every page render (layout/Header/Footer/Hero/
+// analytics). Batching them into one query avoids each one opening its own
+// Prisma connection on a cold cache — the previous 7-separate-queries setup
+// was exhausting the Supabase pgbouncer connection pool under concurrent load.
+const BATCHED_SETTINGS_KEYS = [
+  GENERAL_KEY,
+  INTEGRATIONS_KEY,
+  AFFILIATE_KEY,
+  SOCIAL_KEY,
+  SEO_KEY,
+  CONTENT_CONFIG_KEY,
+  FOOTER_KEY,
+] as const;
+
+// Tagged with every individual settings tag so each setter's existing
+// purgeTag(...) call also invalidates this shared cache entry without needing
+// its own changes.
+const getAllSiteSettingsRaw = unstable_cache(
+  async (): Promise<Record<string, unknown>> => {
+    const rows = await prisma.siteSetting.findMany({
+      where: { key: { in: [...BATCHED_SETTINGS_KEYS] } },
+    });
+    return Object.fromEntries(rows.map((row) => [row.key, row.value]));
+  },
+  ["settings:all-raw"],
+  {
+    tags: [
+      "settings:general",
+      "settings:integrations",
+      "settings:affiliate",
+      "settings:social",
+      "settings:seo",
+      "settings:content-config",
+      "settings:footer",
+    ],
+    revalidate: 300,
+  }
+);
+
 const DEFAULT_POPULAR_STORES_SETTINGS: PopularStoresSettings = {
   autoPopularEnabled: false,
   lastRefreshedAt: null,
@@ -486,25 +525,15 @@ interface IntegrationsRaw {
 }
 
 async function getIntegrationsRaw(): Promise<IntegrationsRaw> {
-  return unstable_cache(
-    async () => {
-      const row = await prisma.siteSetting.findUnique({ where: { key: INTEGRATIONS_KEY } });
-      return (row?.value as unknown as IntegrationsRaw) ?? {};
-    },
-    ["settings:integrations:raw"],
-    { tags: ["settings:integrations"], revalidate: 300 }
-  )();
+  const all = await getAllSiteSettingsRaw();
+  return (all[INTEGRATIONS_KEY] as unknown as IntegrationsRaw) ?? {};
 }
 
-export const getGeneralSettings = unstable_cache(
-  async (): Promise<GeneralSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: GENERAL_KEY } });
-    const stored = (row?.value as unknown as Partial<GeneralSettings>) ?? {};
-    return { ...DEFAULT_GENERAL_SETTINGS, ...stored };
-  },
-  ["settings:general"],
-  { tags: ["settings:general"], revalidate: 300 }
-);
+export async function getGeneralSettings(): Promise<GeneralSettings> {
+  const all = await getAllSiteSettingsRaw();
+  const stored = (all[GENERAL_KEY] as unknown as Partial<GeneralSettings>) ?? {};
+  return { ...DEFAULT_GENERAL_SETTINGS, ...stored };
+}
 
 export async function setGeneralSettings(input: GeneralSettings): Promise<GeneralSettings> {
   const row = await prisma.siteSetting.upsert({
@@ -632,14 +661,10 @@ export async function getEffectiveBingSiteVerification(): Promise<string | undef
   return raw.bingSiteVerification || undefined;
 }
 
-export const getAffiliateSettings = unstable_cache(
-  async (): Promise<AffiliateSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: AFFILIATE_KEY } });
-    return (row?.value as unknown as AffiliateSettings) ?? {};
-  },
-  ["settings:affiliate"],
-  { tags: ["settings:affiliate"], revalidate: 300 }
-);
+export async function getAffiliateSettings(): Promise<AffiliateSettings> {
+  const all = await getAllSiteSettingsRaw();
+  return (all[AFFILIATE_KEY] as unknown as AffiliateSettings) ?? {};
+}
 
 export async function setAffiliateSettings(input: AffiliateSettings): Promise<AffiliateSettings> {
   const row = await prisma.siteSetting.upsert({
@@ -738,14 +763,10 @@ export async function setCouponRefreshSettings(
   return next;
 }
 
-export const getSocialSettings = unstable_cache(
-  async (): Promise<SocialSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: SOCIAL_KEY } });
-    return (row?.value as unknown as SocialSettings) ?? {};
-  },
-  ["settings:social"],
-  { tags: ["settings:social"], revalidate: 300 }
-);
+export async function getSocialSettings(): Promise<SocialSettings> {
+  const all = await getAllSiteSettingsRaw();
+  return (all[SOCIAL_KEY] as unknown as SocialSettings) ?? {};
+}
 
 export async function setSocialSettings(input: SocialSettings): Promise<SocialSettings> {
   const row = await prisma.siteSetting.upsert({
@@ -757,14 +778,10 @@ export async function setSocialSettings(input: SocialSettings): Promise<SocialSe
   return row.value as unknown as SocialSettings;
 }
 
-export const getSeoSettings = unstable_cache(
-  async (): Promise<SeoSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: SEO_KEY } });
-    return (row?.value as unknown as SeoSettings) ?? {};
-  },
-  ["settings:seo"],
-  { tags: ["settings:seo"], revalidate: 300 }
-);
+export async function getSeoSettings(): Promise<SeoSettings> {
+  const all = await getAllSiteSettingsRaw();
+  return (all[SEO_KEY] as unknown as SeoSettings) ?? {};
+}
 
 export async function setSeoSettings(input: SeoSettings): Promise<SeoSettings> {
   const row = await prisma.siteSetting.upsert({
@@ -776,18 +793,14 @@ export async function setSeoSettings(input: SeoSettings): Promise<SeoSettings> {
   return row.value as unknown as SeoSettings;
 }
 
-export const getContentConfigSettings = unstable_cache(
-  async (): Promise<ContentConfigSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: CONTENT_CONFIG_KEY } });
-    const stored = (row?.value as unknown as Partial<ContentConfigSettings>) ?? {};
-    return {
-      pagination: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.pagination, ...stored.pagination },
-      templates: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.templates, ...stored.templates },
-    };
-  },
-  ["settings:content-config"],
-  { tags: ["settings:content-config"], revalidate: 300 }
-);
+export async function getContentConfigSettings(): Promise<ContentConfigSettings> {
+  const all = await getAllSiteSettingsRaw();
+  const stored = (all[CONTENT_CONFIG_KEY] as unknown as Partial<ContentConfigSettings>) ?? {};
+  return {
+    pagination: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.pagination, ...stored.pagination },
+    templates: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.templates, ...stored.templates },
+  };
+}
 
 export async function setContentConfigSettings(
   input: ContentConfigSettings
@@ -822,17 +835,13 @@ function isValidFooterColumns(columns: unknown): columns is FooterColumn[] {
   );
 }
 
-export const getFooterSettings = unstable_cache(
-  async (): Promise<FooterSettings> => {
-    const row = await prisma.siteSetting.findUnique({ where: { key: FOOTER_KEY } });
-    const stored = (row?.value as unknown as Partial<FooterSettings>) ?? {};
-    return {
-      columns: isValidFooterColumns(stored.columns) ? stored.columns : DEFAULT_FOOTER_SETTINGS.columns,
-    };
-  },
-  ["settings:footer"],
-  { tags: ["settings:footer"], revalidate: 300 }
-);
+export async function getFooterSettings(): Promise<FooterSettings> {
+  const all = await getAllSiteSettingsRaw();
+  const stored = (all[FOOTER_KEY] as unknown as Partial<FooterSettings>) ?? {};
+  return {
+    columns: isValidFooterColumns(stored.columns) ? stored.columns : DEFAULT_FOOTER_SETTINGS.columns,
+  };
+}
 
 export async function setFooterSettings(input: FooterSettings): Promise<FooterSettings> {
   const row = await prisma.siteSetting.upsert({

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { renderCategoryIcon } from "@/lib/icons";
 import { formatDate } from "@/lib/utils";
 import type { Event } from "@/types";

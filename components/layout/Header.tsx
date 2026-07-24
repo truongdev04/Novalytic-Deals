@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { Tag } from "lucide-react";
 import { getEvents, getGeneralSettings } from "@/lib/data";
 import { Container } from "@/components/layout/Container";

@@ -127,6 +127,14 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* ::view-transition-* pseudo-elements aren't matched by *::before/*::after
+     above — disable the page-transition crossfade separately. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* Tailwind's preflight strips default list/quote styling — restore it

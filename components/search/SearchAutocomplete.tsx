@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "nextjs-toploader/app";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Store } from "@/types";
