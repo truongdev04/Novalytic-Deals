@@ -10,6 +10,8 @@ import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CategoryStoresGrid } from "@/components/store/CategoryStoresGrid";
 import { renderCategoryIcon } from "@/lib/icons";
+import { JsonLd } from "@/lib/seo/JsonLdScript";
+import { breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
@@ -48,15 +50,16 @@ export default async function CategoryStoresPage({
     stores.map((s) => s.id)
   );
 
+  const breadcrumbItems = [
+    { name: "Stores", path: "/stores" },
+    { name: category.name, path: `/categories/${category.slug}` },
+    { name: "All stores", path: `/categories/${category.slug}/stores` },
+  ];
+
   return (
     <Container className="py-10">
-      <Breadcrumb
-        items={[
-          { name: "Stores", path: "/stores" },
-          { name: category.name, path: `/categories/${category.slug}` },
-          { name: "All stores", path: `/categories/${category.slug}/stores` },
-        ]}
-      />
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mt-6 flex items-center gap-4">
         <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">

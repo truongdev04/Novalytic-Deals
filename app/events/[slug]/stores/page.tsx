@@ -9,6 +9,8 @@ import {
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { EventStoresGrid } from "@/components/event/EventStoresGrid";
+import { JsonLd } from "@/lib/seo/JsonLdScript";
+import { breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 300;
@@ -47,15 +49,16 @@ export default async function EventStoresPage({
     stores.map((s) => s.id)
   );
 
+  const breadcrumbItems = [
+    { name: "Event Sales", path: "/events" },
+    { name: event.name, path: `/events/${event.slug}` },
+    { name: "All stores", path: `/events/${event.slug}/stores` },
+  ];
+
   return (
     <Container className="py-10">
-      <Breadcrumb
-        items={[
-          { name: "Event Sales", path: "/events" },
-          { name: event.name, path: `/events/${event.slug}` },
-          { name: "All stores", path: `/events/${event.slug}/stores` },
-        ]}
-      />
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mt-6">
         <h1 className="font-heading text-2xl font-bold text-brand-950 sm:text-3xl">

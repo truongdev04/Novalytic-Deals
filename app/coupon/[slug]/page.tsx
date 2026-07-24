@@ -19,7 +19,7 @@ import { VoteButtons } from "@/components/coupon/VoteButtons";
 import { CouponCard } from "@/components/coupon/CouponCard";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
-import { couponOfferJsonLd } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, couponOfferJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { stripHtml } from "@/lib/utils";
 import { resolveCouponContent } from "@/lib/content/defaults";
@@ -66,16 +66,17 @@ export default async function CouponPage({
 
   const relatedCoupons = await getRelatedCoupons(coupon, 4);
 
+  const breadcrumbItems = [
+    { name: store.name, path: `/store/${store.slug}` },
+    { name: coupon.title, path: `/coupon/${coupon.slug}` },
+  ];
+
   return (
     <Container className="py-10">
       <JsonLd data={couponOfferJsonLd(coupon, store)} />
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
 
-      <Breadcrumb
-        items={[
-          { name: store.name, path: `/store/${store.slug}` },
-          { name: coupon.title, path: `/coupon/${coupon.slug}` },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
         <div className="rounded-xl border border-muted-200 bg-surface-0 p-6 shadow-sm sm:p-8">

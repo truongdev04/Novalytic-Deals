@@ -15,7 +15,7 @@ import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
-import { faqPageJsonLd } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { renderCategoryIcon } from "@/lib/icons";
 import { getUtcPeriodKey } from "@/lib/content/template";
@@ -62,16 +62,17 @@ export default async function CategoryPage({
 
   const storeById = new Map(topStores.map((s) => [s.id, s]));
 
+  const breadcrumbItems = [
+    { name: "Categories", path: "/categories" },
+    { name: category.name, path: `/categories/${category.slug}` },
+  ];
+
   return (
     <Container className="py-10">
       {category.faq.length > 0 && <JsonLd data={faqPageJsonLd(category.faq)} />}
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
 
-      <Breadcrumb
-        items={[
-          { name: "Categories", path: "/categories" },
-          { name: category.name, path: `/categories/${category.slug}` },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="relative mt-4 overflow-hidden rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 px-6 py-12 text-center sm:py-16">
         <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-white">

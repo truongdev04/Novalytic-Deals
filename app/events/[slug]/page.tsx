@@ -18,7 +18,7 @@ import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { renderCategoryIcon } from "@/lib/icons";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
-import { faqPageJsonLd } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { resolveEventFaq } from "@/lib/content/defaults";
 
 export const revalidate = 300;
@@ -66,10 +66,15 @@ export default async function EventPage({
     stores.map((s) => s.id)
   );
   const visibleCoupons = coupons.slice(0, CURATED_DEALS_LIMIT);
+  const breadcrumbItems = [
+    { name: "Event Sales", path: "/events" },
+    { name: event.name, path: `/events/${event.slug}` },
+  ];
 
   return (
     <div>
       {faq.length > 0 && <JsonLd data={faqPageJsonLd(faq)} />}
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
       <section className="relative overflow-hidden">
         {event.bannerUrl && (
           <div className="absolute inset-0 -z-10">
@@ -86,12 +91,7 @@ export default async function EventPage({
       </section>
 
       <Container className="py-10">
-        <Breadcrumb
-          items={[
-            { name: "Event Sales", path: "/events" },
-            { name: event.name, path: `/events/${event.slug}` },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
 
         {stores.length > 0 && (
           <div className="mt-10">

@@ -21,7 +21,7 @@ import { RichHtml } from "@/components/ui/RichHtml";
 import { ReviewList } from "@/components/store/ReviewList";
 import { ReviewForm } from "@/components/store/ReviewForm";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
-import { faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { formatDiscount, isExpired } from "@/lib/utils";
 import { resolveStoreContent } from "@/lib/content/defaults";
@@ -85,17 +85,18 @@ export default async function StorePage({
   const primaryCategory =
     relatedStores.length > 0 ? await getCategoryById(store.categoryIds[0]) : undefined;
 
+  const breadcrumbItems = [
+    { name: "Stores", path: "/stores" },
+    { name: store.name, path: `/store/${store.slug}` },
+  ];
+
   return (
     <Container className="py-10">
       <JsonLd data={storeAggregateRatingJsonLd(store)} />
       {store.faq.length > 0 && <JsonLd data={faqPageJsonLd(store.faq)} />}
+      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
 
-      <Breadcrumb
-        items={[
-          { name: "Stores", path: "/stores" },
-          { name: store.name, path: `/store/${store.slug}` },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr]">
         <div className="lg:sticky lg:top-24 lg:self-start">
