@@ -23,7 +23,7 @@ export function StoreHeader({
           size="xl"
           className="border-0 shadow-lg"
         />
-        <h1 className="mt-4 font-heading text-2xl font-semibold text-brand-950">{store.name}</h1>
+        <p className="mt-4 font-heading text-2xl font-semibold text-brand-950">{store.name}</p>
         <a
           href={store.website}
           target="_blank"

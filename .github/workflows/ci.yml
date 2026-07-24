@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+  build-and-e2e:
+    name: Build + Playwright e2e
+    # Requires DATABASE_URL/DIRECT_URL (Prisma) and NEXTAUTH_SECRET repo secrets,
+    # plus a "CI_DB_CONFIGURED" repo variable set to "true" once they're added —
+    # this app's SSG pages call Prisma at build time (generateStaticParams), so
+    # there is no way to build without a real database. No dedicated test
+    # database exists yet, so this intentionally builds/tests against the same
+    # Supabase project as production. The e2e suite (see e2e/) only reads data
+    # and checks client-side validation — it does not create newsletter
+    # subscribers, submitted coupons, or reviews. Skips entirely until then.
+    if: ${{ vars.CI_DB_CONFIGURED == 'true' }}
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test
