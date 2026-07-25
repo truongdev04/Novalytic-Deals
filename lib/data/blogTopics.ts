@@ -77,6 +77,7 @@ export async function updateBlogTopic(
   id: string,
   fields: AdminBlogTopicFields
 ): Promise<BlogTopic> {
+  const previous = await prisma.blogTopic.findUnique({ where: { id }, select: { slug: true } });
   try {
     const row = await prisma.blogTopic.update({
       where: { id },
@@ -88,6 +89,9 @@ export async function updateBlogTopic(
     });
     purgeTag("blog-topics:list");
     purgeTag(`blog-topic:${row.slug}`);
+    if (previous && previous.slug !== row.slug) {
+      purgeTag(`blog-topic:${previous.slug}`);
+    }
     return toBlogTopic(row);
   } catch (error) {
     throwIfSlugConflict(error);

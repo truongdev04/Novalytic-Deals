@@ -141,6 +141,7 @@ export async function createEvent(fields: AdminEventFields): Promise<Event> {
 }
 
 export async function updateEvent(id: string, fields: AdminEventFields): Promise<Event> {
+  const previous = await prisma.event.findUnique({ where: { id }, select: { slug: true } });
   const row = await prisma.event.update({
     where: { id },
     data: {
@@ -156,6 +157,9 @@ export async function updateEvent(id: string, fields: AdminEventFields): Promise
   });
   purgeTag("events:list");
   purgeTag(`event:${row.slug}`);
+  if (previous && previous.slug !== row.slug) {
+    purgeTag(`event:${previous.slug}`);
+  }
   const [stores, coupons] = await Promise.all([
     prisma.store.findMany({ where: { eventId: id }, select: { id: true } }),
     prisma.eventCoupon.findMany({ where: { eventId: id }, select: { couponId: true } }),

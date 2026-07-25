@@ -679,7 +679,7 @@ export async function updateCoupon(id: string, fields: AdminCouponFields): Promi
   try {
     const existing = await prisma.coupon.findUnique({
       where: { id },
-      select: { verified: true, verifiedAt: true },
+      select: { verified: true, verifiedAt: true, slug: true },
     });
     const verifiedAt = fields.verified
       ? existing?.verified
@@ -711,6 +711,9 @@ export async function updateCoupon(id: string, fields: AdminCouponFields): Promi
     });
     purgeTag("coupons:list");
     purgeTag(`coupon:${row.slug}`);
+    if (existing && existing.slug !== row.slug) {
+      purgeTag(`coupon:${existing.slug}`);
+    }
     await syncCouponWithStoreEvent(row);
     return toCoupon(row);
   } catch (error) {

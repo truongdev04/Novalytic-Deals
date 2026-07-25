@@ -8,9 +8,18 @@ export const KNOWN_CACHE_TAGS = [
   "blog:list",
   "blog-topics:list",
   "events:list",
+  "deals:list",
   "settings:general",
   "settings:integrations",
   "settings:affiliate",
+  "settings:social",
+  "settings:seo",
+  "settings:content-config",
+  "settings:footer",
+  "settings:popular-stores",
+  "settings:deal-refresh",
+  "settings:coupon-refresh",
+  "settings:authors",
   "redirects:list",
 ] as const;
 

@@ -2,6 +2,9 @@ import type { NextRequest } from "next/server";
 import { getEventBySlug } from "@/lib/data";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
+export const dynamic = "force-static";
+export const revalidate = 300;
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }

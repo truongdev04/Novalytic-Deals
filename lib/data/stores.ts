@@ -463,6 +463,7 @@ export async function createStore(fields: AdminStoreFields): Promise<Store> {
 }
 
 export async function updateStore(id: string, fields: AdminStoreFields): Promise<Store> {
+  const previous = await prisma.store.findUnique({ where: { id }, select: { slug: true } });
   let row: PrismaStore;
   try {
     row = await prisma.store.update({
@@ -492,6 +493,9 @@ export async function updateStore(id: string, fields: AdminStoreFields): Promise
   }
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
+  if (previous && previous.slug !== row.slug) {
+    purgeTag(`store:${previous.slug}`);
+  }
   return toStore(row);
 }
 

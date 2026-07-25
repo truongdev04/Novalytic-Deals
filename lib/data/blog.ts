@@ -281,6 +281,7 @@ export async function createBlogPost(fields: AdminBlogPostFields): Promise<BlogP
 }
 
 export async function updateBlogPost(id: string, fields: AdminBlogPostFields): Promise<BlogPost> {
+  const previous = await prisma.blogPost.findUnique({ where: { id }, select: { slug: true } });
   const row = await prisma.blogPost.update({
     where: { id },
     data: {
@@ -302,5 +303,8 @@ export async function updateBlogPost(id: string, fields: AdminBlogPostFields): P
   });
   purgeTag("blog:list");
   purgeTag(`blog:${row.slug}`);
+  if (previous && previous.slug !== row.slug) {
+    purgeTag(`blog:${previous.slug}`);
+  }
   return toBlogPost(row);
 }

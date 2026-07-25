@@ -51,7 +51,7 @@ export const getAllRedirectRules = unstable_cache(
     return rows.map(toRedirectRule);
   },
   ["redirects:list"],
-  { tags: ["redirects:list"], revalidate: 300 }
+  { tags: ["redirects:list"], revalidate: 86400 }
 );
 
 export async function getRedirectRuleById(id: string): Promise<RedirectRule | undefined> {

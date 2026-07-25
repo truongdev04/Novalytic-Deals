@@ -107,6 +107,7 @@ export async function updateCategory(
   id: string,
   fields: AdminCategoryFields
 ): Promise<Category> {
+  const previous = await prisma.category.findUnique({ where: { id }, select: { slug: true } });
   try {
     const row = await prisma.category.update({
       where: { id },
@@ -123,6 +124,9 @@ export async function updateCategory(
     });
     purgeTag("categories:list");
     purgeTag(`category:${row.slug}`);
+    if (previous && previous.slug !== row.slug) {
+      purgeTag(`category:${previous.slug}`);
+    }
     return toCategory(row);
   } catch (error) {
     throwIfSlugConflict(error);
