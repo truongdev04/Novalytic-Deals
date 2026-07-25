@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getGeneralSettings } from "@/lib/data";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
+import { SITE_URL as siteUrl } from "@/lib/constants/site";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const settings = await getGeneralSettings();

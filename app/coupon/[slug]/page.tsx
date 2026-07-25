@@ -23,10 +23,9 @@ import { breadcrumbJsonLd, couponOfferJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { stripHtml } from "@/lib/utils";
 import { resolveCouponContent } from "@/lib/content/defaults";
+import { SITE_URL as siteUrl } from "@/lib/constants/site";
 
 export const revalidate = 300;
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export async function generateStaticParams() {
   const coupons = await getCoupons();

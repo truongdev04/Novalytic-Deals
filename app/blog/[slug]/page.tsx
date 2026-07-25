@@ -16,13 +16,12 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { parseBlogSections } from "@/lib/blog";
 import { formatDate } from "@/lib/utils";
 import { resolveBlogContent } from "@/lib/content/defaults";
+import { SITE_URL as siteUrl } from "@/lib/constants/site";
 
 // "Permanent" — cached until an admin edit purges it (purgeTag("blog:${slug}")
 // in lib/data/blog.ts), not on a time-based schedule. A published post rarely
 // changes on its own.
 export const revalidate = false;
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export async function generateStaticParams() {
   const posts = await getBlogPosts();

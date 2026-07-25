@@ -17,6 +17,7 @@ import {
   getEffectiveGoogleSiteVerification,
   getEffectiveBingSiteVerification,
 } from "@/lib/data";
+import { SITE_URL as siteUrl } from "@/lib/constants/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,8 +32,6 @@ const poppins = Poppins({
   weight: ["500", "600", "700"],
   display: "swap",
 });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export const viewport: Viewport = {
   width: "device-width",

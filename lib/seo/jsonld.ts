@@ -1,8 +1,7 @@
 import { getGeneralSettings, getSocialSettings } from "@/lib/data";
 import { resolveImageUrl } from "@/lib/seo/metadata";
+import { SITE_URL as siteUrl } from "@/lib/constants/site";
 import type { BlogPost, Coupon, Store } from "@/types";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://novalyticdeals.com";
 
 export async function organizationJsonLd() {
   const [general, social] = await Promise.all([getGeneralSettings(), getSocialSettings()]);

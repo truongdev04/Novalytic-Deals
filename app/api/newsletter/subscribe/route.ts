@@ -9,6 +9,7 @@ import { isHoneypotTripped } from "@/lib/server/security/honeypot";
 import { signToken } from "@/lib/server/security/signedToken";
 import { sendEmail } from "@/lib/server/email/resend";
 import { newsletterConfirmEmail } from "@/lib/server/email/templates";
+import { stripTrailingSlash } from "@/lib/constants/site";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   await upsertNewsletterSubscriber(parsed.data.email, "website");
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = stripTrailingSlash(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
   const token = signToken(parsed.data.email);
   const confirmUrl = `${siteUrl}/api/newsletter/confirm?token=${token}`;
   const { subject, html } = newsletterConfirmEmail(confirmUrl);
