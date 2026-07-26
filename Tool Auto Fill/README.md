@@ -2,19 +2,17 @@
 
 Tool nội bộ, chạy hoàn toàn trong trình duyệt (không server, không build step). Chuẩn hoá sheet Store/Coupon thô (gộp theo store, discount viết tự do) thành file Excel sạch, sẵn sàng import — và có thể nhờ AI tự viết `description` + `about_store` riêng cho từng store.
 
-**Độc lập hoàn toàn**: không phụ thuộc code Next.js/npm nào của dự án chứa nó. Chỉ cần trình duyệt + internet (script `xlsx` load qua CDN cdnjs, gọi thẳng API các AI provider từ client). Có thể copy nguyên folder này sang máy/dự án khác mà không cần chỉnh sửa gì.
+**Độc lập hoàn toàn**: không phụ thuộc code Next.js/npm nào của dự án chứa nó. Thư viện `xlsx` (`js/xlsx.full.min.js`, bản 0.20.3 đã vá 2 lỗ hổng Prototype Pollution/ReDoS của bản CDN 0.18.5 cũ) và font Inter/Poppins (`fonts/*.woff2`) đều vendor sẵn ngay trong folder — không cần internet để chuẩn hoá dữ liệu; chỉ cần internet khi dùng tính năng AI (gọi thẳng API provider từ client). Có thể copy nguyên folder này sang máy/dự án khác mà không cần chỉnh sửa gì.
 
 ## Cách dùng
 
-- **`single-file/store-coupon-normalizer.html`** — 1 file duy nhất, double-click mở thẳng bằng trình duyệt.
-- **`landing/index.html`** — bản có hero/step-by-step, tách riêng `css/styles.css` + `js/app.js`, cũng mở được bằng double-click.
+- **`landing/index.html`** — bản duy nhất còn giữ (trước có thêm bản `single-file/` gộp 1 file, đã bỏ để khỏi phải đồng bộ 2 nơi), có hero/step-by-step, tách riêng `css/styles.css` + `js/app.js` + `js/xlsx.full.min.js`. Mở được bằng double-click.
 
-**Chỉ chuẩn hoá dữ liệu + tải Excel (không dùng AI)** — double-click mở trực tiếp qua `file://` là đủ cho cả 2 biến thể, không cần localhost. Phần này chỉ là JS xử lý dữ liệu cục bộ + load thư viện `xlsx` qua CDN, trình duyệt không chặn việc này qua `file://`.
+**Chỉ chuẩn hoá dữ liệu + tải Excel (không dùng AI)** — double-click mở trực tiếp qua `file://` là đủ, không cần localhost. Phần này chỉ là JS xử lý dữ liệu cục bộ + thư viện `xlsx` vendor sẵn, không phụ thuộc mạng.
 
-**Có dùng tính năng AI** (gọi OpenAI/Anthropic/Gemini/OpenRouter) — nên serve qua local server thay vì double-click, cho cả 2 biến thể:
+**Có dùng tính năng AI** (gọi OpenAI/Anthropic/Gemini/OpenRouter) — nên serve qua local server thay vì double-click:
 ```
-cd "single-file" && python3 -m http.server 8000
-# hoặc: cd "landing" && python3 -m http.server 8000
+cd "landing" && python3 -m http.server 8000
 # rồi mở http://localhost:8000
 ```
 Lý do: mở qua `file://` khiến trình duyệt gửi `Origin: null` trong mọi request `fetch()`; một số API (đặc biệt Anthropic, vốn cần header riêng `anthropic-dangerous-direct-browser-access` mới cho gọi từ browser) có thể xử lý `Origin: null` không nhất quán hoặc từ chối tuỳ CORS phía server. Rủi ro này **chưa được kiểm chứng thực tế** (chưa test với API key thật) — dùng localhost là lựa chọn an toàn hơn khi không chắc.
@@ -40,6 +38,7 @@ File Excel xuất ra gồm 3 sheet, đúng theo schema mà tính năng admin **"
 ## Tính năng AI (tuỳ chọn)
 
 - 4 provider: **OpenAI**, **Anthropic Claude**, **Google Gemini**, **OpenRouter** — mỗi provider nhập/lưu API key riêng (`localStorage`, không gửi đi đâu khác ngoài chính provider đó).
+- Khi bấm "Viết cho tất cả store", bảng Stores cập nhật ngay từng dòng khi store đó viết xong (không cần đợi hết batch). Nút **"Dừng hẳn"** cho dừng giữa chừng — store đang xử lý dở vẫn được hoàn thành trước khi dừng hẳn (không huỷ ngang request), các store còn lại sẽ không bị gọi. Khi chuỗi fallback cạn hết (vd hết hạn mức free) tool cũng tự động dừng và giữ nguyên các store đã xong.
 - Model mặc định Gemini hiện là `gemini-3.5-flash` (chỉnh trực tiếp trong ô Model nếu cần đổi).
 - **Fallback chain**: checkbox "Tự động chuyển provider/model khác khi gặp lỗi" (mặc định bật) + textarea liệt kê các dòng `provider:model` dự phòng — tool tự thử lần lượt khi gặp lỗi (rate limit, quá tải...), chỉ dùng provider nào đã có key lưu sẵn.
 - Danh sách model free (Gemini flash-family, OpenRouter `:free`) trong textarea là seed "best effort" — kiểm tra lại qua link "Xem danh sách model" cạnh mỗi provider trước khi tin tưởng, vì model free hay đổi theo thời gian.

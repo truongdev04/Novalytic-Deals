@@ -9,16 +9,61 @@ $('tabUpload').onclick=()=>{$('tabUpload').classList.add('active');$('tabPaste')
 $('tabPaste').onclick=()=>{$('tabPaste').classList.add('active');$('tabUpload').classList.remove('active');$('panePaste').classList.remove('hidden');$('paneUpload').classList.add('hidden');};
 
 // ---------- input reading ----------
+// Parsing runs in a Worker (js/xlsx-worker.js), not the main thread: some
+// malformed/truncated .xlsx files make XLSX.read() hang indefinitely (a
+// synchronous loop, not just "slow") — a plain setTimeout can't interrupt
+// that since the main thread would be the one stuck, but a Worker can be
+// terminate()'d from outside even mid-hang.
+const FILE_READ_TIMEOUT_MS=15000;
 let pendingRows=null;
+let currentWorker=null;
+
+function readFileWithWorker(buf){
+  return new Promise((resolve,reject)=>{
+    if(currentWorker){ currentWorker.terminate(); currentWorker=null; }
+    const worker=new Worker('js/xlsx-worker.js');
+    currentWorker=worker;
+    const timer=setTimeout(()=>{
+      worker.terminate();
+      if(currentWorker===worker) currentWorker=null;
+      reject(new Error('Đọc file quá lâu (quá '+(FILE_READ_TIMEOUT_MS/1000)+'s) — có thể file bị hỏng, đã huỷ.'));
+    },FILE_READ_TIMEOUT_MS);
+    worker.onmessage=(e)=>{
+      clearTimeout(timer);
+      worker.terminate();
+      if(currentWorker===worker) currentWorker=null;
+      if(e.data.ok) resolve(e.data.rows);
+      else reject(new Error(e.data.error));
+    };
+    worker.onerror=(err)=>{
+      clearTimeout(timer);
+      worker.terminate();
+      if(currentWorker===worker) currentWorker=null;
+      reject(new Error(err.message||'Worker lỗi không xác định.'));
+    };
+    worker.postMessage(buf,[buf]);
+  });
+}
+
 $('file').onchange=async e=>{
   const f=e.target.files[0]; if(!f)return;
+  $('error').innerHTML='';
+  pendingRows=null;
   $('dropTitle').textContent='✓ '+f.name;
   $('dropHint').textContent='Bấm hoặc kéo thả để chọn file khác';
   $('dropZone').classList.add('filled');
-  const buf=await f.arrayBuffer();
-  const wb=XLSX.read(buf,{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  pendingRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+  $('run').disabled=true;
+  try{
+    const buf=await f.arrayBuffer();
+    pendingRows=await readFileWithWorker(buf);
+  }catch(err){
+    $('dropZone').classList.remove('filled');
+    $('dropTitle').textContent='⚠ '+f.name;
+    $('dropHint').textContent='Đọc file lỗi — bấm hoặc kéo thả để chọn file khác';
+    $('error').innerHTML='<div class="err">⚠ Không đọc được file "'+esc(f.name)+'": '+esc(err.message)+'</div>';
+  }finally{
+    $('run').disabled=false;
+  }
 };
 
 function parsePaste(text){
@@ -136,7 +181,7 @@ function normalize(rows){
 function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function cell(v){return v===''||v==null?'<span class="empty">—</span>':esc(v);}
 
-function render(out){
+function render(out, scroll=true){
   $('nStore').textContent=out.stores.length;
   $('nCoupon').textContent=out.coupons.length;
   $('nReview').textContent=out.review.length;
@@ -160,7 +205,7 @@ function render(out){
     }).join('');
 
   $('results').classList.remove('hidden');
-  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  if(scroll) $('results').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // ---------- run ----------
@@ -443,6 +488,39 @@ function buildAttemptChain(primaryProviderId,primaryModel){
   return chain;
 }
 
+// Cờ dừng thủ công — chỉ set true trong stopAI.onclick, chỉ reset về
+// false trong finishRun(). stopAI chỉ hiện/bật giữa lúc genAI.onclick
+// bắt đầu và lúc finishRun() của chính lượt chạy đó kết thúc, nên
+// không cần reset thêm ở đầu genAI.onclick.
+let stopRequested=false;
+
+function finishRun(reason,completed,extra={}){
+  const total=OUT.stores.length;
+  let msg;
+  if(reason==='success'){
+    const finalLabel=PROVIDERS[extra.chain[extra.chainPos].providerId].label;
+    const finalModel=extra.chain[extra.chainPos].model;
+    const switchedNote = extra.chainPos>0 ? ` (đã tự động chuyển sang ${finalLabel} · ${finalModel} giữa chừng)` : ` bằng ${finalLabel}.`;
+    msg=`Đã viết xong ${total}/${total} store${switchedNote}`;
+  } else if(reason==='manual'){
+    msg=`Đã dừng theo yêu cầu — hoàn thành ${completed}/${total} store.`;
+  } else { // 'exhausted'
+    msg=`Tự động dừng ở store "${extra.storeName}" — đã thử hết ${extra.chain.length} provider/model trong chuỗi fallback, vẫn lỗi (lỗi cuối: ${extra.errMessage}). Hoàn thành ${completed}/${total} store.`;
+  }
+  $('aiProgress').textContent=msg;
+  $('genAI').disabled=false;
+  $('stopAI').disabled=true;
+  $('stopAI').classList.add('hidden');
+  stopRequested=false;
+  render(OUT);
+}
+
+$('stopAI').onclick=()=>{
+  stopRequested=true;
+  $('stopAI').disabled=true;
+  $('aiProgress').textContent='Đang dừng — chờ thao tác hiện tại xong...';
+};
+
 $('genAI').onclick=async()=>{
   if(!OUT||!OUT.stores.length)return;
   const p=currentProvider();
@@ -456,15 +534,22 @@ $('genAI').onclick=async()=>{
 
   const btn=$('genAI');
   btn.disabled=true;
+  $('stopAI').classList.remove('hidden');
+  $('stopAI').disabled=false;
   const total=OUT.stores.length;
   for(let i=0;i<total;i++){
+    if(stopRequested){ finishRun('manual',i); return; }
     const s=OUT.stores[i];
     const titles=OUT.coupons.filter(c=>c.store_name===s.name).map(c=>c.title);
     for(;;){
+      if(stopRequested){ finishRun('manual',i); return; }
       if(chainPos>=chain.length){
-        $('aiProgress').textContent=`Dừng ở store "${s.name}" — đã thử hết ${chain.length} provider/model trong chuỗi fallback, vẫn lỗi.`;
-        btn.disabled=false;
-        render(OUT);
+        // Nhánh này không bao giờ chạy tới trong thực tế: chainPos chỉ
+        // tăng ở nhánh catch bên dưới, luôn dưới điều kiện giữ nó
+        // < chain.length, và buildAttemptChain() luôn seed ít nhất 1
+        // phần tử. Giữ lại làm fallback phòng thủ — chỉ đổi cleanup
+        // sang finishRun() cho nhất quán với 2 nhánh dừng còn lại.
+        finishRun('exhausted',i,{storeName:s.name,chain,errMessage:'hết provider/model để thử'});
         return;
       }
       const attempt=chain[chainPos];
@@ -476,6 +561,7 @@ $('genAI').onclick=async()=>{
         const data=extractJSON(raw);
         s.description=data.description||'';
         s.about_store=data.about_store||'';
+        render(OUT,false); // cập nhật bảng ngay lúc này, không cuộn trang
         break; // store này xong — sang store tiếp theo, chainPos giữ nguyên
       }catch(err){
         if(chainPos+1<chain.length){
@@ -483,18 +569,11 @@ $('genAI').onclick=async()=>{
           $('aiProgress').textContent=`${attemptProvider.label} lỗi (${err.message}) — chuyển sang ${next.label} · ${chain[chainPos+1].model}...`;
           chainPos++; // thử lại CÙNG store này với attempt kế tiếp
         } else {
-          $('aiProgress').textContent=`Dừng ở store "${s.name}" — lỗi: ${err.message}`;
-          btn.disabled=false;
-          render(OUT);
+          finishRun('exhausted',i,{storeName:s.name,chain,errMessage:err.message});
           return;
         }
       }
     }
   }
-  const finalAttempt=chain[chainPos];
-  const finalLabel=PROVIDERS[finalAttempt.providerId].label;
-  const switchedNote = chainPos>0 ? ` (đã tự động chuyển sang ${finalLabel} · ${finalAttempt.model} giữa chừng)` : ` bằng ${finalLabel}.`;
-  $('aiProgress').textContent=`Đã viết xong ${total}/${total} store${switchedNote}`;
-  btn.disabled=false;
-  render(OUT);
+  finishRun('success',total,{chain,chainPos});
 };

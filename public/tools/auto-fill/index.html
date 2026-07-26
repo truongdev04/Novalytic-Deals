@@ -4,11 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Store &amp; Coupon Auto Fill — NovalyticDeals</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -152,6 +149,7 @@
           </div>
           <div class="row">
             <button class="btn btn-accent" id="genAI">Viết cho tất cả store</button>
+            <button class="btn btn-ghost hidden" id="stopAI" disabled>Dừng hẳn</button>
           </div>
           <div id="aiProgress" class="hint"></div>
         </div>

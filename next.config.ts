@@ -15,7 +15,9 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "frame-src https://challenges.cloudflare.com",
-  "connect-src 'self' https://www.google-analytics.com https://plausible.io https://vitals.vercel-insights.com",
+  // AI provider hosts are for the internal "Tool Auto Fill" (public/tools/auto-fill/)
+  // calling each provider's API directly from the browser with a user-supplied key.
+  "connect-src 'self' https://www.google-analytics.com https://plausible.io https://vitals.vercel-insights.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://openrouter.ai",
   "object-src 'none'",
   "base-uri 'self'",
 ]
