@@ -50,7 +50,7 @@ export function BlogTopicTable({ topics }: { topics: BlogTopic[] }) {
                 <td className="px-4 py-3 font-medium text-brand-950">{topic.name}</td>
                 <td className="px-4 py-3 text-muted-600">{topic.slug}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-muted-600">
-                  {new Date(topic.createdAt).toLocaleDateString()}
+                  {new Date(topic.createdAt).toLocaleDateString("en-US")}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

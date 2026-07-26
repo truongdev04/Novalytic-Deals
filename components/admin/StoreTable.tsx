@@ -22,6 +22,13 @@ const EVENT_FILTER_ALL = "all";
 const EVENT_FILTER_UNCATEGORIZED = "uncategorized";
 const BOOL_FILTER_ALL = "all";
 
+// Restores the scroll position saved right before navigating to Edit —
+// router.push({ scroll: false }) only stops Next.js from forcing a
+// scroll-to-top, it can't restore where the admin actually was, and
+// router.back()'s native restoration is unreliable once paired with
+// router.refresh() (see https://github.com/vercel/next.js/issues/67006).
+const SCROLL_STORAGE_KEY = "admin-stores-scroll-y";
+
 export function StoreTable({
   stores,
   categories,
@@ -40,6 +47,12 @@ export function StoreTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // The exact current list URL (page, filters, search — untouched) to return
+  // to after editing a store. buildQueryUrl() isn't right here: it always
+  // strips `page` unless `updates` explicitly sets it, since that's the
+  // desired behavior for filter changes (reset to page 1) — but here we want
+  // to reproduce the current URL as-is, not apply a filter change.
+  const currentListUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname;
 
   const categoryFilter = searchParams.get("category") ?? CATEGORY_FILTER_ALL;
   const eventFilter = searchParams.get("event") ?? EVENT_FILTER_ALL;
@@ -60,6 +73,13 @@ export function StoreTable({
     navigate({ q: debouncedQuery || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    if (saved === null) return;
+    sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+    window.scrollTo(0, Number(saved));
+  }, []);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -495,12 +515,15 @@ export function StoreTable({
                     />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted-600">
-                    {new Date(store.createdAt).toLocaleDateString()}
+                    {new Date(store.createdAt).toLocaleDateString("en-US")}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link
-                        href={`/admin/stores/${store.id}`}
+                        href={`/admin/stores/${store.id}?from=${encodeURIComponent(currentListUrl)}`}
+                        onClick={() =>
+                          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY))
+                        }
                         aria-label={`Edit ${store.name}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

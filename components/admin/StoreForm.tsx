@@ -48,6 +48,7 @@ export function StoreForm({
   events,
   templates,
   discountLabel = null,
+  returnUrl = "/admin/stores",
 }: {
   store?: Store;
   categories: Category[];
@@ -55,8 +56,15 @@ export function StoreForm({
   templates: ContentConfigTemplates;
   /** Real, frozen-for-the-month {discount} value (server-computed) — null for a new store (no coupons yet) or a store with no qualifying coupon this period. */
   discountLabel?: string | null;
+  /** Where Back/Cancel/Save should return to — the store list URL the admin came from, page/filters and all. */
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList() {
+    router.push(returnUrl, { scroll: false });
+  }
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showFaqPaste, setShowFaqPaste] = useState(false);
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
@@ -208,7 +216,7 @@ export function StoreForm({
         return;
       }
       toast.success(store ? "Store updated." : "Store created.");
-      router.push("/admin/stores");
+      goToList();
       router.refresh();
     } catch {
       toast.error("Failed to save store.");
@@ -220,7 +228,7 @@ export function StoreForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/stores");
+    goToList();
   }
 
   return (
@@ -597,7 +605,7 @@ export function StoreForm({
           <Button variant="outline" onClick={() => setShowLeaveConfirm(false)}>
             Keep editing
           </Button>
-          <Button variant="primary" onClick={() => router.push("/admin/stores")}>
+          <Button variant="primary" onClick={goToList}>
             Discard changes
           </Button>
         </div>

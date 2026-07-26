@@ -106,7 +106,7 @@ export function CategoryTable({ categories }: { categories: Category[] }) {
                   />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-muted-600">
-                  {new Date(category.createdAt).toLocaleDateString()}
+                  {new Date(category.createdAt).toLocaleDateString("en-US")}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

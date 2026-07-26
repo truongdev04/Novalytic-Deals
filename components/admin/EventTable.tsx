@@ -75,10 +75,10 @@ export function EventTable({ events }: { events: Event[] }) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-muted-600">
-                  {event.startsAt ? new Date(event.startsAt).toLocaleDateString() : "—"}
+                  {event.startsAt ? new Date(event.startsAt).toLocaleDateString("en-US") : "—"}
                 </td>
                 <td className="px-4 py-3 text-muted-600">
-                  {event.endsAt ? new Date(event.endsAt).toLocaleDateString() : "—"}
+                  {event.endsAt ? new Date(event.endsAt).toLocaleDateString("en-US") : "—"}
                 </td>
                 <td className="px-4 py-3 text-muted-600">{event.featuredStoreIds.length}</td>
                 <td className="px-4 py-3 text-muted-600">{event.featuredCouponIds.length}</td>

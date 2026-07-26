@@ -135,7 +135,7 @@ export function BlogTable({
                 <td className="px-4 py-3 font-medium text-brand-950">{post.title}</td>
                 <td className="px-4 py-3 text-muted-600">{post.authorName}</td>
                 <td className="px-4 py-3 text-muted-600">
-                  {new Date(post.publishedAt).toLocaleDateString()}
+                  {new Date(post.publishedAt).toLocaleDateString("en-US")}
                 </td>
                 <td className="px-4 py-3">
                   <AdminDropdownSelect
@@ -189,7 +189,7 @@ export function BlogTable({
                   />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-muted-600">
-                  {new Date(post.createdAt).toLocaleDateString()}
+                  {new Date(post.createdAt).toLocaleDateString("en-US")}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

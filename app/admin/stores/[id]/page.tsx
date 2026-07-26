@@ -3,8 +3,16 @@ import { getCategories, getEvents, getStoreById, getContentConfigSettings } from
 import { resolveStoreDiscountLabel } from "@/lib/content/storeSeoSnapshot";
 import { StoreForm } from "@/components/admin/StoreForm";
 
-export default async function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditStorePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const returnUrl = from && from.startsWith("/admin/stores") ? from : "/admin/stores";
   const [store, categories, events, contentConfig] = await Promise.all([
     getStoreById(id),
     getCategories(),
@@ -28,6 +36,7 @@ export default async function EditStorePage({ params }: { params: Promise<{ id: 
           events={events}
           templates={contentConfig.templates}
           discountLabel={discountLabel}
+          returnUrl={returnUrl}
         />
       </div>
     </div>
