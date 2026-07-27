@@ -116,10 +116,17 @@ function parseCoupon(code,value,title,rowNum,store,storeAffiliate){
   let discount_type='',discount_value='',currency='';
   const pct=value.match(/(\d+(?:\.\d+)?)\s*%/);
   const amt=parseAmount(value);
+  const altCur=value.match(/^(\d+(?:\.\d+)?)\s*([A-Za-z]{2,5})$/)||value.match(/^([A-Za-z]{2,5})\s*(\d+(?:\.\d+)?)$/);
   if(pct){discount_type='PERCENT';discount_value=pct[1];}
   else if(amt){discount_type='AMOUNT';discount_value=amt.value;currency=amt.currency;}
+  else if(altCur){
+    discount_type='AMOUNT';
+    const numFirst=/^\d/.test(altCur[0]);
+    discount_value=numFirst?altCur[1]:altCur[2];
+    currency=numFirst?altCur[2]:altCur[1];
+  }
   else if(/free\s*ship/i.test(value)){discount_type='OTHER';}
-  else if(/^deal$/i.test(value)){discount_type='OTHER';}
+  else if(/^0(\.0+)?$/.test(value)||/^deal$/i.test(value)){discount_type='OTHER';discount_value='0';}
   else if(value===''){
     const tp=title.match(/(\d+(?:\.\d+)?)\s*%/),ta=parseAmount(title);
     if(/free\s*ship/i.test(title)){discount_type='OTHER';reviews.push([rowNum,store,'Discount trống — suy ra Free Shipping từ tiêu đề']);}
