@@ -26,6 +26,27 @@ export async function getNewsletterSubscribers() {
   return prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } });
 }
 
+// Admin-facing paginated list — DB-level pagination instead of fetching
+// every subscriber into memory (this table has no natural ceiling, unlike
+// admin-curated tables like Category/Event).
+export async function getNewsletterSubscribersAdminPaginated(page: number, pageSize: number) {
+  const [items, total] = await prisma.$transaction([
+    prisma.newsletterSubscriber.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.newsletterSubscriber.count(),
+  ]);
+  return { items, total };
+}
+
+export async function getConfirmedActiveSubscriberCount() {
+  return prisma.newsletterSubscriber.count({
+    where: { confirmedAt: { not: null }, unsubscribedAt: null },
+  });
+}
+
 export async function unsubscribeNewsletterSubscriberById(id: string) {
   await prisma.newsletterSubscriber.update({
     where: { id },

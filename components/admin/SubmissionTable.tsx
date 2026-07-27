@@ -1,14 +1,32 @@
 "use client";
 
+import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useSearchParams } from "next/navigation";
 import { SubmissionActions } from "@/components/admin/SubmissionActions";
 import { AdminPagination } from "@/components/admin/AdminPagination";
-import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
-import type { getSubmittedCoupons } from "@/lib/data/submittedCoupons";
+import { buildQueryUrl } from "@/lib/utils";
+import type { getSubmittedCouponsAdminPaginated } from "@/lib/data/submittedCoupons";
 
-type Submission = Awaited<ReturnType<typeof getSubmittedCoupons>>[number];
+type Submission = Awaited<ReturnType<typeof getSubmittedCouponsAdminPaginated>>["items"][number];
 
-export function SubmissionTable({ submissions }: { submissions: Submission[] }) {
-  const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(submissions);
+export function SubmissionTable({
+  submissions,
+  total,
+  page,
+  pageSize,
+}: {
+  submissions: Submission[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function navigate(updates: Record<string, string | undefined>) {
+    router.push(buildQueryUrl(pathname, searchParams, updates));
+  }
 
   return (
     <div>
@@ -26,7 +44,7 @@ export function SubmissionTable({ submissions }: { submissions: Submission[] }) 
             </tr>
           </thead>
           <tbody>
-            {paged.map((submission) => (
+            {submissions.map((submission) => (
               <tr key={submission.id} className="border-t border-muted-200">
                 <td className="px-4 py-3 font-medium text-brand-950">{submission.storeName}</td>
                 <td className="max-w-[180px] truncate px-4 py-3 text-muted-600">
@@ -69,8 +87,8 @@ export function SubmissionTable({ submissions }: { submissions: Submission[] }) 
         page={page}
         pageSize={pageSize}
         total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(p) => navigate({ page: String(p) })}
+        onPageSizeChange={(size) => navigate({ size: String(size), page: undefined })}
       />
     </div>
   );

@@ -33,6 +33,25 @@ export async function getSubmittedCoupons(status?: "PENDING" | "APPROVED" | "REJ
   });
 }
 
+// Admin-facing paginated list — DB-level pagination instead of fetching
+// every submission into memory (this table has no natural ceiling, since
+// anyone can submit a coupon publicly).
+export async function getSubmittedCouponsAdminPaginated(page: number, pageSize: number) {
+  const [items, total] = await prisma.$transaction([
+    prisma.submittedCoupon.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.submittedCoupon.count(),
+  ]);
+  return { items, total };
+}
+
+export async function getPendingSubmissionCount() {
+  return prisma.submittedCoupon.count({ where: { status: "PENDING" } });
+}
+
 export async function updateSubmittedCouponStatus(
   id: string,
   status: "PENDING" | "APPROVED" | "REJECTED"

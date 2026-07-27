@@ -476,6 +476,15 @@ export function RichTextEditor({
   // editingImage — avoids needing an effect to sync state on open.
   const [imageModalSession, setImageModalSession] = useState(0);
 
+  // These next/dynamic(ssr:false) modals only defer their JS if they're kept
+  // out of the tree until first opened — rendering them unconditionally with
+  // just `open={false}` still triggers the dynamic import on mount. Set to
+  // true alongside setShow*Modal(true) in each open handler below (an event
+  // handler, not render/an effect) and left mounted afterwards so the
+  // modal's own close transition still works on subsequent toggles.
+  const [imageModalMounted, setImageModalMounted] = useState(false);
+  const [linkModalMounted, setLinkModalMounted] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
@@ -604,6 +613,7 @@ export function RichTextEditor({
           setEditingImage({ pos: nodePos, attrs: node.attrs as EditingImage["attrs"] });
           setImageModalSession((s) => s + 1);
           setShowImageModal(true);
+          setImageModalMounted(true);
           return true;
         },
       },
@@ -620,21 +630,29 @@ export function RichTextEditor({
           setEditingImage(null);
           setImageModalSession((s) => s + 1);
           setShowImageModal(true);
+          setImageModalMounted(true);
         }}
-        onOpenLinkModal={() => setShowLinkModal(true)}
+        onOpenLinkModal={() => {
+          setShowLinkModal(true);
+          setLinkModalMounted(true);
+        }}
       />
       <EditorContent editor={editor} />
-      <ImageInsertModal
-        key={imageModalSession}
-        editor={editor}
-        open={showImageModal}
-        onOpenChange={(next) => {
-          setShowImageModal(next);
-          if (!next) setEditingImage(null);
-        }}
-        editingImage={editingImage}
-      />
-      <LinkModal editor={editor} open={showLinkModal} onOpenChange={setShowLinkModal} />
+      {imageModalMounted && (
+        <ImageInsertModal
+          key={imageModalSession}
+          editor={editor}
+          open={showImageModal}
+          onOpenChange={(next) => {
+            setShowImageModal(next);
+            if (!next) setEditingImage(null);
+          }}
+          editingImage={editingImage}
+        />
+      )}
+      {linkModalMounted && (
+        <LinkModal editor={editor} open={showLinkModal} onOpenChange={setShowLinkModal} />
+      )}
     </div>
   );
 }

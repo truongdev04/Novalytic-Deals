@@ -1,10 +1,11 @@
+import { cache } from "react";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/server/db";
 import { authConfig } from "./auth.config";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const { handlers, auth: uncachedAuth, signIn, signOut } = NextAuth({
   ...authConfig,
   session: { strategy: "jwt" },
   providers: [
@@ -32,3 +33,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 });
+
+// The admin layout and several page-level "defense in depth" role checks
+// each call auth() once per request — cache() dedupes those into a single
+// JWT decode/re-sign instead of repeating it 2-3x per render.
+export const auth = cache(uncachedAuth);
+export { handlers, signIn, signOut };
