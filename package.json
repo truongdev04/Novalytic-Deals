@@ -23,7 +23,7 @@
   },
   "overrides": {
     "isomorphic-dompurify": {
-      "jsdom": "27.3.0"
+      "jsdom": "25.0.1"
     }
   },
   "dependencies": {
