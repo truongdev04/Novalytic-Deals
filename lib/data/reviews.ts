@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/server/db";
 import type { Review } from "@/types";
 import type { Review as PrismaReview } from "@prisma/client";
+import { recomputeStoreRating } from "./stores";
 
 function toReview(row: PrismaReview): Review {
   return {
@@ -69,9 +70,11 @@ export async function getPendingReviewCount(): Promise<number> {
 
 export async function setReviewApproved(id: string, isApproved: boolean): Promise<Review> {
   const row = await prisma.review.update({ where: { id }, data: { isApproved } });
+  await recomputeStoreRating(row.storeId);
   return toReview(row);
 }
 
 export async function deleteReview(id: string): Promise<void> {
-  await prisma.review.delete({ where: { id } });
+  const row = await prisma.review.delete({ where: { id } });
+  await recomputeStoreRating(row.storeId);
 }

@@ -55,7 +55,8 @@ async function runAutoFillImport(
 
     try {
       // Same glue as app/api/admin/stores/route.ts — region/rating aren't
-      // collected from any form for auto-filled stores either.
+      // collected from any form for auto-filled stores either; rating
+      // defaults to 5 until real reviews get approved.
       const store = await createStore({
         slug: input.slug,
         name: input.name,
@@ -66,7 +67,7 @@ async function runAutoFillImport(
         aboutStore: input.aboutStore || "",
         howToApply: input.howToApply || null,
         rating: 5,
-        ratingCount: Math.floor(Math.random() * 1000) + 1,
+        ratingCount: 0,
         region: "GLOBAL",
         affiliateNetwork: input.affiliateNetwork,
         categoryIds: input.categoryIds,

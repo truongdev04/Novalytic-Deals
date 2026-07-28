@@ -1,14 +1,20 @@
 import { z } from "zod";
 
 export const reviewSchema = z.object({
-  authorName: z.string().min(2, "Name is required").max(80),
+  authorName: z.string().max(80).optional(),
   rating: z
     .number({ error: "Choose a rating" })
     .int()
     .min(1, "Choose a rating")
     .max(5, "Choose a rating"),
-  title: z.string().min(3, "Title is required").max(120),
-  body: z.string().min(10, "Review must be at least 10 characters").max(2000),
+  body: z
+    .string()
+    .max(5000)
+    .optional()
+    .refine(
+      (val) => !val || val.length >= 25,
+      "Review must be at least 25 characters if entered"
+    ),
   turnstileToken: z.string().optional(),
   honeypot: z.string().optional(),
 });

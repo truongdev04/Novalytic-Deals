@@ -24,9 +24,11 @@ export async function POST(request: NextRequest) {
       aboutStore: parsed.data.aboutStore || "",
       howToApply: parsed.data.howToApply || null,
       // Region/rating aren't collected from the admin form anymore — every new
-      // store starts global with a fresh 5.0 rating and a plausible seed count.
+      // store starts global with a default 5.0 rating and no real review
+      // count yet; both get recomputed from real reviews once any are
+      // approved (see recomputeStoreRating in lib/data/stores.ts).
       rating: 5,
-      ratingCount: Math.floor(Math.random() * 1000) + 1,
+      ratingCount: 0,
       region: "GLOBAL",
       affiliateNetwork: parsed.data.affiliateNetwork,
       categoryIds: parsed.data.categoryIds,

@@ -4,7 +4,6 @@ import { reviewSchema } from "./review";
 const validInput = {
   authorName: "Jane Doe",
   rating: 5,
-  title: "Great store",
   body: "Fast shipping and great customer service overall.",
 };
 
@@ -29,15 +28,21 @@ describe("reviewSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a body shorter than 10 characters", () => {
+  it("rejects a body shorter than 25 characters when entered", () => {
     const result = reviewSchema.safeParse({ ...validInput, body: "too short" });
     expect(result.success).toBe(false);
   });
 
-  it("rejects a missing author name", () => {
+  it("allows author name to be omitted (anonymous)", () => {
     const { authorName: _authorName, ...withoutName } = validInput;
     const result = reviewSchema.safeParse(withoutName);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+  });
+
+  it("allows body to be omitted", () => {
+    const { body: _body, ...withoutBody } = validInput;
+    const result = reviewSchema.safeParse(withoutBody);
+    expect(result.success).toBe(true);
   });
 
   it("allows honeypot and turnstileToken to be omitted", () => {

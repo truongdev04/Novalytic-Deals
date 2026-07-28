@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Star } from "lucide-react";
@@ -13,9 +13,22 @@ import { cn } from "@/lib/utils";
 const fieldClassName =
   "w-full rounded-xl border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
-export function ReviewForm({ storeSlug }: { storeSlug: string }) {
+const BODY_MAX_LENGTH = 5000;
+
+export function ReviewForm({
+  storeSlug,
+  storeName,
+  onSubmitted,
+  onCancel,
+}: {
+  storeSlug: string;
+  storeName: string;
+  onSubmitted?: () => void;
+  onCancel?: () => void;
+}) {
   const [hoverRating, setHoverRating] = useState(0);
   const [rating, setRating] = useState(0);
+  const [bodyLength, setBodyLength] = useState(0);
   const {
     register,
     handleSubmit,
@@ -48,6 +61,8 @@ export function ReviewForm({ storeSlug }: { storeSlug: string }) {
       toast.success("Thanks! Your review was submitted for moderation.");
       reset({ rating: 0 });
       setRating(0);
+      setBodyLength(0);
+      onSubmitted?.();
     } catch {
       toast.error("Something went wrong. Please try again.");
     }
@@ -65,7 +80,9 @@ export function ReviewForm({ storeSlug }: { storeSlug: string }) {
       />
 
       <div>
-        <span className="mb-1.5 block text-sm font-medium text-brand-950">Your rating</span>
+        <span className="mb-1.5 block text-sm font-medium text-brand-950">
+          How would you rate your experience with {storeName}?
+        </span>
         <div
           className="flex items-center gap-1"
           onMouseLeave={() => setHoverRating(0)}
@@ -86,8 +103,8 @@ export function ReviewForm({ storeSlug }: { storeSlug: string }) {
                 className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
               >
                 <Star
-                  width={22}
-                  height={22}
+                  width={26}
+                  height={26}
                   className={cn(
                     (hoverRating || rating) >= starValue
                       ? "fill-accent-400 text-accent-400"
@@ -102,67 +119,71 @@ export function ReviewForm({ storeSlug }: { storeSlug: string }) {
       </div>
 
       <div>
-        <label htmlFor="authorName" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Your name
-        </label>
-        <input
-          id="authorName"
-          aria-invalid={Boolean(errors.authorName)}
-          aria-describedby={errors.authorName ? "authorName-error" : undefined}
-          className={fieldClassName}
-          {...register("authorName")}
-        />
-        {errors.authorName && (
-          <p id="authorName-error" className="mt-1 text-xs text-red-600">
-            {errors.authorName.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="reviewTitle" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Title
-        </label>
-        <input
-          id="reviewTitle"
-          placeholder="Summarize your experience"
-          aria-invalid={Boolean(errors.title)}
-          aria-describedby={errors.title ? "reviewTitle-error" : undefined}
-          className={fieldClassName}
-          {...register("title")}
-        />
-        {errors.title && (
-          <p id="reviewTitle-error" className="mt-1 text-xs text-red-600">
-            {errors.title.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="reviewBody" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Review
-        </label>
         <textarea
           id="reviewBody"
           rows={4}
-          placeholder="What was your experience with this store?"
+          maxLength={BODY_MAX_LENGTH}
+          placeholder="Share your experience (optional — minimum 25 characters if entered)..."
           aria-invalid={Boolean(errors.body)}
           aria-describedby={errors.body ? "reviewBody-error" : undefined}
           className={fieldClassName}
-          {...register("body")}
+          {...register("body", {
+            onChange: (e: ChangeEvent<HTMLTextAreaElement>) =>
+              setBodyLength(e.target.value.length),
+          })}
         />
-        {errors.body && (
-          <p id="reviewBody-error" className="mt-1 text-xs text-red-600">
-            {errors.body.message}
+        <div className="mt-1 flex items-center justify-between">
+          {errors.body ? (
+            <p id="reviewBody-error" className="text-xs text-red-600">
+              {errors.body.message}
+            </p>
+          ) : (
+            <span />
+          )}
+          <span className="text-xs text-muted-400">
+            {bodyLength} / {BODY_MAX_LENGTH}
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="authorName" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Display name <span className="text-muted-400">(optional)</span>
+        </label>
+        <input
+          id="authorName"
+          placeholder="Anonymous"
+          aria-invalid={Boolean(errors.authorName)}
+          aria-describedby={errors.authorName ? "authorName-error" : "authorName-hint"}
+          className={fieldClassName}
+          {...register("authorName")}
+        />
+        {errors.authorName ? (
+          <p id="authorName-error" className="mt-1 text-xs text-red-600">
+            {errors.authorName.message}
+          </p>
+        ) : (
+          <p id="authorName-hint" className="mt-1 text-xs text-muted-500">
+            Others will see your display name
           </p>
         )}
       </div>
 
       <TurnstileWidget onVerify={handleVerify} />
 
-      <Button type="submit" disabled={isSubmitting} className="rounded-xl">
-        {isSubmitting ? "Submitting..." : "Submit review"}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="outline" className="rounded-xl" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl">
+          {isSubmitting ? "Submitting..." : "Post review"}
+        </Button>
+      </div>
+
+      <p className="text-center text-xs text-muted-500">
+        By submitting your review, you consent to disclose your display name publicly on
+        NovalyticDeals.
+      </p>
     </form>
   );
 }

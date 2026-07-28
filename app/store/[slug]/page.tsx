@@ -18,8 +18,7 @@ import { StoreCouponTabs } from "@/components/store/StoreCouponTabs";
 import { StoreCard } from "@/components/store/StoreCard";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { RichHtml } from "@/components/ui/RichHtml";
-import { ReviewList } from "@/components/store/ReviewList";
-import { ReviewForm } from "@/components/store/ReviewForm";
+import { ReviewsSection } from "@/components/store/ReviewsSection";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { breadcrumbJsonLd, faqPageJsonLd, storeAggregateRatingJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -92,7 +91,7 @@ export default async function StorePage({
 
   return (
     <Container className="py-10">
-      <JsonLd data={storeAggregateRatingJsonLd(store)} />
+      {store.ratingCount > 0 && <JsonLd data={storeAggregateRatingJsonLd(store)} />}
       {store.faq.length > 0 && <JsonLd data={faqPageJsonLd(store.faq)} />}
       <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
 
@@ -147,16 +146,7 @@ export default async function StorePage({
           )}
 
           <div className="mt-12">
-            <SectionHeader title="Reviews" align="left" />
-            <ReviewList reviews={reviews} />
-            <div className="mt-8 border-t border-muted-200 pt-8">
-              <h3 className="font-heading text-sm font-semibold text-brand-950">
-                Leave a review
-              </h3>
-              <div className="mt-4">
-                <ReviewForm storeSlug={store.slug} />
-              </div>
-            </div>
+            <ReviewsSection store={store} reviews={reviews} />
           </div>
         </div>
       </div>

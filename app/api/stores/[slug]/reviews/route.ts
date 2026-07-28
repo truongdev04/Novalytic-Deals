@@ -32,10 +32,10 @@ export async function POST(
 
   await createReview({
     storeId: store.id,
-    authorName: parsed.data.authorName,
+    authorName: parsed.data.authorName?.trim() || "Anonymous",
     rating: parsed.data.rating,
-    title: parsed.data.title,
-    body: parsed.data.body,
+    title: "",
+    body: parsed.data.body?.trim() ?? "",
   });
 
   return jsonOk({ submitted: true });

@@ -254,6 +254,25 @@ export async function searchStores(
   return rows.map(toStore);
 }
 
+// Keeps Store.rating/ratingCount in sync with real approved reviews —
+// called after any review approval/deletion change (see lib/data/reviews.ts)
+// so the public rating never drifts from what's actually in the reviews table.
+// rating falls back to 5 (not 0) when there are no approved reviews yet —
+// ratingCount is what tells the real story until real reviews come in.
+export async function recomputeStoreRating(storeId: string): Promise<void> {
+  const agg = await prisma.review.aggregate({
+    where: { storeId, isApproved: true },
+    _avg: { rating: true },
+    _count: true,
+  });
+  const row = await prisma.store.update({
+    where: { id: storeId },
+    data: { rating: agg._avg.rating ?? 5, ratingCount: agg._count },
+  });
+  purgeTag("stores:list");
+  purgeTag(`store:${row.slug}`);
+}
+
 export async function setStoreFeatured(id: string, isFeatured: boolean): Promise<Store> {
   const row = await prisma.store.update({
     where: { id },
