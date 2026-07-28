@@ -10,7 +10,7 @@ import { TopStoresBarChartLazy } from "@/components/admin/TopStoresBarChartLazy"
 import { AutoFillStoreButton } from "@/components/admin/AutoFillStoreButton";
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("vi-VN");
+  return date.toLocaleDateString("en-US");
 }
 
 export default async function AdminDashboardPage() {
@@ -71,32 +71,32 @@ export default async function AdminDashboardPage() {
             className="flex items-center gap-2 rounded-lg border border-muted-200 bg-surface-0 px-3 py-2 text-sm text-brand-950 hover:border-brand-300"
           >
             <MessageSquare className="h-4 w-4 text-muted-500" />
-            {moderation.pendingReviews} review đang chờ duyệt
+            {moderation.pendingReviews} review{moderation.pendingReviews === 1 ? "" : "s"} awaiting approval
           </Link>
           <Link
             href="/admin/submissions"
             className="flex items-center gap-2 rounded-lg border border-muted-200 bg-surface-0 px-3 py-2 text-sm text-brand-950 hover:border-brand-300"
           >
             <Inbox className="h-4 w-4 text-muted-500" />
-            {moderation.pendingSubmissions} coupon gửi lên đang chờ duyệt
+            {moderation.pendingSubmissions} submitted coupon{moderation.pendingSubmissions === 1 ? "" : "s"} awaiting approval
           </Link>
         </div>
       )}
 
       <div className="mt-6">
-        <h2 className="font-heading text-lg font-semibold text-brand-950">Thống kê click</h2>
+        <h2 className="font-heading text-lg font-semibold text-brand-950">Click Analytics</h2>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <div className="rounded-xl border border-muted-200 bg-surface-0 p-5">
             <h3 className="font-heading text-sm font-semibold text-brand-950">
-              Store có lượng click nhiều nhất (tháng này)
+              Top stores by clicks (this month)
             </h3>
             <div className="mt-2">
               {topStores.length === 0 ? (
                 <p className="flex h-[280px] items-center justify-center text-sm text-muted-500">
-                  Chưa có dữ liệu click nào.
+                  No click data yet.
                 </p>
               ) : (
                 <TopStoresBarChartLazy data={topStores} />
@@ -109,7 +109,7 @@ export default async function AdminDashboardPage() {
           <h3 className="font-heading text-sm font-semibold text-brand-950">Recent Activity</h3>
           <ul className="mt-3 divide-y divide-muted-200">
             {recentActivity.length === 0 && (
-              <li className="py-3 text-sm text-muted-500">Chưa có hoạt động nào.</li>
+              <li className="py-3 text-sm text-muted-500">No activity yet.</li>
             )}
             {recentActivity.map((item) => (
               <li key={`${item.kind}-${item.id}`} className="flex items-start justify-between gap-3 py-3">

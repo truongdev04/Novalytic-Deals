@@ -1,5 +1,7 @@
+import { unstable_cache } from "next/cache";
 import { prisma, Prisma } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/security/password";
+import { purgeTag } from "@/lib/server/cache/purgeTag";
 import type { AdminUser, AdminRole, AdminUserStatus } from "@/types";
 import type { User as PrismaUser } from "@prisma/client";
 
@@ -27,6 +29,23 @@ export async function getAllUsers(): Promise<AdminUser[]> {
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
   const row = await prisma.user.findUnique({ where: { id } });
   return row ? toAdminUser(row) : undefined;
+}
+
+// Polled every 20s by AccountStatusWatcher — a plain findUnique here was the
+// dominant cost of every admin page transition. Short-TTL cache (not full
+// freshness like getUserById above, which is used for permission-critical
+// reads) is safe for this narrow self-monitoring check: updateUserStatus and
+// deleteUser purge the tag below, so an actual deactivation still lands
+// within seconds, not up to the 30s TTL.
+export async function getUserActiveStatus(id: string): Promise<boolean> {
+  return unstable_cache(
+    async () => {
+      const row = await prisma.user.findUnique({ where: { id }, select: { status: true } });
+      return row?.status === "ACTIVE";
+    },
+    [`user-status:${id}`],
+    { tags: [`user-status:${id}`], revalidate: 30 }
+  )();
 }
 
 export async function countAdmins(excludeId?: string): Promise<number> {
@@ -151,6 +170,7 @@ export async function updateUserStatus(
   }
 
   const row = await prisma.user.update({ where: { id }, data: { status } });
+  purgeTag(`user-status:${id}`);
   return toAdminUser(row);
 }
 
@@ -169,4 +189,5 @@ export async function deleteUser(id: string, actingUserId: string): Promise<void
   }
 
   await prisma.user.delete({ where: { id } });
+  purgeTag(`user-status:${id}`);
 }

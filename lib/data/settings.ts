@@ -516,6 +516,7 @@ const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
 interface IntegrationsRaw {
   resendApiKey?: string;
   contactInboxEmail?: string;
+  systemFromEmail?: string;
   turnstileSecretKey?: string;
   gaId?: string;
   gtmId?: string;
@@ -563,6 +564,7 @@ export async function getIntegrationsSettingsView(): Promise<IntegrationsSetting
       maskedPreview: maskSecret(raw.resendApiKey),
     },
     contactInboxEmail: raw.contactInboxEmail ?? "",
+    systemFromEmail: raw.systemFromEmail ?? "",
     turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
     turnstileSiteKeySource: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? "env" : "none",
     turnstileSecretKey: {
@@ -587,6 +589,9 @@ export async function setIntegrationsSettings(
   // Non-secret fields: "" clears (falls back to env), value sets it.
   if (patch.contactInboxEmail !== undefined) {
     next.contactInboxEmail = patch.contactInboxEmail || undefined;
+  }
+  if (patch.systemFromEmail !== undefined) {
+    next.systemFromEmail = patch.systemFromEmail || undefined;
   }
   if (patch.gaId !== undefined) {
     next.gaId = patch.gaId || undefined;
@@ -629,7 +634,7 @@ export async function getEffectiveResendConfig(): Promise<{ apiKey?: string; fro
   const raw = await getIntegrationsRaw();
   return {
     apiKey: raw.resendApiKey || process.env.RESEND_API_KEY,
-    fromEmail: raw.contactInboxEmail || process.env.CONTACT_INBOX_EMAIL,
+    fromEmail: raw.systemFromEmail || process.env.EMAIL_FROM,
   };
 }
 

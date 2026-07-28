@@ -249,7 +249,7 @@ export function CategoryForm({
               </span>
               {previewIconName && previewIconImageUrl && (
                 <span className="max-w-[10rem] text-center text-[11px] text-muted-400">
-                  Icon name được ưu tiên hiển thị
+                  Icon name takes priority for display
                 </span>
               )}
             </div>

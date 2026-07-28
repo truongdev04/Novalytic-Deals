@@ -28,6 +28,7 @@ export type AdminGeneralSettingsInput = z.infer<typeof adminGeneralSettingsSchem
 export const adminIntegrationsSettingsSchema = z.object({
   resendApiKey: z.string().optional().or(z.literal("")),
   contactInboxEmail: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  systemFromEmail: z.string().email("Enter a valid email").optional().or(z.literal("")),
   turnstileSecretKey: z.string().optional().or(z.literal("")),
   gaId: z.string().optional().or(z.literal("")),
   gtmId: z.string().optional().or(z.literal("")),

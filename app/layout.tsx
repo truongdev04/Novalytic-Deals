@@ -90,11 +90,15 @@ export default async function RootLayout({
           <NextTopLoader color="var(--brand-500)" height={3} showSpinner={false} />
           <JsonLd data={await organizationJsonLd()} />
           <JsonLd data={await websiteJsonLd()} />
-          <SiteChrome header={<Header />} footer={<Footer />} backToTop={<BackToTop />}>
+          <SiteChrome
+            header={<Header />}
+            footer={<Footer />}
+            backToTop={<BackToTop />}
+            analytics={<AnalyticsScripts />}
+          >
             {children}
           </SiteChrome>
           <Toaster position="bottom-right" richColors />
-          <AnalyticsScripts />
           <SpeedInsights />
         </body>
       </html>

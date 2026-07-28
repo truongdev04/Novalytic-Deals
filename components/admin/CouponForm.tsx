@@ -320,8 +320,8 @@ export function CouponForm({
                   )}
                 />
                 <p className="mt-1 text-xs text-muted-500">
-                  The coupon Type = &quot;DEAL&quot; without a specific DISCOUNT has been working
-                  correctly before (select OTHER + 0 manually → displays &quot;DEAL&quot;).
+                  To show a generic &quot;DEAL&quot; badge with no specific discount amount, set
+                  Discount Type to &quot;Other&quot; and Discount Value to 0.
                 </p>
               </div>
 

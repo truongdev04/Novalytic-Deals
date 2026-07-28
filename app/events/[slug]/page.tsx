@@ -40,7 +40,7 @@ export async function generateMetadata({
   const event = await getEventBySlug(slug);
   if (!event) return {};
   return await buildMetadata({
-    title: `${event.name} Deals & Coupons — NovalyticDeals`,
+    title: `${event.name} Deals & Coupons`,
     description: event.description,
     path: `/events/${event.slug}`,
     image: event.bannerUrl,

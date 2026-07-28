@@ -19,7 +19,6 @@ import { CategoryCard } from "@/components/category/CategoryCard";
 import { DealProductCard } from "@/components/deal/DealProductCard";
 import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { BlogCard } from "@/components/blog/BlogCard";
-import { Newsletter } from "@/components/ui/Newsletter";
 import { CardSkeleton } from "@/components/ui/LoadingSkeleton";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { getSeoSettings } from "@/lib/data";
@@ -175,22 +174,6 @@ export default async function HomePage() {
           </div>
         </Container>
       </div>
-
-      <section className="bg-brand-700">
-        <Container className="flex flex-col items-center gap-6 py-14 text-center">
-          <div>
-            <h2 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
-              Get the best deals delivered to your inbox
-            </h2>
-            <p className="mt-2 text-brand-100">
-              Subscribe to our newsletter and never miss out on exclusive offers.
-            </p>
-          </div>
-          <div className="w-full max-w-md">
-            <Newsletter variant="footer" />
-          </div>
-        </Container>
-      </section>
     </>
   );
 }

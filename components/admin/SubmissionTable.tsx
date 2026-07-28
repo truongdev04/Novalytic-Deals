@@ -3,6 +3,7 @@
 import { useRouter } from "nextjs-toploader/app";
 import { usePathname, useSearchParams } from "next/navigation";
 import { SubmissionActions } from "@/components/admin/SubmissionActions";
+import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { buildQueryUrl } from "@/lib/utils";
 import type { getSubmittedCouponsAdminPaginated } from "@/lib/data/submittedCoupons";
@@ -68,7 +69,13 @@ export function SubmissionTable({
                 </td>
                 <td className="px-4 py-3 text-muted-600">{submission.submitterEmail}</td>
                 <td className="px-4 py-3 text-right">
-                  <SubmissionActions id={submission.id} status={submission.status} />
+                  <div className="flex items-center justify-end gap-1">
+                    <SubmissionActions id={submission.id} status={submission.status} />
+                    <DeleteButton
+                      endpoint={`/api/admin/submitted-coupons/${submission.id}`}
+                      confirmLabel={submission.storeName}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

@@ -7,7 +7,7 @@ declare global {
     turnstile?: {
       render: (
         container: HTMLElement,
-        options: { sitekey: string; callback: (token: string) => void }
+        options: { sitekey: string; callback: (token: string) => void; language?: string }
       ) => string;
       remove: (widgetId: string) => void;
     };
@@ -33,6 +33,7 @@ export function TurnstileWidget({ onVerify }: { onVerify: (token: string) => voi
       widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey as string,
         callback: onVerify,
+        language: "en",
       });
     }
 

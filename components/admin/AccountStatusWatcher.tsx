@@ -83,18 +83,18 @@ export function AccountStatusWatcher() {
           <ShieldAlert className="h-6 w-6" />
         </div>
         <h2 className="mt-4 font-heading text-lg font-semibold text-brand-950">
-          Tài khoản không còn hoạt động
+          Account no longer active
         </h2>
         <p className="mt-2 text-sm text-muted-600">
-          Tài khoản của bạn đã bị vô hiệu hóa hoặc xóa khỏi hệ thống. Vui lòng đăng xuất khỏi
-          trang quản trị.
+          Your account has been deactivated or removed from the system. Please sign out of the
+          admin panel.
         </p>
         <button
           type="button"
           onClick={handleSignOut}
           className="mt-5 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
         >
-          Đăng xuất ngay
+          Sign out now
         </button>
       </div>
     </div>

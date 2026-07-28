@@ -86,6 +86,7 @@ export interface SecretFieldView {
 export interface IntegrationsSettingsView {
   resendApiKey: SecretFieldView;
   contactInboxEmail?: string;
+  systemFromEmail?: string;
   turnstileSiteKey?: string;
   turnstileSiteKeySource: "env" | "none";
   turnstileSecretKey: SecretFieldView;

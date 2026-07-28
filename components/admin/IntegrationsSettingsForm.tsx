@@ -19,6 +19,7 @@ const fieldClassName =
 type NonSecretFields = Pick<
   AdminIntegrationsSettingsInput,
   | "contactInboxEmail"
+  | "systemFromEmail"
   | "gaId"
   | "gtmId"
   | "plausibleDomain"
@@ -42,6 +43,7 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
     resolver: zodResolver(
       adminIntegrationsSettingsSchema.pick({
         contactInboxEmail: true,
+        systemFromEmail: true,
         gaId: true,
         gtmId: true,
         plausibleDomain: true,
@@ -51,6 +53,7 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
     ),
     defaultValues: {
       contactInboxEmail: view.contactInboxEmail ?? "",
+      systemFromEmail: view.systemFromEmail ?? "",
       gaId: view.gaId ?? "",
       gtmId: view.gtmId ?? "",
       plausibleDomain: view.plausibleDomain ?? "",
@@ -110,6 +113,16 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
             Contact inbox &quot;from&quot; email
           </label>
           <input id="contactInboxEmail" className={fieldClassName} {...register("contactInboxEmail")} />
+        </div>
+        <div>
+          <label htmlFor="systemFromEmail" className="mb-1.5 block text-sm font-medium text-brand-950">
+            System email sender (from)
+          </label>
+          <input id="systemFromEmail" className={fieldClassName} {...register("systemFromEmail")} />
+          <p className="mt-1.5 text-xs text-muted-500">
+            Used as the &quot;from&quot; address for newsletter confirmations and other system
+            emails. Must be on a domain verified in Resend, or sending will silently fail.
+          </p>
         </div>
       </div>
 

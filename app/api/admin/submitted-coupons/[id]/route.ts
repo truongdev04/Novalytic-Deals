@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { updateSubmittedCouponStatus } from "@/lib/data";
+import { updateSubmittedCouponStatus, deleteSubmittedCoupon } from "@/lib/data";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
 const VALID_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
@@ -15,4 +15,13 @@ export async function PATCH(
 
   const submission = await updateSubmittedCouponStatus(id, status);
   return jsonOk(submission);
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  await deleteSubmittedCoupon(id);
+  return jsonOk({ deleted: true });
 }

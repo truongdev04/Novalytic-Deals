@@ -58,3 +58,7 @@ export async function updateSubmittedCouponStatus(
 ) {
   return prisma.submittedCoupon.update({ where: { id }, data: { status } });
 }
+
+export async function deleteSubmittedCoupon(id: string) {
+  await prisma.submittedCoupon.delete({ where: { id } });
+}
