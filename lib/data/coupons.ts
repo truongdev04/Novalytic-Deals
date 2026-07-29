@@ -249,6 +249,11 @@ export async function getCouponById(id: string): Promise<Coupon | undefined> {
   return row ? toCoupon(row) : undefined;
 }
 
+export async function getCouponOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.coupon.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
+}
+
 // isExpired() treats a null expiresAt as "not expired" and expires only when
 // expiresAt < now — so "not expired" in Prisma terms is expiresAt null OR
 // expiresAt >= now (gte, not gt).
@@ -452,6 +457,7 @@ export interface AdminCouponFilters {
   isActive?: boolean;
   verified?: boolean;
   exclusive?: boolean;
+  createdById?: string;
 }
 
 // Admin-facing paginated list — unlike filterCoupons/filterCouponsPaginated
@@ -470,6 +476,7 @@ export async function getCouponsAdminPaginated(
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
   if (filters.verified !== undefined) where.verified = filters.verified;
   if (filters.exclusive !== undefined) where.exclusive = filters.exclusive;
+  if (filters.createdById) where.createdById = filters.createdById;
 
   const q = filters.query?.trim();
   if (q) {
@@ -632,6 +639,10 @@ export interface AdminCouponFields {
   isFeatured: boolean;
 }
 
+export interface AdminCouponCreateFields extends AdminCouponFields {
+  createdById: string;
+}
+
 function throwIfSlugConflict(error: unknown): never {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -643,7 +654,7 @@ function throwIfSlugConflict(error: unknown): never {
   throw error;
 }
 
-export async function createCoupon(fields: AdminCouponFields): Promise<Coupon> {
+export async function createCoupon(fields: AdminCouponCreateFields): Promise<Coupon> {
   try {
     const row = await prisma.coupon.create({
       data: {
@@ -665,6 +676,7 @@ export async function createCoupon(fields: AdminCouponFields): Promise<Coupon> {
         startsAt: fields.startsAt,
         expiresAt: fields.expiresAt || null,
         isFeatured: fields.isFeatured,
+        createdById: fields.createdById,
       },
     });
     purgeTag("coupons:list");

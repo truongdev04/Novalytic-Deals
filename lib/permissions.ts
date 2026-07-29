@@ -1,4 +1,4 @@
-import type { EditorPermission } from "@/lib/validators/admin/user";
+import type { DataScopedPermission, EditorPermission } from "@/lib/validators/admin/user";
 
 export const ADMIN_ONLY = "ADMIN_ONLY" as const;
 
@@ -95,4 +95,18 @@ export function canAccess(
   if (required === null) return true;
   if (required === ADMIN_ONLY) return false;
   return (permissions ?? []).includes(required);
+}
+
+/**
+ * Row-level counterpart to canAccess() — orthogonal to the coarse whole-module
+ * gate above. An EDITOR without `module` in their fullDataAccess[] is scoped
+ * to only their own records within that module; ADMIN is never scoped.
+ */
+export function isDataScoped(
+  role: "ADMIN" | "EDITOR" | undefined,
+  fullDataAccess: string[] | undefined,
+  module: DataScopedPermission
+): boolean {
+  if (role !== "EDITOR") return false;
+  return !(fullDataAccess ?? []).includes(module);
 }

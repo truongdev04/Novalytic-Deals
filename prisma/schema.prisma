@@ -86,6 +86,7 @@ model Store {
   faq              Json
   categoryIds      String[]
   eventId          String?
+  createdById      String?
   // Monthly-frozen SEO title/description discount snapshot (lib/content/storeSeoSnapshot.ts) —
   // seoDiscountSnapshot is the formatted value (e.g. "20%") or null when the store currently has
   // no qualifying coupon (fallback template used instead); seoDiscountSnapshotPeriod is the UTC
@@ -105,6 +106,7 @@ model Store {
   @@index([isPin])
   @@index([isActive])
   @@index([eventId])
+  @@index([createdById])
   @@index([categoryIds], type: Gin)
   @@map("stores")
 }
@@ -119,6 +121,7 @@ model Category {
   isFeatured  Boolean  @default(false)
   seo         Json
   faq         Json
+  createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -131,6 +134,7 @@ model Category {
 
   @@index([parentId])
   @@index([isFeatured])
+  @@index([createdById])
   @@map("categories")
 }
 
@@ -164,6 +168,7 @@ model Coupon {
   // lastHourClicks is its frozen value from the last Auto Coupon rollover.
   currentHourClicks Int       @default(0)
   lastHourClicks    Int       @default(0)
+  createdById    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -174,6 +179,7 @@ model Coupon {
   @@index([isFeatured])
   @@index([isTrending])
   @@index([isActive])
+  @@index([createdById])
   @@map("coupons")
 }
 
@@ -202,6 +208,7 @@ model Deal {
   // lastHourClicks is its frozen value from the last Auto Deal rollover.
   currentHourClicks Int   @default(0)
   lastHourClicks    Int   @default(0)
+  createdById   String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -210,6 +217,7 @@ model Deal {
   @@index([categoryId])
   @@index([isFeatured])
   @@index([isActive])
+  @@index([createdById])
   @@map("deals")
 }
 
@@ -232,6 +240,7 @@ model BlogPost {
   isFeatured      Boolean    @default(false)
   isFirst         Boolean    @default(false)
   isActive        Boolean    @default(true)
+  createdById     String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -240,6 +249,7 @@ model BlogPost {
   @@index([publishedAt])
   @@index([isActive])
   @@index([isFeatured])
+  @@index([createdById])
   @@map("blog_posts")
 }
 
@@ -266,6 +276,7 @@ model Event {
   bannerUrl    String?
   startsAt     DateTime?
   endsAt       DateTime?
+  createdById  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -273,6 +284,7 @@ model Event {
   deals        Deal[]
   eventCoupons EventCoupon[]
 
+  @@index([createdById])
   @@map("events")
 }
 
@@ -363,6 +375,7 @@ model User {
   avatarUrl      String?
   phone          String?
   permissions    String[]  @default([])
+  fullDataAccess String[]  @default([])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

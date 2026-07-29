@@ -3,6 +3,7 @@ import {
   deleteBlogPost,
   getDefaultAuthor,
   getBlogPostById,
+  getBlogPostOwnerId,
   setBlogPostActive,
   setBlogPostFeatured,
   setBlogPostFirst,
@@ -10,9 +11,13 @@ import {
 } from "@/lib/data";
 import { adminBlogPostSchema } from "@/lib/validators/admin/blog";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "blog", getBlogPostOwnerId);
+  if ("error" in authz) return authz.error;
+
   const post = await getBlogPostById(id);
   if (!post) return jsonError(404, "Blog post not found");
   return jsonOk(post);
@@ -23,6 +28,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "blog", getBlogPostOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
 
   // Quick toggle from the list page sends only { isFeatured }; the full
@@ -76,6 +84,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "blog", getBlogPostOwnerId);
+  if ("error" in authz) return authz.error;
+
   await deleteBlogPost(id);
   return jsonOk({ deleted: true });
 }

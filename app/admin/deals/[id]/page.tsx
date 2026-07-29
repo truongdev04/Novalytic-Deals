@@ -1,16 +1,22 @@
 import { notFound } from "next/navigation";
-import { getAllStores, getCategories, getDealById, getEvents } from "@/lib/data";
+import { auth } from "@/auth";
+import { getAllStores, getCategories, getDealById, getDealOwnerId, getEvents } from "@/lib/data";
 import { DealForm } from "@/components/admin/DealForm";
+import { isDataScoped } from "@/lib/permissions";
 
 export default async function EditDealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [deal, stores, events, categories] = await Promise.all([
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "deals");
+  const [deal, ownerId, stores, events, categories] = await Promise.all([
     getDealById(id),
+    scoped ? getDealOwnerId(id) : Promise.resolve(undefined),
     getAllStores(),
     getEvents(),
     getCategories(),
   ]);
   if (!deal) notFound();
+  if (scoped && ownerId !== session?.user?.id) notFound();
 
   return (
     <div>

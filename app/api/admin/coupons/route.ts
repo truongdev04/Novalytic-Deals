@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { createCoupon, getAllCoupons } from "@/lib/data";
 import { adminCouponSchema } from "@/lib/validators/admin/coupon";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return jsonError(401, "Unauthorized");
+
   const body = await request.json().catch(() => null);
   const parsed = adminCouponSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, "Invalid coupon data");
@@ -31,6 +35,7 @@ export async function POST(request: NextRequest) {
       startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : new Date(),
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
       isFeatured: parsed.data.isFeatured,
+      createdById: session.user.id,
     });
     return jsonOk(coupon, 201);
   } catch (error) {

@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import {
   getDealsAdminPaginated,
   getAllStores,
@@ -8,6 +9,7 @@ import {
 import { DealTable } from "@/components/admin/DealTable";
 import { DealControls } from "@/components/admin/DealControls";
 import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
+import { isDataScoped } from "@/lib/permissions";
 import type { Deal } from "@/types";
 
 function parseBool(value?: string): boolean | undefined {
@@ -46,6 +48,9 @@ export default async function AdminDealsPage({
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.size)) ? Number(params.size) : 20;
 
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "deals");
+
   const filters: AdminDealFilters = {
     storeId: params.store || undefined,
     type: parseType(params.type),
@@ -53,6 +58,7 @@ export default async function AdminDealsPage({
     query: params.q || undefined,
     isFeatured: parseBool(params.featured),
     isActive: params.status === "active" ? true : params.status === "hidden" ? false : undefined,
+    createdById: scoped ? session?.user?.id : undefined,
   };
 
   const [{ items: deals, total }, stores, events, dealRefreshSettings] = await Promise.all([

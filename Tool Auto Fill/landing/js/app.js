@@ -397,6 +397,13 @@ Trả về ĐÚNG JSON, không thêm chữ nào khác ngoài JSON. Nối 4 đo�
 
 function currentProvider(){ return PROVIDERS[$('provider').value]; }
 
+// Nhiều key/dòng cho cùng 1 provider — lưu nguyên văn nội dung textarea,
+// tách khi cần dùng.
+function getKeys(provider){
+  const raw=localStorage.getItem(provider.keyName)||'';
+  return raw.split('\n').map(k=>k.trim()).filter(Boolean);
+}
+
 function refreshProviderUI(){
   const p=currentProvider();
   $('model').value=p.defaultModel;
@@ -487,7 +494,7 @@ function buildAttemptChain(primaryProviderId,primaryModel){
     if(!parsed) continue;
     const provider=PROVIDERS[parsed.providerId];
     if(!provider) continue;
-    if(!localStorage.getItem(provider.keyName)) continue;
+    if(getKeys(provider).length===0) continue;
     const dup=chain.some(a=>a.providerId===parsed.providerId && a.model===parsed.model);
     if(dup) continue;
     chain.push(parsed);
@@ -507,7 +514,10 @@ function finishRun(reason,completed,extra={}){
   if(reason==='success'){
     const finalLabel=PROVIDERS[extra.chain[extra.chainPos].providerId].label;
     const finalModel=extra.chain[extra.chainPos].model;
-    const switchedNote = extra.chainPos>0 ? ` (đã tự động chuyển sang ${finalLabel} · ${finalModel} giữa chừng)` : ` bằng ${finalLabel}.`;
+    let switchedNote;
+    if(extra.chainPos>0) switchedNote=` (đã tự động chuyển sang ${finalLabel} · ${finalModel} giữa chừng)`;
+    else if(extra.keyPos>0) switchedNote=` (đã tự động chuyển sang key #${extra.keyPos+1} của ${finalLabel} giữa chừng)`;
+    else switchedNote=` bằng ${finalLabel}.`;
     msg=`Đã viết xong ${total}/${total} store${switchedNote}`;
   } else if(reason==='manual'){
     msg=`Đã dừng theo yêu cầu — hoàn thành ${completed}/${total} store.`;
@@ -532,12 +542,12 @@ $('genAI').onclick=async()=>{
   if(!OUT||!OUT.stores.length)return;
   const p=currentProvider();
   const model=$('model').value.trim()||p.defaultModel;
-  const key=$('apiKey').value.trim();
-  if(!key){ $('aiProgress').textContent='Nhập API key cho '+p.label+' trước đã.'; return; }
-  localStorage.setItem(p.keyName,key);
+  localStorage.setItem(p.keyName,$('apiKey').value);
+  if(getKeys(p).length===0){ $('aiProgress').textContent='Nhập ít nhất 1 API key cho '+p.label+' trước đã.'; return; }
 
   const chain=buildAttemptChain($('provider').value,model);
   let chainPos=0; // chỉ tăng dần, KHÔNG reset theo store, KHÔNG wraparound
+  let keyPos=0; // vị trí key trong danh sách key của chain[chainPos]; reset về 0 khi chainPos tăng, KHÔNG reset theo store
 
   const btn=$('genAI');
   btn.disabled=true;
@@ -561,20 +571,25 @@ $('genAI').onclick=async()=>{
       }
       const attempt=chain[chainPos];
       const attemptProvider=PROVIDERS[attempt.providerId];
-      const attemptKey=localStorage.getItem(attemptProvider.keyName);
-      $('aiProgress').textContent=`Đang viết ${i+1}/${total} (${attemptProvider.label} · ${attempt.model}): ${s.name}...`;
+      const attemptKeys=getKeys(attemptProvider);
+      const attemptKey=attemptKeys[keyPos];
+      const keyTag=attemptKeys.length>1?` · key #${keyPos+1}/${attemptKeys.length}`:'';
+      $('aiProgress').textContent=`Đang viết ${i+1}/${total} (${attemptProvider.label} · ${attempt.model}${keyTag}): ${s.name}...`;
       try{
         const raw=await attemptProvider.call(attemptKey,attempt.model,buildPrompt(s.name,titles,s.link_website));
         const data=extractJSON(raw);
         s.description=data.description||'';
         s.about_store=data.about_store||'';
         render(OUT,false); // cập nhật bảng ngay lúc này, không cuộn trang
-        break; // store này xong — sang store tiếp theo, chainPos giữ nguyên
+        break; // store này xong — sang store tiếp theo, chainPos/keyPos giữ nguyên
       }catch(err){
-        if(chainPos+1<chain.length){
+        if(keyPos+1<attemptKeys.length){
+          $('aiProgress').textContent=`${attemptProvider.label} key #${keyPos+1} lỗi (${err.message}) — thử key #${keyPos+2}/${attemptKeys.length}...`;
+          keyPos++; // thử lại CÙNG store, CÙNG chainPos với key kế tiếp của provider này
+        } else if(chainPos+1<chain.length){
           const next=PROVIDERS[chain[chainPos+1].providerId];
-          $('aiProgress').textContent=`${attemptProvider.label} lỗi (${err.message}) — chuyển sang ${next.label} · ${chain[chainPos+1].model}...`;
-          chainPos++; // thử lại CÙNG store này với attempt kế tiếp
+          $('aiProgress').textContent=`${attemptProvider.label} đã thử hết ${attemptKeys.length} key, vẫn lỗi (${err.message}) — chuyển sang ${next.label} · ${chain[chainPos+1].model}...`;
+          chainPos++; keyPos=0; // thử lại CÙNG store này với attempt kế tiếp
         } else {
           finishRun('exhausted',i,{storeName:s.name,chain,errMessage:err.message});
           return;
@@ -582,5 +597,5 @@ $('genAI').onclick=async()=>{
       }
     }
   }
-  finishRun('success',total,{chain,chainPos});
+  finishRun('success',total,{chain,chainPos,keyPos});
 };

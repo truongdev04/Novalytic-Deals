@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { getCategories } from "@/lib/data";
+import { auth } from "@/auth";
+import { getCategoriesAdmin } from "@/lib/data";
 import { CategoryTable } from "@/components/admin/CategoryTable";
+import { isDataScoped } from "@/lib/permissions";
 
 export default async function AdminCategoriesPage() {
-  const categories = await getCategories();
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "categories");
+  const categories = await getCategoriesAdmin({
+    createdById: scoped ? session?.user?.id : undefined,
+  });
 
   return (
     <div>

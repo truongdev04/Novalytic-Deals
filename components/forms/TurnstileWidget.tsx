@@ -2,12 +2,19 @@
 
 import { useEffect, useRef } from "react";
 
+type TurnstileAppearance = "always" | "execute" | "interaction-only";
+
 declare global {
   interface Window {
     turnstile?: {
       render: (
         container: HTMLElement,
-        options: { sitekey: string; callback: (token: string) => void; language?: string }
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          language?: string;
+          appearance?: TurnstileAppearance;
+        }
       ) => string;
       remove: (widgetId: string) => void;
     };
@@ -18,7 +25,16 @@ const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
 // Renders nothing when no site key is configured (dev/before Cloudflare
 // account is set up) — server-side verification is skipped to match.
-export function TurnstileWidget({ onVerify }: { onVerify: (token: string) => void }) {
+export function TurnstileWidget({
+  onVerify,
+  appearance = "always",
+}: {
+  onVerify: (token: string) => void;
+  // "interaction-only" keeps the widget invisible unless Cloudflare can't
+  // verify silently — used on the forgot-password page to avoid showing a
+  // visible checkbox for a low-friction flow.
+  appearance?: TurnstileAppearance;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -34,6 +50,7 @@ export function TurnstileWidget({ onVerify }: { onVerify: (token: string) => voi
         sitekey: siteKey as string,
         callback: onVerify,
         language: "en",
+        appearance,
       });
     }
 
@@ -51,7 +68,7 @@ export function TurnstileWidget({ onVerify }: { onVerify: (token: string) => voi
       cancelled = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [siteKey, onVerify]);
+  }, [siteKey, onVerify, appearance]);
 
   if (!siteKey) return null;
 

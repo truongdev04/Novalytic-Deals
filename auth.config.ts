@@ -8,6 +8,7 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.role = (user as { role?: string }).role;
         token.permissions = (user as { permissions?: string[] }).permissions;
+        token.fullDataAccess = (user as { fullDataAccess?: string[] }).fullDataAccess;
       }
       return token;
     },
@@ -15,6 +16,7 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.role = token.role as "ADMIN" | "EDITOR" | undefined;
         session.user.permissions = token.permissions as string[] | undefined;
+        session.user.fullDataAccess = token.fullDataAccess as string[] | undefined;
         session.user.id = token.sub as string;
       }
       return session;

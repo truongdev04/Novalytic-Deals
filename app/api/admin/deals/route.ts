@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { createDeal, getAllDeals } from "@/lib/data";
 import { adminDealSchema } from "@/lib/validators/admin/deal";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return jsonError(401, "Unauthorized");
+
   const body = await request.json().catch(() => null);
   const parsed = adminDealSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, "Invalid deal data");
@@ -29,6 +33,7 @@ export async function POST(request: NextRequest) {
       imageUrl: parsed.data.imageUrl,
       description: parsed.data.description || null,
       isFeatured: parsed.data.isFeatured,
+      createdById: session.user.id,
     });
     return jsonOk(deal, 201);
   } catch (error) {

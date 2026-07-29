@@ -70,6 +70,10 @@ export interface AdminStoreFilters {
   isFeatured?: boolean;
   isPin?: boolean;
   isActive?: boolean;
+  // Set when the acting editor is scoped to their own data for this module
+  // (see lib/permissions.ts isDataScoped) — undefined means unscoped (ADMIN
+  // or an editor with full data access).
+  createdById?: string;
 }
 
 // Admin-facing paginated list — sees hidden stores too, status is just
@@ -85,6 +89,7 @@ export async function getStoresAdminPaginated(
   if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
   if (filters.isPin !== undefined) where.isPin = filters.isPin;
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.createdById) where.createdById = filters.createdById;
 
   const q = filters.query?.trim();
   if (q) where.name = { contains: q, mode: "insensitive" };
@@ -178,6 +183,11 @@ export async function updateStoreSeoDiscountSnapshot(
 export async function getStoreById(id: string): Promise<Store | undefined> {
   const row = await prisma.store.findUnique({ where: { id } });
   return row ? toStore(row) : undefined;
+}
+
+export async function getStoreOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.store.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
 }
 
 export async function getStoresByIds(ids: string[]): Promise<Store[]> {
@@ -449,7 +459,11 @@ export interface AdminStoreFields {
   faq: StoreFaqItem[];
 }
 
-export async function createStore(fields: AdminStoreFields): Promise<Store> {
+export interface AdminStoreCreateFields extends AdminStoreFields {
+  createdById: string;
+}
+
+export async function createStore(fields: AdminStoreCreateFields): Promise<Store> {
   let row: PrismaStore;
   try {
     row = await prisma.store.create({
@@ -472,6 +486,7 @@ export async function createStore(fields: AdminStoreFields): Promise<Store> {
         seo: fields.seo as unknown as Prisma.InputJsonValue,
         faq: fields.faq as unknown as Prisma.InputJsonValue,
         categoryIds: fields.categoryIds,
+        createdById: fields.createdById,
       },
     });
   } catch (error) {

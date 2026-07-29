@@ -6,12 +6,14 @@ declare module "next-auth" {
       id: string;
       role?: "ADMIN" | "EDITOR";
       permissions?: string[];
+      fullDataAccess?: string[];
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: "ADMIN" | "EDITOR";
     permissions?: string[];
+    fullDataAccess?: string[];
   }
 }
 
@@ -19,5 +21,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     role?: "ADMIN" | "EDITOR";
     permissions?: string[];
+    fullDataAccess?: string[];
   }
 }

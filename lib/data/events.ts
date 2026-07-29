@@ -74,6 +74,40 @@ export const getEvents = unstable_cache(
   { tags: ["events:list"], revalidate: 300 }
 );
 
+export interface AdminEventFilters {
+  createdById?: string;
+}
+
+// Admin-only, ownership-scoped counterpart to getEvents() above — used
+// exclusively by the admin list page so a data-scoped editor only sees their
+// own events. getEvents() itself stays unfiltered/untouched since other
+// pages (event pickers on Store/Deal forms) rely on it returning every
+// event regardless of who's logged in.
+export async function getEventsAdmin(filters: AdminEventFilters = {}): Promise<Event[]> {
+  const scopeKey = filters.createdById ?? "all";
+  return unstable_cache(
+    async () => {
+      const rows = await prisma.event.findMany({
+        where: filters.createdById ? { createdById: filters.createdById } : undefined,
+      });
+      const eventIds = rows.map((r) => r.id);
+      const [byStore, byCoupon] = await Promise.all([
+        storeIdsByEventId(eventIds),
+        couponIdsByEventId(eventIds),
+      ]);
+      return rows
+        .map((row) => toEvent(row, byStore.get(row.id) ?? [], byCoupon.get(row.id) ?? []))
+        .sort(
+          (a, b) =>
+            new Date(a.startsAt ?? "9999-12-31").getTime() -
+            new Date(b.startsAt ?? "9999-12-31").getTime()
+        );
+    },
+    [`events:list:${scopeKey}`],
+    { tags: ["events:list"], revalidate: 300 }
+  )();
+}
+
 export async function getEventBySlug(slug: string): Promise<Event | undefined> {
   return unstable_cache(
     async () => {
@@ -100,6 +134,11 @@ export async function getEventById(id: string): Promise<Event | undefined> {
   return toEvent(row, stores.map((s) => s.id), coupons.map((c) => c.couponId));
 }
 
+export async function getEventOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.event.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   const storeCount = await prisma.store.count({ where: { eventId: id } });
   if (storeCount > 0) {
@@ -122,7 +161,11 @@ export interface AdminEventFields {
   endsAt?: Date | null;
 }
 
-export async function createEvent(fields: AdminEventFields): Promise<Event> {
+export interface AdminEventCreateFields extends AdminEventFields {
+  createdById: string;
+}
+
+export async function createEvent(fields: AdminEventCreateFields): Promise<Event> {
   const row = await prisma.event.create({
     data: {
       id: crypto.randomUUID(),
@@ -134,6 +177,7 @@ export async function createEvent(fields: AdminEventFields): Promise<Event> {
       bannerUrl: fields.bannerUrl || null,
       startsAt: fields.startsAt || null,
       endsAt: fields.endsAt || null,
+      createdById: fields.createdById,
     },
   });
   purgeTag("events:list");

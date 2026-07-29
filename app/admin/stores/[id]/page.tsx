@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
-import { getCategories, getEvents, getStoreById, getContentConfigSettings } from "@/lib/data";
+import { auth } from "@/auth";
+import {
+  getCategories,
+  getEvents,
+  getStoreById,
+  getStoreOwnerId,
+  getContentConfigSettings,
+} from "@/lib/data";
 import { resolveStoreDiscountLabel } from "@/lib/content/storeSeoSnapshot";
 import { StoreForm } from "@/components/admin/StoreForm";
+import { isDataScoped } from "@/lib/permissions";
 
 export default async function EditStorePage({
   params,
@@ -13,13 +21,17 @@ export default async function EditStorePage({
   const { id } = await params;
   const { from } = await searchParams;
   const returnUrl = from && from.startsWith("/admin/stores") ? from : "/admin/stores";
-  const [store, categories, events, contentConfig] = await Promise.all([
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "stores");
+  const [store, ownerId, categories, events, contentConfig] = await Promise.all([
     getStoreById(id),
+    scoped ? getStoreOwnerId(id) : Promise.resolve(undefined),
     getCategories(),
     getEvents(),
     getContentConfigSettings(),
   ]);
   if (!store) notFound();
+  if (scoped && ownerId !== session?.user?.id) notFound();
 
   // Real (frozen-for-the-month) {discount} value, purely for the SEO
   // title/description placeholder preview below — never written into the

@@ -1,10 +1,20 @@
 import type { NextRequest } from "next/server";
-import { deleteEvent, getEventById, setEventCoupons, updateEvent } from "@/lib/data";
+import {
+  deleteEvent,
+  getEventById,
+  getEventOwnerId,
+  setEventCoupons,
+  updateEvent,
+} from "@/lib/data";
 import { adminEventSchema } from "@/lib/validators/admin/event";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "events", getEventOwnerId);
+  if ("error" in authz) return authz.error;
+
   const event = await getEventById(id);
   if (!event) return jsonError(404, "Event not found");
   return jsonOk(event);
@@ -15,6 +25,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "events", getEventOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
   const parsed = adminEventSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, "Invalid event data");
@@ -41,6 +54,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "events", getEventOwnerId);
+  if ("error" in authz) return authz.error;
+
   try {
     await deleteEvent(id);
     return jsonOk({ deleted: true });

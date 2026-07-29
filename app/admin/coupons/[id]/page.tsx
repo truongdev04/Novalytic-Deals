@@ -1,15 +1,26 @@
 import { notFound } from "next/navigation";
-import { getAllStores, getCouponById, getContentConfigSettings } from "@/lib/data";
+import { auth } from "@/auth";
+import {
+  getAllStores,
+  getCouponById,
+  getCouponOwnerId,
+  getContentConfigSettings,
+} from "@/lib/data";
 import { CouponForm } from "@/components/admin/CouponForm";
+import { isDataScoped } from "@/lib/permissions";
 
 export default async function EditCouponPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [coupon, stores, contentConfig] = await Promise.all([
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "coupons");
+  const [coupon, ownerId, stores, contentConfig] = await Promise.all([
     getCouponById(id),
+    scoped ? getCouponOwnerId(id) : Promise.resolve(undefined),
     getAllStores(),
     getContentConfigSettings(),
   ]);
   if (!coupon) notFound();
+  if (scoped && ownerId !== session?.user?.id) notFound();
 
   return (
     <div>

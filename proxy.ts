@@ -6,10 +6,17 @@ import { canAccess } from "@/lib/permissions";
 
 const { auth } = NextAuth(authConfig);
 
+// Admin forgot-password flow must stay reachable without a session — it's
+// how a locked-out admin recovers access in the first place.
+const PUBLIC_ADMIN_PAGES = ["/admin/login", "/admin/forgot-password", "/admin/reset-password"];
+const PUBLIC_ADMIN_API_PREFIXES = ["/api/admin/forgot-password", "/api/admin/reset-password"];
+
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
-  const isAdminApi = pathname.startsWith("/api/admin");
-  const isAdminPage = pathname.startsWith("/admin") && pathname !== "/admin/login";
+  const isAdminApi =
+    pathname.startsWith("/api/admin") &&
+    !PUBLIC_ADMIN_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const isAdminPage = pathname.startsWith("/admin") && !PUBLIC_ADMIN_PAGES.includes(pathname);
 
   if (!isAdminApi && !pathname.startsWith("/admin") && !pathname.startsWith("/_next")) {
     const rule = redis ? await redis.hget<{ destination: string; type: "PERMANENT" | "TEMPORARY" }>(

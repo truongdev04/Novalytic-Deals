@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { createEvent, getEventById, getEvents, setEventCoupons } from "@/lib/data";
 import { adminEventSchema } from "@/lib/validators/admin/event";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return jsonError(401, "Unauthorized");
+
   const body = await request.json().catch(() => null);
   const parsed = adminEventSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, "Invalid event data");
@@ -22,6 +26,7 @@ export async function POST(request: NextRequest) {
     bannerUrl: parsed.data.bannerUrl || null,
     startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
     endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
+    createdById: session.user.id,
   });
 
   await setEventCoupons(event.id, parsed.data.featuredCouponIds);

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import {
   deleteCoupon,
   getCouponById,
+  getCouponOwnerId,
   setCouponActive,
   setCouponFeatured,
   setCouponVerified,
@@ -9,9 +10,13 @@ import {
 } from "@/lib/data";
 import { adminCouponSchema } from "@/lib/validators/admin/coupon";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "coupons", getCouponOwnerId);
+  if ("error" in authz) return authz.error;
+
   const coupon = await getCouponById(id);
   if (!coupon) return jsonError(404, "Coupon not found");
   return jsonOk(coupon);
@@ -22,6 +27,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "coupons", getCouponOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
 
   // Quick toggle from the list page sends only { isFeatured } or { verified };
@@ -86,6 +94,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "coupons", getCouponOwnerId);
+  if ("error" in authz) return authz.error;
+
   await deleteCoupon(id);
   return jsonOk({ deleted: true });
 }

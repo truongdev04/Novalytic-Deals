@@ -73,6 +73,7 @@ export function ResetPasswordModal({
             <input
               id="password"
               type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
               className={`${fieldClassName} pr-10`}
               {...register("password")}
             />

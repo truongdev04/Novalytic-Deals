@@ -48,6 +48,7 @@ export interface AdminBlogFilters {
   isFeatured?: boolean;
   isFirst?: boolean;
   isActive?: boolean;
+  createdById?: string;
 }
 
 // Admin-facing paginated list — sees hidden posts too, status is just
@@ -63,6 +64,7 @@ export async function getBlogPostsAdminPaginated(
   if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
   if (filters.isFirst !== undefined) where.isFirst = filters.isFirst;
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.createdById) where.createdById = filters.createdById;
 
   const q = filters.query?.trim();
   if (q) {
@@ -203,6 +205,11 @@ export async function getBlogPostById(id: string): Promise<BlogPost | undefined>
   return row ? toBlogPost(row) : undefined;
 }
 
+export async function getBlogPostOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.blogPost.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
+}
+
 export async function setBlogPostFeatured(id: string, isFeatured: boolean): Promise<BlogPost> {
   const row = await prisma.blogPost.update({
     where: { id },
@@ -256,7 +263,11 @@ export interface AdminBlogPostFields {
   seo: BlogSeo;
 }
 
-export async function createBlogPost(fields: AdminBlogPostFields): Promise<BlogPost> {
+export interface AdminBlogPostCreateFields extends AdminBlogPostFields {
+  createdById: string;
+}
+
+export async function createBlogPost(fields: AdminBlogPostCreateFields): Promise<BlogPost> {
   const row = await prisma.blogPost.create({
     data: {
       id: crypto.randomUUID(),
@@ -274,6 +285,7 @@ export async function createBlogPost(fields: AdminBlogPostFields): Promise<BlogP
       isFeatured: fields.isFeatured,
       isFirst: fields.isFirst,
       seo: fields.seo as unknown as Prisma.InputJsonValue,
+      createdById: fields.createdById,
     },
   });
   purgeTag("blog:list");

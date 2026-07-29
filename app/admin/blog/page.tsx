@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { auth } from "@/auth";
 import { getBlogPostsAdminPaginated, type AdminBlogFilters } from "@/lib/data";
 import { BlogTable } from "@/components/admin/BlogTable";
 import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
+import { isDataScoped } from "@/lib/permissions";
 
 function parseBool(value?: string): boolean | undefined {
   if (value === "true") return true;
@@ -26,11 +28,15 @@ export default async function AdminBlogPage({
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.size)) ? Number(params.size) : 20;
 
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "blog");
+
   const filters: AdminBlogFilters = {
     query: params.q || undefined,
     isFeatured: parseBool(params.featured),
     isFirst: parseBool(params.first),
     isActive: params.status === "active" ? true : params.status === "hidden" ? false : undefined,
+    createdById: scoped ? session?.user?.id : undefined,
   };
 
   const { items: posts, total } = await getBlogPostsAdminPaginated(filters, page, pageSize);

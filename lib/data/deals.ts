@@ -58,6 +58,11 @@ export async function getDealById(id: string): Promise<Deal | undefined> {
   return row ? toDeal(row) : undefined;
 }
 
+export async function getDealOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.deal.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
+}
+
 // Active-only getter — matches getStores()/getCoupons()'s naming convention.
 // Used as the candidate pool for Deal click-ranking (lib/content/dealsRefresh.ts).
 // Own query (not derived from getAllDealsCached) so the public path never
@@ -171,6 +176,7 @@ export interface AdminDealFilters {
   query?: string;
   isFeatured?: boolean;
   isActive?: boolean;
+  createdById?: string;
 }
 
 // Admin-facing paginated list — sees hidden deals too, status is just
@@ -186,6 +192,7 @@ export async function getDealsAdminPaginated(
   if (filters.eventId !== undefined) where.eventId = filters.eventId;
   if (filters.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.createdById) where.createdById = filters.createdById;
 
   const q = filters.query?.trim();
   if (q) where.name = { contains: q, mode: "insensitive" };
@@ -310,7 +317,11 @@ export interface AdminDealFields {
   isFeatured: boolean;
 }
 
-export async function createDeal(fields: AdminDealFields): Promise<Deal> {
+export interface AdminDealCreateFields extends AdminDealFields {
+  createdById: string;
+}
+
+export async function createDeal(fields: AdminDealCreateFields): Promise<Deal> {
   try {
     const row = await prisma.deal.create({
       data: {
@@ -329,6 +340,7 @@ export async function createDeal(fields: AdminDealFields): Promise<Deal> {
         imageUrl: fields.imageUrl,
         description: fields.description || null,
         isFeatured: fields.isFeatured,
+        createdById: fields.createdById,
       },
     });
     purgeTag("deals:list");

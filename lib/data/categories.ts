@@ -29,6 +29,30 @@ export const getCategories = unstable_cache(
   { tags: ["categories:list"], revalidate: 300 }
 );
 
+export interface AdminCategoryFilters {
+  createdById?: string;
+}
+
+// Admin-only, ownership-scoped counterpart to getCategories() above — used
+// exclusively by the admin list page so a data-scoped editor only sees their
+// own categories. getCategories() itself stays unfiltered/untouched since
+// other pages (category pickers on Store/Deal/Blog forms) rely on it
+// returning every category regardless of who's logged in.
+export async function getCategoriesAdmin(filters: AdminCategoryFilters = {}): Promise<Category[]> {
+  const scopeKey = filters.createdById ?? "all";
+  return unstable_cache(
+    async () => {
+      const rows = await prisma.category.findMany({
+        where: filters.createdById ? { createdById: filters.createdById } : undefined,
+        orderBy: { createdAt: "desc" },
+      });
+      return rows.map(toCategory);
+    },
+    [`categories:list:${scopeKey}`],
+    { tags: ["categories:list"], revalidate: 300 }
+  )();
+}
+
 export const getFeaturedCategories = unstable_cache(
   async (limit = 8): Promise<Category[]> => {
     const rows = await prisma.category.findMany({
@@ -58,6 +82,11 @@ export async function getCategoryById(id: string): Promise<Category | undefined>
   return row ? toCategory(row) : undefined;
 }
 
+export async function getCategoryOwnerId(id: string): Promise<string | undefined> {
+  const row = await prisma.category.findUnique({ where: { id }, select: { createdById: true } });
+  return row?.createdById ?? undefined;
+}
+
 export interface AdminCategoryFields {
   slug: string;
   name: string;
@@ -80,7 +109,11 @@ function throwIfSlugConflict(error: unknown): never {
   throw error;
 }
 
-export async function createCategory(fields: AdminCategoryFields): Promise<Category> {
+export interface AdminCategoryCreateFields extends AdminCategoryFields {
+  createdById: string;
+}
+
+export async function createCategory(fields: AdminCategoryCreateFields): Promise<Category> {
   try {
     const row = await prisma.category.create({
       data: {
@@ -94,6 +127,7 @@ export async function createCategory(fields: AdminCategoryFields): Promise<Categ
         isFeatured: fields.isFeatured,
         seo: fields.seo as unknown as Prisma.InputJsonValue,
         faq: [] as unknown as Prisma.InputJsonValue,
+        createdById: fields.createdById,
       },
     });
     purgeTag("categories:list");

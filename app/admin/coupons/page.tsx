@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import {
   getCouponsAdminPaginated,
   getAllStores,
@@ -7,6 +8,7 @@ import {
 import { CouponTable } from "@/components/admin/CouponTable";
 import { CouponControls } from "@/components/admin/CouponControls";
 import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
+import { isDataScoped } from "@/lib/permissions";
 import type { Coupon } from "@/types";
 
 function parseBool(value?: string): boolean | undefined {
@@ -40,6 +42,9 @@ export default async function AdminCouponsPage({
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.size)) ? Number(params.size) : 20;
 
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "coupons");
+
   const filters: AdminCouponFilters = {
     storeId: params.store || undefined,
     type: parseType(params.type),
@@ -48,6 +53,7 @@ export default async function AdminCouponsPage({
     isActive: params.status === "active" ? true : params.status === "hidden" ? false : undefined,
     verified: parseBool(params.verified),
     exclusive: parseBool(params.exclusive),
+    createdById: scoped ? session?.user?.id : undefined,
   };
 
   const [{ items: coupons, total }, stores, couponRefreshSettings] = await Promise.all([

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import {
   deleteStore,
   getStoreById,
+  getStoreOwnerId,
   setStoreActive,
   setStoreEvent,
   setStoreFeatured,
@@ -10,9 +11,13 @@ import {
 } from "@/lib/data";
 import { adminStoreSchema } from "@/lib/validators/admin/store";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "stores", getStoreOwnerId);
+  if ("error" in authz) return authz.error;
+
   const store = await getStoreById(id);
   if (!store) return jsonError(404, "Store not found");
   return jsonOk(store);
@@ -23,6 +28,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "stores", getStoreOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
 
   // Quick toggle from the list page sends only { isFeatured }; the full
@@ -98,6 +106,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "stores", getStoreOwnerId);
+  if ("error" in authz) return authz.error;
+
   await deleteStore(id);
   return jsonOk({ deleted: true });
 }

@@ -1,10 +1,20 @@
 import type { NextRequest } from "next/server";
-import { deleteCategory, getCategoryById, setCategoryFeatured, updateCategory } from "@/lib/data";
+import {
+  deleteCategory,
+  getCategoryById,
+  getCategoryOwnerId,
+  setCategoryFeatured,
+  updateCategory,
+} from "@/lib/data";
 import { adminCategorySchema } from "@/lib/validators/admin/category";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "categories", getCategoryOwnerId);
+  if ("error" in authz) return authz.error;
+
   const category = await getCategoryById(id);
   if (!category) return jsonError(404, "Category not found");
   return jsonOk(category);
@@ -15,6 +25,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "categories", getCategoryOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
 
   // Quick toggle from the list page sends only { isFeatured };
@@ -54,6 +67,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "categories", getCategoryOwnerId);
+  if ("error" in authz) return authz.error;
+
   try {
     await deleteCategory(id);
     return jsonOk({ deleted: true });

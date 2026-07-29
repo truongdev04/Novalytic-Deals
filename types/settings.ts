@@ -71,6 +71,7 @@ export interface AdminUser {
   avatarUrl?: string;
   phone?: string;
   permissions: string[];
+  fullDataAccess: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -30,7 +30,7 @@ export interface AutoFillImportResult {
 // resolved id, and within-file duplicate store names must resolve in order.
 async function runAutoFillImport(
   parsed: ParsedAutoFillWorkbook,
-  { dryRun }: { dryRun: boolean }
+  { dryRun, createdById }: { dryRun: boolean; createdById?: string }
 ): Promise<AutoFillImportResult> {
   // Unfiltered — a hidden/inactive existing store still counts as "reused".
   const existingStores = await getAllStores();
@@ -75,6 +75,7 @@ async function runAutoFillImport(
         isPin: input.isPin,
         seo: { title: input.seoTitle || "", description: input.seoDescription || "" },
         faq: input.faq,
+        createdById: createdById!,
       });
       slugToId.set(store.slug, store.id);
       created.push({ row, name: input.name, slug: input.slug });
@@ -136,6 +137,7 @@ async function runAutoFillImport(
         startsAt: new Date(),
         expiresAt: null,
         isFeatured: input.isFeatured,
+        createdById: createdById!,
       });
       couponsCreated.push({ row, title: input.title, storeName });
     } catch (error) {
@@ -158,6 +160,9 @@ export async function previewAutoFillImport(parsed: ParsedAutoFillWorkbook): Pro
   return runAutoFillImport(parsed, { dryRun: true });
 }
 
-export async function commitAutoFillImport(parsed: ParsedAutoFillWorkbook): Promise<AutoFillImportResult> {
-  return runAutoFillImport(parsed, { dryRun: false });
+export async function commitAutoFillImport(
+  parsed: ParsedAutoFillWorkbook,
+  createdById: string
+): Promise<AutoFillImportResult> {
+  return runAutoFillImport(parsed, { dryRun: false, createdById });
 }

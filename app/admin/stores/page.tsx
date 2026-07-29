@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import {
   getStoresAdminPaginated,
   getCategories,
@@ -8,6 +9,7 @@ import {
 import { StoreTable } from "@/components/admin/StoreTable";
 import { PopularStoresControls } from "@/components/admin/PopularStoresControls";
 import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
+import { isDataScoped } from "@/lib/permissions";
 
 function parseBool(value?: string): boolean | undefined {
   if (value === "true") return true;
@@ -39,6 +41,9 @@ export default async function AdminStoresPage({
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.size)) ? Number(params.size) : 20;
 
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "stores");
+
   const filters: AdminStoreFilters = {
     query: params.q || undefined,
     categoryId: params.category || undefined,
@@ -46,6 +51,7 @@ export default async function AdminStoresPage({
     isFeatured: parseBool(params.featured),
     isPin: parseBool(params.pin),
     isActive: params.status === "active" ? true : params.status === "hidden" ? false : undefined,
+    createdById: scoped ? session?.user?.id : undefined,
   };
 
   const [{ items: stores, total }, categories, events, popularStoresSettings] = await Promise.all([

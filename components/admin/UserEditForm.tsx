@@ -8,6 +8,7 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import {
   adminUpdateUserSchema,
   EDITOR_PERMISSION_OPTIONS,
+  isDataScopedPermission,
   type AdminUpdateUserInput,
 } from "@/lib/validators/admin/user";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +16,7 @@ import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
+import { InlineSwitch } from "@/components/admin/InlineSwitch";
 import type { AdminUser } from "@/types";
 
 const fieldClassName =
@@ -61,10 +63,12 @@ export function UserEditForm({ user }: { user: AdminUser }) {
       phone: user.phone ?? "",
       password: "",
       permissions: (user.permissions as AdminUpdateUserInput["permissions"]) ?? [],
+      fullDataAccess: (user.fullDataAccess as AdminUpdateUserInput["fullDataAccess"]) ?? [],
     },
   });
 
   const role = useWatch({ control, name: "role" });
+  const permissions = useWatch({ control, name: "permissions" }) ?? [];
 
   async function onSubmit(data: AdminUpdateUserInput) {
     try {
@@ -104,7 +108,7 @@ export function UserEditForm({ user }: { user: AdminUser }) {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
         <button
           type="button"
           onClick={handleBack}
@@ -148,7 +152,13 @@ export function UserEditForm({ user }: { user: AdminUser }) {
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-brand-950">
               Email{requiredMark()}
             </label>
-            <input id="email" type="email" className={fieldClassName} {...register("email")} />
+            <input
+              id="email"
+              type="email"
+              autoComplete="off"
+              className={fieldClassName}
+              {...register("email")}
+            />
             {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
           </div>
 
@@ -168,6 +178,7 @@ export function UserEditForm({ user }: { user: AdminUser }) {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Leave blank to keep the current password"
+                autoComplete="new-password"
                 className={`${fieldClassName} pr-10`}
                 {...register("password")}
               />
@@ -213,18 +224,24 @@ export function UserEditForm({ user }: { user: AdminUser }) {
               </p>
               <div className="grid grid-cols-1 gap-2 rounded-lg border border-muted-200 p-3 sm:grid-cols-2">
                 {EDITOR_PERMISSION_OPTIONS.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex items-center gap-2 text-sm text-brand-950"
-                  >
-                    <input
-                      type="checkbox"
-                      value={option.value}
-                      className="h-4 w-4"
-                      {...register("permissions")}
-                    />
-                    {option.label}
-                  </label>
+                  <div key={option.value} className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-sm text-brand-950">
+                      <input
+                        type="checkbox"
+                        value={option.value}
+                        className="h-4 w-4"
+                        {...register("permissions")}
+                      />
+                      {option.label}
+                    </label>
+                    {isDataScopedPermission(option.value) && permissions.includes(option.value) && (
+                      <InlineSwitch
+                        value={option.value}
+                        label="Full data access"
+                        {...register("fullDataAccess")}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

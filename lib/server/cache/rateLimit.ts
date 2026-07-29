@@ -31,6 +31,15 @@ export const uploadRateLimit = createLimiter(20, "1 m");
 // multi-deal browsing, bounds abuse of the public click-counter ping.
 export const dealClickRateLimit = createLimiter(20, "1 m");
 
+// forgot-password: public route that sends email — bound spam/enumeration
+// probing, in the same order of magnitude as the contact form's 5/h.
+export const forgotPasswordRateLimit = createLimiter(5, "1 h");
+
+// forgot-password OTP verify: request-flooding is bounded by IP here; a
+// separate per-email attempt counter (stored directly in Redis, see the
+// verify route) stops brute-forcing one victim's 6-digit code across IPs.
+export const forgotPasswordVerifyRateLimit = createLimiter(5, "1 m");
+
 export async function checkRateLimit(limiter: Ratelimit | null, identifier: string) {
   if (!limiter) {
     // Upstash not configured (e.g. local dev) — allow all requests through.

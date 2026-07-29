@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { createStore, getAllStores, setStoreEvent } from "@/lib/data";
 import { adminStoreSchema } from "@/lib/validators/admin/store";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return jsonError(401, "Unauthorized");
+
   const body = await request.json().catch(() => null);
   const parsed = adminStoreSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, "Invalid store data");
@@ -36,6 +40,7 @@ export async function POST(request: NextRequest) {
       isPin: parsed.data.isPin,
       seo: { title: parsed.data.seoTitle || "", description: parsed.data.seoDescription || "" },
       faq: parsed.data.faq,
+      createdById: session.user.id,
     });
 
     if (parsed.data.eventId) {

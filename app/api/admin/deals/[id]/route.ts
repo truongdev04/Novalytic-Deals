@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import {
   deleteDeal,
   getDealById,
+  getDealOwnerId,
   setDealActive,
   setDealEvent,
   setDealFeatured,
@@ -9,9 +10,13 @@ import {
 } from "@/lib/data";
 import { adminDealSchema } from "@/lib/validators/admin/deal";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
+import { authorizeRecordAccess } from "@/lib/server/api/ownership";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "deals", getDealOwnerId);
+  if ("error" in authz) return authz.error;
+
   const deal = await getDealById(id);
   if (!deal) return jsonError(404, "Deal not found");
   return jsonOk(deal);
@@ -22,6 +27,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "deals", getDealOwnerId);
+  if ("error" in authz) return authz.error;
+
   const body = await request.json().catch(() => null);
 
   // Quick toggle from the list page sends only one field ({isFeatured} /
@@ -88,6 +96,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authz = await authorizeRecordAccess(id, "deals", getDealOwnerId);
+  if ("error" in authz) return authz.error;
+
   await deleteDeal(id);
   return jsonOk({ deleted: true });
 }

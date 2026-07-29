@@ -29,3 +29,12 @@ export function submitCouponNotificationEmail(storeName: string, description: st
     html: `<p><strong>Store:</strong> ${escapeHtml(storeName)}</p><p>${escapeHtml(description)}</p>`,
   };
 }
+
+export function adminPasswordResetCodeEmail(code: string) {
+  return {
+    subject: "Your NovalyticDeals admin password reset code",
+    html: `<p>Use the code below to reset your admin password. This code expires in 10 minutes.</p>
+<p style="font-size:24px;font-weight:bold;letter-spacing:4px;">${escapeHtml(code)}</p>
+<p>If you didn't request this, you can ignore this email — your password will not change.</p>`,
+  };
+}

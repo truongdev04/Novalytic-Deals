@@ -15,6 +15,7 @@ function toAdminUser(row: PrismaUser): AdminUser {
     avatarUrl: row.avatarUrl ?? undefined,
     phone: row.phone ?? undefined,
     permissions: row.permissions,
+    fullDataAccess: row.fullDataAccess,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -28,6 +29,11 @@ export async function getAllUsers(): Promise<AdminUser[]> {
 
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
   const row = await prisma.user.findUnique({ where: { id } });
+  return row ? toAdminUser(row) : undefined;
+}
+
+export async function getUserByEmail(email: string): Promise<AdminUser | undefined> {
+  const row = await prisma.user.findUnique({ where: { email } });
   return row ? toAdminUser(row) : undefined;
 }
 
@@ -72,6 +78,7 @@ export interface CreateUserFields {
   avatarUrl?: string;
   phone?: string;
   permissions?: string[];
+  fullDataAccess?: string[];
 }
 
 export async function createUser(fields: CreateUserFields): Promise<AdminUser> {
@@ -85,8 +92,9 @@ export async function createUser(fields: CreateUserFields): Promise<AdminUser> {
         fullName: fields.fullName,
         avatarUrl: fields.avatarUrl || null,
         phone: fields.phone || null,
-        // Permissions are only meaningful for EDITOR — ADMIN always has full access.
+        // Permissions/full-data-access are only meaningful for EDITOR — ADMIN always has full access.
         permissions: fields.role === "EDITOR" ? (fields.permissions ?? []) : [],
+        fullDataAccess: fields.role === "EDITOR" ? (fields.fullDataAccess ?? []) : [],
       },
     });
     return toAdminUser(row);
@@ -110,6 +118,7 @@ export interface UpdateUserFields {
   phone?: string;
   password?: string;
   permissions?: string[];
+  fullDataAccess?: string[];
 }
 
 export async function updateUser(id: string, fields: UpdateUserFields): Promise<AdminUser> {
@@ -130,6 +139,7 @@ export async function updateUser(id: string, fields: UpdateUserFields): Promise<
         avatarUrl: fields.avatarUrl || null,
         phone: fields.phone || null,
         permissions: fields.role === "EDITOR" ? (fields.permissions ?? []) : [],
+        fullDataAccess: fields.role === "EDITOR" ? (fields.fullDataAccess ?? []) : [],
         ...(hashedPassword ? { hashedPassword } : {}),
       },
     });

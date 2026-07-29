@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { getEvents } from "@/lib/data";
+import { auth } from "@/auth";
+import { getEventsAdmin } from "@/lib/data";
 import { EventTable } from "@/components/admin/EventTable";
+import { isDataScoped } from "@/lib/permissions";
 
 export default async function AdminEventsPage() {
-  const events = await getEvents();
+  const session = await auth();
+  const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "events");
+  const events = await getEventsAdmin({ createdById: scoped ? session?.user?.id : undefined });
   // Public pages want getEvents()'s chronological (startsAt) order; the
   // admin list wants newest-created first, so re-sort a copy here instead
   // of changing the shared cached order.

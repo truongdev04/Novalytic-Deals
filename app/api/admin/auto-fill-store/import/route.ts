@@ -1,9 +1,13 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { commitAutoFillImport } from "@/lib/data";
 import { parseAutoFillWorkbook, MAX_WORKBOOK_SIZE_BYTES } from "@/lib/parseAutoFillWorkbook";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return jsonError(401, "Unauthorized");
+
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
 
@@ -18,6 +22,6 @@ export async function POST(request: NextRequest) {
     return jsonError(400, err instanceof Error ? err.message : "Could not read this file.");
   }
 
-  const result = await commitAutoFillImport(parsed);
+  const result = await commitAutoFillImport(parsed, session.user.id);
   return jsonOk(result);
 }
