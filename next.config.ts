@@ -17,7 +17,10 @@ const contentSecurityPolicy = [
   "frame-src https://challenges.cloudflare.com",
   // AI provider hosts are for the internal "Tool Auto Fill" (public/tools/auto-fill/)
   // calling each provider's API directly from the browser with a user-supplied key.
-  "connect-src 'self' https://www.google-analytics.com https://plausible.io https://vitals.vercel-insights.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://openrouter.ai",
+  // analytics.google.com/stats.g.doubleclick.net/www.google.com are GA4's actual
+  // collect/conversion endpoints (gtag.js posts there, not to google-analytics.com,
+  // whenever the GA4 property has Google Ads linked).
+  "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.google.com https://plausible.io https://vitals.vercel-insights.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://openrouter.ai",
   "object-src 'none'",
   "base-uri 'self'",
 ]
