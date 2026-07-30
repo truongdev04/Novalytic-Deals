@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
 import type { Store as PrismaStore } from "@prisma/client";
 import { syncCouponWithStoreEvent } from "./events";
@@ -17,7 +18,7 @@ function throwIfSlugConflict(error: unknown): never {
 }
 
 function toStore(row: PrismaStore): Store {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -44,7 +45,7 @@ function toStore(row: PrismaStore): Store {
     seoDiscountSnapshotPeriod: row.seoDiscountSnapshotPeriod,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
+  });
 }
 
 const getAllStoresCached = unstable_cache(
@@ -138,7 +139,9 @@ export const getFeaturedStores = unstable_cache(
     // desc order from the query above.
     const pinned = [...featured]
       .filter((s) => s.isPin)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      // Nhiều store có thể cùng updatedAt (import hàng loạt, updateMany của
+      // rollover) nên cần tiebreak, không thì thứ tự phụ thuộc Prisma.
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime() || a.id.localeCompare(b.id));
     const rest = featured.filter((s) => !s.isPin);
     return [...pinned, ...rest].slice(0, limit).map(toStore);
   },

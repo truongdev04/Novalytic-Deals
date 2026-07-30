@@ -1,17 +1,18 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { BlogTopic } from "@/types";
 import type { BlogTopic as PrismaBlogTopic } from "@prisma/client";
 
 function toBlogTopic(row: PrismaBlogTopic): BlogTopic {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     name: row.name,
     description: row.description ?? undefined,
     createdAt: row.createdAt.toISOString(),
-  };
+  });
 }
 
 export const getBlogTopics = unstable_cache(

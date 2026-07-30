@@ -1,11 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Deal } from "@/types";
 import type { Deal as PrismaDeal } from "@prisma/client";
 
 function toDeal(row: PrismaDeal): Deal {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     storeId: row.storeId,
@@ -26,7 +27,7 @@ function toDeal(row: PrismaDeal): Deal {
     lastHourClicks: row.lastHourClicks,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
+  });
 }
 
 function throwIfSlugConflict(error: unknown): never {

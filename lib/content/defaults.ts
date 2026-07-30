@@ -2,8 +2,8 @@ import { getDefaultAuthor, getContentConfigSettings } from "@/lib/data";
 import {
   applyTemplate,
   applyTemplateVars,
-  pickRandomLine,
-  pickRandomBlock,
+  pickSeededLine,
+  pickSeededBlock,
   pickFaqSet,
   flattenBlock,
   blockToHtml,
@@ -18,8 +18,12 @@ import type { Store, BlogPost, Coupon, StoreFaqTemplateItem } from "@/types";
 // real (possibly empty) saved values, not fabricated auto-fill content.
 //
 // Description supports multiple multi-line candidates (separated by a blank
-// line, see splitTemplateBlocks) — a random candidate is picked per resolve
-// call so stores left blank don't all show the exact same text.
+// line, see splitTemplateBlocks) — the candidate is picked by hashing the
+// store id, so stores left blank don't all show the exact same text while
+// each store keeps the SAME text across renders. Phải tất định: hàm này chạy
+// cả trong generateMetadata lẫn body của /store/[slug], nên nếu chọn ngẫu
+// nhiên thì meta description sẽ mâu thuẫn với nội dung hiển thị, và trang
+// prerender đổi byte mỗi lần revalidate (Vercel tính ISR Write Unit).
 //
 // SEO title/description instead use ONE fixed structure shared by every
 // store, with {name}/{discount}/{month}/{year} placeholders — {discount} is
@@ -35,7 +39,10 @@ export async function resolveStoreContent(store: Store): Promise<Store> {
   // Description renders as HTML (RichHtml) — convert the candidate's line
   // breaks into <br> so they actually show, instead of collapsing into one
   // run-on line the way raw "\n" would in HTML.
-  const descriptionBlock = applyTemplate(pickRandomBlock(t.storeDescriptionTemplate), name);
+  const descriptionBlock = applyTemplate(
+    pickSeededBlock(t.storeDescriptionTemplate, store.id),
+    name
+  );
 
   const needsSeoFill = !store.seo.title || !store.seo.description;
   let seoTitle = "";
@@ -94,8 +101,11 @@ export async function resolveCouponContent(coupon: Coupon, storeName: string): P
   return {
     ...coupon,
     description:
-      coupon.description || applyTemplate(pickRandomLine(t.couponDescriptionTemplate), storeName),
-    terms: coupon.terms || applyTemplate(pickRandomBlock(t.couponTermsTemplate), storeName),
+      coupon.description ||
+      applyTemplate(pickSeededLine(t.couponDescriptionTemplate, coupon.id), storeName),
+    terms:
+      coupon.terms ||
+      applyTemplate(pickSeededBlock(t.couponTermsTemplate, `${coupon.id}:terms`), storeName),
   };
 }
 

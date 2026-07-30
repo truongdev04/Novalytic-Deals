@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Coupon } from "@/types";
 import type { Coupon as PrismaCoupon } from "@prisma/client";
 import { getStoreBySlug } from "./stores";
@@ -9,7 +10,7 @@ import { getContentConfigSettings } from "./settings";
 import { isExpired, seededShuffle } from "@/lib/utils";
 
 function toCoupon(row: PrismaCoupon): Coupon {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     storeId: row.storeId,
@@ -37,7 +38,7 @@ function toCoupon(row: PrismaCoupon): Coupon {
     lastHourClicks: row.lastHourClicks,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
+  });
 }
 
 export interface CouponFilters {
@@ -533,6 +534,9 @@ export async function getVerifiedCouponCountByStoreIds(
     by: ["storeId"],
     where: { isActive: true, verified: true, storeId: { in: storeIds } },
     _count: { _all: true },
+    // Kết quả đi thẳng vào Object.fromEntries — thứ tự key quyết định byte
+    // trong RSC payload nên phải cố định.
+    orderBy: { storeId: "asc" },
   });
   return Object.fromEntries(groups.map((g) => [g.storeId, g._count._all]));
 }
@@ -547,6 +551,7 @@ export async function getActiveCouponCountByCategory(): Promise<Record<string, n
     JOIN stores s ON c."storeId" = s.id
     WHERE c."isActive" = true AND s."isActive" = true
     GROUP BY 1
+    ORDER BY 1
   `;
   return Object.fromEntries(rows.map((r) => [r.categoryId, Number(r.count)]));
 }
