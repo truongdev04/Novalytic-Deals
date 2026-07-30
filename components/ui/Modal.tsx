@@ -19,7 +19,7 @@ export function Modal({ open, onOpenChange, title, children, className }: ModalP
         <Dialog.Overlay className="fixed inset-0 z-50 flex items-center justify-center bg-brand-950/50 p-4 data-[state=open]:animate-fade-in">
           <Dialog.Content
             className={cn(
-              "relative z-50 w-full max-w-md rounded-xl bg-surface-0 p-6 shadow-lg focus:outline-none data-[state=open]:animate-fade-in",
+              "relative z-50 flex max-h-[85vh] w-full max-w-md flex-col overflow-y-auto rounded-xl bg-surface-0 p-6 shadow-lg focus:outline-none data-[state=open]:animate-fade-in",
               className
             )}
           >

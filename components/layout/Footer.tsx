@@ -52,8 +52,8 @@ export async function Footer() {
 
   return (
     <footer className="bg-brand-950 text-brand-100">
-      <Container className={`grid grid-cols-2 gap-10 py-14 sm:grid-cols-2 ${desktopGridClass}`}>
-        <div className="col-span-2 lg:col-span-1">
+      <Container className={`grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 ${desktopGridClass}`}>
+        <div className="sm:col-span-2 lg:col-span-1">
           <Link href="/" className="flex items-center gap-2">
             {settings.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
@@ -147,7 +147,7 @@ export async function Footer() {
           </div>
         ))}
 
-        <div className="col-span-2 lg:col-span-1">
+        <div className="sm:col-span-2 lg:col-span-1">
           <h3 className="font-heading text-sm font-semibold text-white">Newsletter</h3>
           <p className="mt-4 text-sm text-brand-200">
             Get the latest deals delivered to your inbox.

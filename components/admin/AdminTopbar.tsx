@@ -16,7 +16,7 @@ export function AdminTopbar({
         type="button"
         onClick={onMenuClick}
         aria-label="Open menu"
-        className="rounded-lg p-1.5 text-muted-600 hover:bg-surface-100 hover:text-brand-950 md:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-600 hover:bg-surface-100 hover:text-brand-950 md:hidden"
       >
         <Menu className="h-5 w-5" />
       </button>

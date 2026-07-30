@@ -66,6 +66,9 @@ function buildNavItems(
       ? [{ href: "/admin/settings/content", label: "Content Configuration" }]
       : []),
     ...(has("settings_footer") ? [{ href: "/admin/settings/footer", label: "Footer" }] : []),
+    ...(has("settings_scripts")
+      ? [{ href: "/admin/settings/scripts", label: "Custom Scripts" }]
+      : []),
   ];
 
   return [
@@ -279,7 +282,7 @@ export function AdminSidebar({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-lg p-1 text-muted-600 hover:bg-surface-100 hover:text-brand-950"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-600 hover:bg-surface-100 hover:text-brand-950"
           >
             <X className="h-5 w-5" />
           </button>

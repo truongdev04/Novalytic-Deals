@@ -38,19 +38,19 @@ export function StoreHeader({
       <dl className="mt-6 grid grid-cols-3 gap-3 border-t border-muted-200 pt-5 text-center">
         <div>
           <dt className="text-xs text-muted-500">Total coupons</dt>
-          <dd className="mt-1 whitespace-nowrap font-heading text-lg font-normal text-black">
+          <dd className="mt-1 font-heading text-base font-normal text-black sm:text-lg">
             {totalCoupons}
           </dd>
         </div>
         <div>
           <dt className="text-xs text-muted-500">Active deals</dt>
-          <dd className="mt-1 whitespace-nowrap font-heading text-lg font-normal text-black">
+          <dd className="mt-1 font-heading text-base font-normal text-black sm:text-lg">
             {activeDeals}
           </dd>
         </div>
         <div>
           <dt className="text-xs text-muted-500">Best offer</dt>
-          <dd className="mt-1 whitespace-nowrap font-heading text-lg font-normal text-black">
+          <dd className="mt-1 font-heading text-base font-normal text-black sm:text-lg">
             {bestOfferLabel ?? "—"}
           </dd>
         </div>

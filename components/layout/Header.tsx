@@ -20,20 +20,20 @@ export async function Header() {
     <header className="sticky top-0 z-30 border-b border-muted-200 bg-surface-0/95 backdrop-blur">
       <Container>
         <div className="relative flex min-h-16 items-center justify-between gap-4 py-2">
-          <Link href="/" className="flex shrink-0 items-center gap-2">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
             {settings.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- admin-configured logo can be any external URL, outside next/image's remotePatterns allowlist
               <img
                 src={settings.logoUrl}
                 alt={settings.title}
-                className="h-9 w-9 rounded-lg object-contain"
+                className="h-9 w-9 shrink-0 rounded-lg object-contain"
               />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
                 <Tag className="h-5 w-5" />
               </span>
             )}
-            <span className="font-heading text-3xl font-semibold text-brand-950">
+            <span className="min-w-0 truncate font-heading text-lg font-semibold text-brand-950 sm:text-2xl lg:text-3xl">
               {settings.title || "NovalyticDeals"}
             </span>
           </Link>

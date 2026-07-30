@@ -81,7 +81,7 @@ export function CodeRevealDialog({
           <Dialog.Title className="sr-only">{storeName} code</Dialog.Title>
           <Dialog.Close
             aria-label="Close"
-            className="absolute right-4 top-4 rounded-full p-1.5 text-muted-500 hover:bg-surface-100 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-500 hover:bg-surface-100 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <X className="h-5 w-5" />
           </Dialog.Close>
