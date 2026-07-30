@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Megaphone, Star } from "lucide-react";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { Rating } from "@/components/ui/Rating";
@@ -11,6 +12,7 @@ import type { Review, Store } from "@/types";
 
 export function ReviewsSection({ store, reviews }: { store: Store; reviews: Review[] }) {
   const [formOpen, setFormOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div>
@@ -49,7 +51,10 @@ export function ReviewsSection({ store, reviews }: { store: Store; reviews: Revi
         <ReviewForm
           storeSlug={store.slug}
           storeName={store.name}
-          onSubmitted={() => setFormOpen(false)}
+          onSubmitted={() => {
+            setFormOpen(false);
+            router.refresh();
+          }}
           onCancel={() => setFormOpen(false)}
         />
       </Modal>

@@ -1,5 +1,30 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+// The coupon detail page is intentionally disabled — /coupon/[slug] 404s and
+// no static params are generated, so nothing links here anymore (coupon
+// titles in StoreCouponCard/CouponGridCard/CouponCard render as plain text,
+// and the route is excluded from the sitemap). Kept commented out below
+// instead of deleted so it can be restored later without rebuilding it from
+// scratch.
+//
+// dynamicParams = false is required for a real 404 status: without it, a
+// static page whose only job is calling notFound() still gets prerendered
+// as a generic static shell and served with 200 (verified against a real
+// `next build && next start` — content matched not-found.tsx but the status
+// stayed 200). Setting this makes any slug not in generateStaticParams
+// (i.e. every slug, since that returns []) 404 at the routing layer instead.
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  return [];
+}
+
+export default async function CouponPage() {
+  notFound();
+}
+
+/*
+import type { Metadata } from "next";
 import { Link } from "next-view-transitions";
 import {
   getCouponBySlug,
@@ -147,3 +172,4 @@ export default async function CouponPage({
     </Container>
   );
 }
+*/

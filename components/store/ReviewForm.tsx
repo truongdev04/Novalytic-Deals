@@ -58,7 +58,7 @@ export function ReviewForm({
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("submit failed");
-      toast.success("Thanks! Your review was submitted for moderation.");
+      toast.success("Thanks! Your review is now live.");
       reset({ rating: 0 });
       setRating(0);
       setBodyLength(0);
@@ -169,7 +169,7 @@ export function ReviewForm({
         )}
       </div>
 
-      <TurnstileWidget onVerify={handleVerify} />
+      <TurnstileWidget onVerify={handleVerify} appearance="interaction-only" />
 
       <div className="flex items-center gap-3">
         <Button type="button" variant="outline" className="rounded-xl" onClick={onCancel}>

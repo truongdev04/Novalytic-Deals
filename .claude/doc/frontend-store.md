@@ -118,3 +118,60 @@ Redesign toàn bộ cụm trang Store/Category (`/stores`, `/stores/[letter]`, `
 - Chưa test thực tế trên mobile/thiết bị thật, mới verify qua curl + đọc code (đặc biệt phần responsive 2-cột mobile ở `/store/[slug]` và bộ lọc chữ cái ở `/categories/[slug]/stores`)
 - Cân nhắc thêm `/stores/[letter]` và `/categories/[slug]/stores` vào `app/sitemap.ts` nếu cần tối ưu SEO (hiện chưa có)
 - Đồng bộ lại `data/categories.json` với DB nếu muốn file seed phản ánh đúng 25 category + FAQ dài hiện tại (không bắt buộc, chỉ ảnh hưởng khi seed lại DB từ đầu)
+
+## 6. Cập nhật thêm (session sau) — fix "Show Code", Related stores, How to apply, Reviews
+
+### Bug "Show Code" ở tab mới không tự hiện code (đã fix đúng nguyên nhân)
+
+- **Nguyên nhân thật**: `StoreCouponCard.tsx` luôn mount **cả 2 layout cùng lúc** (mobile qua `CouponGridCard`, desktop trực tiếp), chỉ ẩn/hiện bằng CSS (`sm:hidden` / `hidden sm:flex`), không phải JS. Mỗi coupon vì vậy có **2 instance `CouponCodeModal`** độc lập chạy song song. Cờ pending-reveal trong `localStorage` (`consumePendingCodeReveal`, `lib/utils.ts`) chỉ dùng được 1 lần — instance nào chạy effect trước sẽ "nuốt" cờ, có thể đúng là cái đang bị CSS ẩn, khiến nút đang **hiển thị thật** trên màn hình không bao giờ chuyển sang hiện code.
+- **Fix**: `CouponCodeModal` nhận thêm prop `revealBreakpoint?: "mobile" | "desktop"` — khi có, effect check cờ tự `window.matchMedia("(min-width: 640px)")` để chỉ instance đang thực sự on-screen mới được nhận cờ (không ảnh hưởng SSR/hydration vì chỉ gate bên trong effect, không đổi render). `StoreCouponCard` truyền `"mobile"`/`"desktop"` cho 2 instance tương ứng qua `CouponGridCard`; mọi nơi khác dùng `CouponCodeModal`/`CouponGridCard` không truyền prop này nên hành vi giữ nguyên y hệt trước.
+- Hướng fix nhầm đã thử trước đó (tăng TTL cờ pending từ 10s lên 60s trong `consumePendingCodeReveal`) **không phải nguyên nhân thật** — đã revert về 10s.
+- UI nút đã-reveal: bỏ icon `Ticket` trước mã code; nút Copy giờ chỉ còn icon (bỏ nền `bg-brand-600`, dùng `text-brand-700`, size `h-3.5`→`h-4`).
+
+### Related stores — nút "View all"
+
+- Thêm `getRelatedStoresCount(store)` trong `lib/data/stores.ts` (đếm tổng số store cùng category qua `prisma.store.count`, cùng `where` với `getRelatedStores`, không `take`).
+- `app/store/[slug]/page.tsx`: nút "View all" giờ chỉ hiện khi `relatedStoresCount > relatedStores.length` (tức category còn store khác ngoài 10 cái đang hiển thị) — trước đó hiện vô điều kiện miễn có `primaryCategory`.
+
+### "How to apply" bị dính liền dòng (đã fix)
+
+- Nguyên nhân: khi store không có `howToApply` riêng, nội dung fallback lấy từ template site-wide (`storeHowToApplyTemplate`, một textarea thường trong Settings, giá trị là text `\n` thuần) nhưng render qua `RichHtml` (`dangerouslySetInnerHTML`) nên `\n` bị HTML gộp thành 1 dòng chạy liền.
+- Fix: áp dụng lại `blockToHtml()` (hàm có sẵn trong `lib/content/template.ts`, đang dùng cho `description` với đúng lý do tương tự) cho `howToApply` trong `lib/content/defaults.ts` — convert `\n` → `<br>` trước khi render.
+- Lưu ý: `aboutStore` (dòng cạnh đó trong `defaults.ts`) vẫn dùng `applyTemplate` trần, có thể dính lỗi y hệt nếu store không có `aboutStore` riêng — **chưa sửa** vì chưa được yêu cầu.
+
+### Reviews section — redesign toàn bộ (theo tham khảo SimplyCodes-style: header + rating tổng + CTA banner + review card + dialog viết review)
+
+- **Component mới** `components/store/ReviewsSection.tsx`: header "{Store} customer reviews" + subtitle, rating tổng (tái dùng `Rating` có sẵn, chỉ hiện khi `store.ratingCount > 0`), banner CTA "Share your experience with {Store}" (bấm mở dialog viết review qua `Modal` có sẵn — `components/ui/Modal.tsx`), rồi `ReviewList`.
+- **`ReviewForm.tsx`** (redesign, giờ hiện trong dialog thay vì inline dưới trang):
+  - Bỏ hẳn field **Title**.
+  - `authorName` giờ **optional** (placeholder "Anonymous", helper "Others will see your display name").
+  - `body` cũng **optional**, tối thiểu 25 ký tự nếu có nhập, thêm counter "X / 5000" (track qua `onChange` + `useState` cục bộ thay vì `watch()` — tránh React Compiler warning "incompatible library").
+  - Thêm nút **Cancel** cạnh "Post review", dòng consent nhỏ bên dưới ("...disclose your display name publicly on NovalyticDeals").
+- **`ReviewList.tsx`** (redesign, đổi thành Client Component):
+  - Mỗi card: avatar icon generic (`User` từ lucide-react), tên hoặc "Anonymous", sao (component `ReviewStars` cục bộ trong file — không dùng `Rating` chung vì không muốn hiện số kèm sao ở từng card), thời gian tương đối kiểu "1 year ago" (hàm mới `formatRelativeTime` trong `lib/utils.ts`), bỏ title, **không có** thumbs up/down (không có sẵn trong data model `Review`, không thêm mới ngoài phạm vi yêu cầu).
+  - Hiện tối đa **3 review**, nút "Show more reviews" (căn giữa) → hiện hết → đổi thành "Show less" để thu gọn lại.
+- **Validator + API** (`lib/validators/review.ts`, `app/api/stores/[slug]/reviews/route.ts`): bỏ `title` khỏi schema Zod, `authorName`/`body` optional; server tự default `authorName` → `"Anonymous"`, `title`/`body` → `""` khi rỗng lúc lưu DB — **không đổi Prisma schema** (cột `title`/`authorName` trong `reviews` table vẫn NOT NULL, chỉ luôn nhận giá trị hợp lệ từ code, tránh phải migrate DB đang chạy production).
+- Cập nhật `lib/validators/review.test.ts` theo behavior mới (8/8 test pass qua `npm run test`).
+- `app/store/[slug]/page.tsx`: thay khối `SectionHeader "Reviews" + ReviewList + "Leave a review" heading + ReviewForm` cũ bằng 1 dòng `<ReviewsSection store={store} reviews={reviews} />`.
+
+### File đã sửa/tạo thêm (session này)
+
+**Sửa:**
+- `components/coupon/CouponCodeModal.tsx` (thêm `revealBreakpoint`, bỏ icon Ticket + nền nút Copy ở trạng thái đã reveal)
+- `components/coupon/CouponGridCard.tsx`, `components/coupon/StoreCouponCard.tsx` (thread `revealBreakpoint` cho 2 instance mobile/desktop)
+- `lib/data/stores.ts` (thêm `getRelatedStoresCount`)
+- `app/store/[slug]/page.tsx` (điều kiện hiện "View all", đổi khối Reviews sang `<ReviewsSection>`)
+- `lib/content/defaults.ts` (`howToApply` dùng `blockToHtml` thay vì `applyTemplate` trần)
+- `lib/utils.ts` (thêm `formatRelativeTime`)
+- `components/store/ReviewForm.tsx`, `components/store/ReviewList.tsx` (redesign)
+- `lib/validators/review.ts`, `lib/validators/review.test.ts`
+- `app/api/stores/[slug]/reviews/route.ts`
+
+**Tạo mới:**
+- `components/store/ReviewsSection.tsx`
+
+### Trạng thái hiện tại (bổ sung)
+
+- `npm run typecheck`, `npm run lint` (trên source thật — bỏ qua warning từ `Tool Auto Fill/landing/js/xlsx.full.min.js`, file vendor untracked không liên quan), và `npm run test -- lib/validators/review.test.ts` đều sạch/pass.
+- Chưa test tay trên browser thật cho phần Reviews/reveal-code (không có công cụ browser trong môi trường làm việc này) — mới verify qua code review kỹ + `curl` 200 cho `/store/[slug]`.
+- Cân nhắc bước tiếp theo: áp dụng `blockToHtml` cho `aboutStore` luôn (cùng bug tiềm ẩn, chưa được yêu cầu); cân nhắc thumbs up/down cho review nếu sau này muốn giống sát hơn tham khảo (cần thêm cột DB, hiện ngoài phạm vi).

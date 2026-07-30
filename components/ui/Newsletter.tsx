@@ -97,7 +97,7 @@ export function Newsletter({ variant = "section" }: { variant?: "section" | "foo
           {errors.email.message}
         </p>
       )}
-      <TurnstileWidget onVerify={handleVerify} />
+      <TurnstileWidget onVerify={handleVerify} appearance={isFooter ? "interaction-only" : "always"} />
     </form>
   );
 }

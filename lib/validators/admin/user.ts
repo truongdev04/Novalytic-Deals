@@ -24,6 +24,7 @@ export const EDITOR_PERMISSION_VALUES = [
   "settings_seo",
   "settings_content",
   "settings_footer",
+  "settings_scripts",
 ] as const;
 export type EditorPermission = (typeof EDITOR_PERMISSION_VALUES)[number];
 
@@ -45,6 +46,7 @@ export const EDITOR_PERMISSION_OPTIONS: { value: EditorPermission; label: string
   { value: "settings_seo", label: "Settings: SEO" },
   { value: "settings_content", label: "Settings: Content Configuration" },
   { value: "settings_footer", label: "Settings: Footer" },
+  { value: "settings_scripts", label: "Settings: Custom Scripts" },
 ];
 
 // The subset of EDITOR_PERMISSION_VALUES that supports per-record ownership

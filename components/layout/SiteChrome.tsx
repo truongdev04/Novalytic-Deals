@@ -13,17 +13,30 @@ import type { ReactNode } from "react";
 // import and render a Server Component directly, only receive one via
 // children/props. Analytics is gated the same way as Header/Footer so
 // GTM/GA/Plausible never load on internal admin pages.
+//
+// headScripts/bodyScript/footerScript (admin-authored raw Custom Scripts,
+// see /admin/settings/scripts) ride the same isAdmin gate for the same
+// reason. headScripts uses next/script's beforeInteractive strategy, which
+// Next.js hoists into the real <head> regardless of where in the tree it's
+// rendered, so nesting it here (rather than literally inside <head>) doesn't
+// affect its actual position in the output HTML.
 export function SiteChrome({
   header,
   footer,
   backToTop,
   analytics,
+  headScripts,
+  bodyScript,
+  footerScript,
   children,
 }: {
   header: ReactNode;
   footer: ReactNode;
   backToTop: ReactNode;
   analytics: ReactNode;
+  headScripts: ReactNode;
+  bodyScript: ReactNode;
+  footerScript: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -35,11 +48,14 @@ export function SiteChrome({
 
   return (
     <>
+      {headScripts}
+      {bodyScript}
       {header}
       <main className="flex-1">{children}</main>
       {footer}
       {backToTop}
       {analytics}
+      {footerScript}
     </>
   );
 }

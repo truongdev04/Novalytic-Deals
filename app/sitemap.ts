@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import {
   getStores,
-  getCoupons,
   getCategories,
   getBlogPosts,
   getEvents,
@@ -14,9 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getGeneralSettings();
   if (!settings.sitemapEnabled) return [];
 
-  const [stores, coupons, categories, posts, events, pages] = await Promise.all([
+  const [stores, categories, posts, events, pages] = await Promise.all([
     getStores(),
-    getCoupons(),
     getCategories(),
     getBlogPosts(),
     getEvents(),
@@ -51,13 +49,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const couponRoutes: MetadataRoute.Sitemap = coupons.map((coupon) => ({
-    url: `${siteUrl}/coupon/${coupon.slug}`,
-    lastModified: coupon.updatedAt,
-    changeFrequency: "daily",
-    priority: 0.8,
-  }));
-
   const categoryRoutes: MetadataRoute.Sitemap = categories.map((category) => ({
     url: `${siteUrl}/categories/${category.slug}`,
     changeFrequency: "weekly",
@@ -81,7 +72,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticRoutes,
     ...pageRoutes,
     ...storeRoutes,
-    ...couponRoutes,
     ...categoryRoutes,
     ...blogRoutes,
     ...eventRoutes,

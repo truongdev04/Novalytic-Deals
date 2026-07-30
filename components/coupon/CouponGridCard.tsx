@@ -36,11 +36,9 @@ export function CouponGridCard({
 
         <p className="mt-1.5 text-xs font-medium text-muted-700">{store.name}</p>
 
-        <Link href={`/coupon/${coupon.slug}`} className="mt-1 flex-1">
-          <h3 className="line-clamp-2 text-sm font-semibold text-brand-950 hover:text-brand-700">
-            {coupon.title}
-          </h3>
-        </Link>
+        <h3 className="mt-1 line-clamp-2 flex-1 text-sm font-semibold text-brand-950">
+          {coupon.title}
+        </h3>
 
         <div className="mt-2.5">
           <CouponCodeModal

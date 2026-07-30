@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { createSubmittedCoupon } from "@/lib/data";
+import { createSubmittedCoupon, getEffectiveContactInboxEmail } from "@/lib/data";
 import { submitCouponSchema } from "@/lib/validators/submitCoupon";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 import { enforceRateLimit, getClientIp } from "@/lib/server/api/withRateLimit";
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     submitterEmail: parsed.data.submitterEmail,
   });
 
-  const inbox = process.env.CONTACT_INBOX_EMAIL;
+  const inbox = await getEffectiveContactInboxEmail();
   if (inbox) {
     const { subject, html } = submitCouponNotificationEmail(
       parsed.data.storeName,

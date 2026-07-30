@@ -34,8 +34,9 @@ export interface CreateReviewInput {
 
 export async function createReview(input: CreateReviewInput): Promise<Review> {
   const row = await prisma.review.create({
-    data: { ...input, isApproved: false },
+    data: { ...input, isApproved: true },
   });
+  await recomputeStoreRating(row.storeId);
   return toReview(row);
 }
 

@@ -46,6 +46,8 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: EditorPermission | typeof
   { prefix: "/api/admin/settings/content", permission: "settings_content" },
   { prefix: "/admin/settings/footer", permission: "settings_footer" },
   { prefix: "/api/admin/settings/footer", permission: "settings_footer" },
+  { prefix: "/admin/settings/scripts", permission: "settings_scripts" },
+  { prefix: "/api/admin/settings/scripts", permission: "settings_scripts" },
   // Broadest settings rules last so the specific ones above win.
   { prefix: "/admin/settings", permission: "settings_general" },
   { prefix: "/api/admin/settings/general", permission: "settings_general" },

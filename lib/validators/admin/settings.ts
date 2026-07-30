@@ -127,6 +127,13 @@ export const adminContentConfigSettingsSchema = z.object({
 });
 export type AdminContentConfigSettingsInput = z.infer<typeof adminContentConfigSettingsSchema>;
 
+export const adminCustomScriptsSettingsSchema = z.object({
+  headScript: z.string().optional().or(z.literal("")),
+  bodyScript: z.string().optional().or(z.literal("")),
+  footerScript: z.string().optional().or(z.literal("")),
+});
+export type AdminCustomScriptsSettingsInput = z.infer<typeof adminCustomScriptsSettingsSchema>;
+
 // Slugs of routes that still exist as their own static/dynamic app/ segments
 // — a PAGE item can't use one of these or its /[slug] page would be
 // permanently shadowed by the real route.

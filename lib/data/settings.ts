@@ -5,6 +5,7 @@ import type {
   AffiliateSettings,
   ContentConfigSettings,
   CouponRefreshSettings,
+  CustomScriptsSettings,
   DealRefreshSettings,
   FooterColumn,
   FooterItem,
@@ -15,7 +16,10 @@ import type {
   SeoSettings,
   SocialSettings,
 } from "@/types";
-import type { AdminIntegrationsSettingsInput } from "@/lib/validators/admin/settings";
+import type {
+  AdminCustomScriptsSettingsInput,
+  AdminIntegrationsSettingsInput,
+} from "@/lib/validators/admin/settings";
 
 const GENERAL_KEY = "site_meta";
 const INTEGRATIONS_KEY = "integrations";
@@ -24,6 +28,7 @@ const SOCIAL_KEY = "social_links";
 const SEO_KEY = "seo_defaults";
 const CONTENT_CONFIG_KEY = "content_config";
 const FOOTER_KEY = "footer_links";
+const CUSTOM_SCRIPTS_KEY = "custom_scripts";
 const POPULAR_STORES_KEY = "popular_stores_config";
 const DEAL_REFRESH_KEY = "deal_refresh_config";
 const COUPON_REFRESH_KEY = "coupon_refresh_config";
@@ -40,6 +45,7 @@ const BATCHED_SETTINGS_KEYS = [
   SEO_KEY,
   CONTENT_CONFIG_KEY,
   FOOTER_KEY,
+  CUSTOM_SCRIPTS_KEY,
 ] as const;
 
 // Tagged with every individual settings tag so each setter's existing
@@ -62,6 +68,7 @@ const getAllSiteSettingsRaw = unstable_cache(
       "settings:seo",
       "settings:content-config",
       "settings:footer",
+      "settings:custom-scripts",
     ],
     revalidate: 300,
   }
@@ -546,6 +553,35 @@ export async function setGeneralSettings(input: GeneralSettings): Promise<Genera
   return row.value as unknown as GeneralSettings;
 }
 
+const DEFAULT_CUSTOM_SCRIPTS_SETTINGS: CustomScriptsSettings = {
+  headScript: "",
+  bodyScript: "",
+  footerScript: "",
+};
+
+export async function getCustomScriptsSettings(): Promise<CustomScriptsSettings> {
+  const all = await getAllSiteSettingsRaw();
+  const stored = (all[CUSTOM_SCRIPTS_KEY] as unknown as Partial<CustomScriptsSettings>) ?? {};
+  return { ...DEFAULT_CUSTOM_SCRIPTS_SETTINGS, ...stored };
+}
+
+export async function setCustomScriptsSettings(
+  input: AdminCustomScriptsSettingsInput
+): Promise<CustomScriptsSettings> {
+  const next: CustomScriptsSettings = {
+    headScript: input.headScript || undefined,
+    bodyScript: input.bodyScript || undefined,
+    footerScript: input.footerScript || undefined,
+  };
+  await prisma.siteSetting.upsert({
+    where: { key: CUSTOM_SCRIPTS_KEY },
+    create: { key: CUSTOM_SCRIPTS_KEY, value: next as unknown as Prisma.InputJsonValue },
+    update: { value: next as unknown as Prisma.InputJsonValue },
+  });
+  purgeTag("settings:custom-scripts");
+  return getCustomScriptsSettings();
+}
+
 function maskSecret(value?: string): string | undefined {
   if (!value) return undefined;
   return `••••${value.slice(-4)}`;
@@ -636,6 +672,11 @@ export async function getEffectiveResendConfig(): Promise<{ apiKey?: string; fro
     apiKey: raw.resendApiKey || process.env.RESEND_API_KEY,
     fromEmail: raw.systemFromEmail || process.env.EMAIL_FROM,
   };
+}
+
+export async function getEffectiveContactInboxEmail(): Promise<string | undefined> {
+  const raw = await getIntegrationsRaw();
+  return raw.contactInboxEmail || process.env.CONTACT_INBOX_EMAIL;
 }
 
 export async function getEffectiveTurnstileConfig(): Promise<{ secretKey?: string }> {

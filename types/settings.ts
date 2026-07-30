@@ -168,6 +168,12 @@ export interface ContentConfigSettings {
   templates: ContentConfigTemplates;
 }
 
+export interface CustomScriptsSettings {
+  headScript?: string;
+  bodyScript?: string;
+  footerScript?: string;
+}
+
 export type FooterColumnType = "PAGE" | "PATH" | "LINK";
 
 export interface FooterItem {

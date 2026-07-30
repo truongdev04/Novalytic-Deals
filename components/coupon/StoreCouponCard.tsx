@@ -1,4 +1,3 @@
-import { Link } from "next-view-transitions";
 import { StoreLogo } from "@/components/store/StoreLogo";
 import { VerifiedBadge } from "@/components/coupon/VerifiedBadge";
 import { CouponCodeModal } from "@/components/coupon/CouponCodeModal";
@@ -62,11 +61,9 @@ export function StoreCouponCard({
             <span className="text-xs font-medium text-muted-500">{store.name}</span>
           </div>
 
-          <Link href={`/coupon/${coupon.slug}`} className="mt-1.5 block">
-            <h3 className="line-clamp-2 font-heading text-lg font-semibold text-brand-950 hover:text-brand-700 sm:text-xl">
-              {coupon.title}
-            </h3>
-          </Link>
+          <h3 className="mt-1.5 line-clamp-2 font-heading text-lg font-semibold text-brand-950 sm:text-xl">
+            {coupon.title}
+          </h3>
 
           {coupon.verified && (
             <div className="mt-2">

@@ -87,3 +87,38 @@ Xây dựng module User Management hoàn chỉnh trong admin: form tạo/sửa u
 - Các thay đổi mục này **chưa commit/push** — vẫn nằm ở working tree.
 - Độ trễ phát hiện tối đa ~20s (chu kỳ poll) — không phải real-time tức thì; có thể giảm `POLL_INTERVAL_MS` trong `AccountStatusWatcher.tsx` nếu cần nhanh hơn, đánh đổi với tần suất gọi API.
 - Bullet "chưa có toast/thông báo lý do khi Editor bị chặn truy cập route" (mục 4 cũ) vẫn chưa làm — khác với tính năng mới này (tính năng mới chỉ xử lý case tài khoản bị deactivate/xoá, không phải case thiếu quyền một module cụ thể).
+
+## 6. Session update — 2026-07-13 (phần 2)
+
+**Fix autofill Add User (khác icon ẩn/hiện đã làm ở mục 5 — đây là bug pre-fill nhầm)**
+- Nguyên nhân xác nhận qua Explore agent: `UserForm.tsx`, `UserEditForm.tsx`, `ResetPasswordModal.tsx` dùng `id="email"`/`id="password"` giống hệt `LoginForm.tsx`, cùng origin, không field nào có `autoComplete` → trình duyệt tự gợi ý/điền nhầm mật khẩu đăng nhập đã lưu vào form tạo user mới.
+- Fix: `UserForm.tsx`/`UserEditForm.tsx` — `<form>` + email input thêm `autoComplete="off"`, password input thêm `autoComplete="new-password"`. `ResetPasswordModal.tsx` — password thêm `autoComplete="new-password"`. `LoginForm.tsx` giữ nguyên (autofill ở form login là mong muốn).
+
+**Tính năng mới lớn: switch "Full data access" theo từng module cho Editor**
+- Bối cảnh: trước đây Editor được cấp quyền 1 module (vd "stores") là thấy/sửa TẤT CẢ record của module đó. Yêu cầu mới: thêm switch (mặc định TẮT) theo từng module — TẮT = Editor chỉ thấy/sửa/xoá record do chính họ tạo (kể cả qua tìm kiếm/lọc trên trang); BẬT = như cũ (thấy hết).
+- Áp dụng đúng 6 module: Stores, Coupons, Deals, Categories, Events, Blog. Loại trừ Reviews/Submissions/Newsletter — xác nhận qua 2 Explore agent: 3 bảng này luôn được tạo bởi khách công khai qua form public (đánh giá store, submit coupon, đăng ký newsletter), không có khái niệm "editor tạo ra nó".
+- Schema (`prisma/schema.prisma`, đã `prisma db push`): `User.fullDataAccess String[] @default([])` (shape giống hệt `permissions`); thêm `createdById String?` (scalar thường, cố ý không dùng `@relation` — không cần back-navigation `user.createdStores`) vào `Store`, `Coupon`, `Deal`, `Category`, `Event`, `BlogPost`.
+- Backfill (an toàn, chỉ `UPDATE` không `DELETE`): toàn bộ 640 record cũ (100 stores, 484 coupons, 11 deals, 26 categories, 10 events, 9 blog posts) gán `createdById` = tài khoản thật `novalytic.studio@gmail.com`.
+- `lib/validators/admin/user.ts`: thêm `DATA_SCOPED_PERMISSION_VALUES` (6 key trên) + `isDataScopedPermission()` type guard; `adminCreateUserSchema`/`adminUpdateUserSchema` thêm `fullDataAccess` + `.refine()` đảm bảo `fullDataAccess ⊆ permissions`.
+- Session/JWT: `auth.ts`, `auth.config.ts`, `types/next-auth.d.ts`, `types/settings.ts`, `lib/data/users.ts` — nhúng `fullDataAccess` xuyên suốt, y hệt cách `permissions` đã làm.
+- `lib/permissions.ts`: thêm `isDataScoped(role, fullDataAccess, module)` — tầng row-level, song song và độc lập với `canAccess` (tầng module-level cũ vẫn giữ nguyên, không đụng).
+- `lib/server/api/ownership.ts` (mới): `authorizeRecordAccess(id, module, getOwnerId)` dùng chung cho `[id]/route.ts` của cả 6 module — chặn trước mọi logic khác (kể cả guard nghiệp vụ có sẵn như `CATEGORY_IN_USE`/`EVENT_IN_USE`).
+- Store/Coupon/Deal/Blog: thêm `createdById` vào filter (`Admin*Filters`) + `where` của hàm list phân trang có sẵn; tách field tạo-mới-riêng (`Admin*CreateFields`) để không đụng hàm update; thêm `get<Module>OwnerId`; API POST gọi `auth()` gắn `createdById`; API `[id]` gọi `authorizeRecordAccess`; trang list tính `scoped` rồi truyền `createdById` vào filter; **trang edit thêm check ownership → `notFound()` nếu không phải chủ** (lỗ hổng dễ bỏ sót: trang edit trước đó không hề bị chặn xem dù API save vẫn 403 — tức editor có thể mở xem form của record người khác dù không lưu được).
+- Category/Event: KHÔNG sửa `getCategories()`/`getEvents()` (vẫn giữ làm nguồn picker/dropdown không lọc cho các form khác) — thêm hàm mới song song `getCategoriesAdmin()`/`getEventsAdmin()` chỉ dùng cho trang admin list, cache theo scope bằng cách tự ghép `scopeKey` vào `keyParts` của `unstable_cache` (giữ đúng pattern cache-theo-tham-số đã có sẵn trong repo, không dựa vào cơ chế hash tham số ngầm của `unstable_cache` — rủi ro rò rỉ cache chéo giữa các editor nếu đoán sai cơ chế).
+- UI: component mới `components/admin/InlineSwitch.tsx` (switch thuần, không tự gọi API — khác `ToggleButton.tsx` có sẵn vốn tự PATCH ngay khi click); gắn vào `UserForm.tsx`/`UserEditForm.tsx`, chỉ hiện cạnh 6 permission tương ứng và chỉ khi permission đó đã tick.
+
+**Bug phát hiện + tự sửa trong lúc build**
+- `lib/data/autoFillImport.ts` (tool import Excel hàng loạt cho Store/Coupon) gọi thẳng `createStore`/`createCoupon`, ban đầu quên truyền `createdById` — `npx tsc --noEmit` bắt lỗi ngay nhờ đổi `Admin*Fields` thành `Admin*CreateFields` bắt buộc field này. Đã nối dây `auth()` vào `app/api/admin/auto-fill-store/import/route.ts`.
+- `lib/server/api/ownership.ts`: dùng `ReturnType<typeof auth>` để suy ra type `Session` bị sai — `auth` là hàm overload (vừa dùng kiểu gọi thường vừa dùng kiểu wrap middleware trong `proxy.ts`), `ReturnType` lấy nhầm overload cuối cùng. Sửa bằng cách import thẳng `type { Session } from "next-auth"` thay vì suy luận qua `ReturnType`.
+- Lúc test phát hiện có 2 tiến trình `next-server` chạy song song (1 cái cũ còn giữ port 3000 từ trước khi sửa `auth.config.ts`) khiến `fullDataAccess` "biến mất" khỏi session lúc test — do gọi nhầm vào server cũ chưa có code mới. Đã `kill` đúng theo PID cụ thể (pattern match theo tên tiến trình không đủ) và khởi động lại sạch.
+
+**Verify**
+- Không login được qua UI thật trong test tự động nữa vì Turnstile (CAPTCHA) đã bật thật (`TURNSTILE_SECRET_KEY` có giá trị thật trong `.env`, khác lúc trước trong session) — chuyển hướng test: tự ký session cookie bằng `next-auth/jwt`'s `encode()` (đúng `NEXTAUTH_SECRET` + `salt: "authjs.session-token"`) rồi bơm thẳng vào Playwright context, bỏ qua bước đăng nhập UI.
+- Đã verify: Store (11 kịch bản — list/search chỉ thấy của mình, trang edit của người khác 404, PATCH/GET của người khác 403, sửa/xoá của mình vẫn được, editor full-access thấy hết, admin thấy hết); Category (2 vòng lặp xen kẽ 2 editor để xác nhận cache không rò rỉ chéo); switch UI (xác nhận qua computed style — đổi màu nền khi bật, và submit gửi đúng `fullDataAccess` trong payload).
+- `npx tsc --noEmit` và `npm run lint` sạch (0 error).
+- Toàn bộ tài khoản/record test đã xoá sạch khỏi DB thật sau khi verify xong; không đụng dữ liệu thật.
+
+**Trạng thái / bước tiếp theo**
+- **Chưa commit/push** — toàn bộ thay đổi mục 6 vẫn nằm ở working tree.
+- Cố tình CHƯA làm: bước cuối cùng siết `createdById` từ nullable sang `NOT NULL` trên 6 bảng — chỉ nên làm sau khi xác nhận code đã chạy ổn định thực tế một thời gian (làm ngay có rủi ro nếu còn sót path tạo record nào chưa gắn `createdById` sẽ lỗi ngay lập tức).
+- JWT session: đổi `fullDataAccess` cho 1 editor đang đăng nhập sẵn không có hiệu lực ngay — giống hệt hạn chế đã ghi nhận với `permissions`/`status` trước đó (mục 4).

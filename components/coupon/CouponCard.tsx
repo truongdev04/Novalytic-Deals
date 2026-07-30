@@ -1,4 +1,3 @@
-import { Link } from "next-view-transitions";
 import { StoreLogo } from "@/components/store/StoreLogo";
 import { DiscountBadge } from "@/components/coupon/DiscountBadge";
 import { VerifiedBadge } from "@/components/coupon/VerifiedBadge";
@@ -17,11 +16,9 @@ export function CouponCard({ coupon, store }: { coupon: Coupon; store: Store }) 
           {coupon.verified && <VerifiedBadge />}
           <ExpirationBadge expiresAt={coupon.expiresAt} />
         </div>
-        <Link href={`/coupon/${coupon.slug}`} className="mt-2 block">
-          <h3 className="font-heading text-base font-semibold text-brand-950 hover:text-brand-700 sm:text-lg">
-            {coupon.title}
-          </h3>
-        </Link>
+        <h3 className="mt-2 font-heading text-base font-semibold text-brand-950 sm:text-lg">
+          {coupon.title}
+        </h3>
         <p className="mt-1 text-sm text-muted-600">{store.name}</p>
       </div>
 

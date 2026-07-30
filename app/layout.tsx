@@ -9,6 +9,9 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
 import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
+import { CustomHeadScripts } from "@/components/analytics/CustomHeadScripts";
+import { CustomBodyScript } from "@/components/analytics/CustomBodyScript";
+import { CustomFooterScript } from "@/components/analytics/CustomFooterScript";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import {
@@ -95,6 +98,9 @@ export default async function RootLayout({
             footer={<Footer />}
             backToTop={<BackToTop />}
             analytics={<AnalyticsScripts />}
+            headScripts={<CustomHeadScripts />}
+            bodyScript={<CustomBodyScript />}
+            footerScript={<CustomFooterScript />}
           >
             {children}
           </SiteChrome>

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { getEffectiveContactInboxEmail } from "@/lib/data";
 import { contactSchema } from "@/lib/validators/contact";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 import { enforceRateLimit, getClientIp } from "@/lib/server/api/withRateLimit";
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   const verified = await verifyTurnstileToken(parsed.data.turnstileToken, ip);
   if (!verified) return jsonError(400, "Verification failed. Please try again.");
 
-  const inbox = process.env.CONTACT_INBOX_EMAIL;
+  const inbox = await getEffectiveContactInboxEmail();
   if (inbox) {
     const { subject, html } = contactNotificationEmail(
       parsed.data.name,
