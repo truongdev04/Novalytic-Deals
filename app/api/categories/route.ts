@@ -2,7 +2,7 @@ import { getCategories } from "@/lib/data";
 import { jsonOk } from "@/lib/server/api/response";
 
 export const dynamic = "force-static";
-export const revalidate = 300;
+export const revalidate = false;
 
 export async function GET() {
   const categories = await getCategories();

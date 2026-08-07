@@ -7,7 +7,9 @@ import { AlphabetNav } from "@/components/store/AlphabetNav";
 import { StoreIndexGrid } from "@/components/store/StoreIndexGrid";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const revalidate = 300;
+// "Permanent" — cached until a store CRUD/toggle purges "stores:list" (or
+// the daily Vercel Cron sweep), not on a time-based schedule.
+export const revalidate = false;
 
 function toGroupKey(letterParam: string): string | null {
   if (letterParam === "0-9") return "#";

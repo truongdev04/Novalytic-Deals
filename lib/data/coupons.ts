@@ -54,11 +54,13 @@ export interface CouponFilters {
 }
 
 // Coupons have no background job to flip their status the instant they
-// expire, so this runs on every cache miss instead — piggybacking on the
-// existing 5-minute revalidate/purge cycle rather than adding new infra.
+// expire, so this also runs on every cache miss (via ensureCouponsExpired
+// below) as a lazy fallback, plus once a day from the Vercel Cron
+// (app/api/cron/daily-refresh/route.ts) now that public pages cache
+// permanently and no longer re-render often enough to hit that fallback.
 // If any of the expiring coupons was currently Trending, backfill
 // immediately rather than waiting for the next manual/8h refresh.
-async function expireOverdueCoupons(): Promise<void> {
+export async function expireOverdueCoupons(): Promise<void> {
   const now = new Date();
   const expiredTrendingCount = await prisma.coupon.count({
     where: { isActive: true, expiresAt: { lt: now }, isTrending: true },
@@ -514,6 +516,9 @@ export async function getRelatedCoupons(coupon: Coupon, limit = 4): Promise<Coup
   return rows.map(toCoupon);
 }
 
+// Not wrapped in its own unstable_cache: ensureCouponsExpired() below is
+// (tagged "coupons:list"), and calling it here already makes the page
+// rendering this inherit that tag — no separate cache boundary needed.
 export async function getCouponsByIds(ids: string[]): Promise<Coupon[]> {
   if (ids.length === 0) return [];
   await ensureCouponsExpired();
@@ -525,20 +530,29 @@ export async function getCouponsByIds(ids: string[]): Promise<Coupon[]> {
 }
 
 // Aggregate helpers — replace the old pattern of fetching every active
-// coupon into memory just to count occurrences in JS.
+// coupon into memory just to count occurrences in JS. Tagged coupons:list
+// (unlike getCouponsByIds, has no nested cached call to inherit the tag
+// from) so pages rendering this get purged when a coupon's verified status
+// changes, not just when its store changes.
 export async function getVerifiedCouponCountByStoreIds(
   storeIds: string[]
 ): Promise<Record<string, number>> {
   if (storeIds.length === 0) return {};
-  const groups = await prisma.coupon.groupBy({
-    by: ["storeId"],
-    where: { isActive: true, verified: true, storeId: { in: storeIds } },
-    _count: { _all: true },
-    // Kết quả đi thẳng vào Object.fromEntries — thứ tự key quyết định byte
-    // trong RSC payload nên phải cố định.
-    orderBy: { storeId: "asc" },
-  });
-  return Object.fromEntries(groups.map((g) => [g.storeId, g._count._all]));
+  return unstable_cache(
+    async () => {
+      const groups = await prisma.coupon.groupBy({
+        by: ["storeId"],
+        where: { isActive: true, verified: true, storeId: { in: storeIds } },
+        _count: { _all: true },
+        // Kết quả đi thẳng vào Object.fromEntries — thứ tự key quyết định byte
+        // trong RSC payload nên phải cố định.
+        orderBy: { storeId: "asc" },
+      });
+      return Object.fromEntries(groups.map((g) => [g.storeId, g._count._all]));
+    },
+    [`coupons:verified-count:${[...storeIds].sort().join(",")}`],
+    { tags: ["coupons:list"], revalidate: false }
+  )();
 }
 
 // Category isn't a direct column on Coupon (only on its Store), so this

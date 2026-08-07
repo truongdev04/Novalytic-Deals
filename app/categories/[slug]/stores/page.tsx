@@ -14,7 +14,10 @@ import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const revalidate = 300;
+// "Permanent" — cached until the category, an underlying store, or coupon
+// purges its tag (category:<slug>/stores:list/coupons:list), or the daily
+// Vercel Cron sweep runs. Not on a time-based schedule.
+export const revalidate = false;
 
 export async function generateStaticParams() {
   const categories = await getCategories();

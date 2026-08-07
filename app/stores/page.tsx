@@ -17,7 +17,9 @@ import { VerifiedStoresSection } from "@/components/store/VerifiedStoresSection"
 import { CategoryGrid } from "@/components/category/CategoryGrid";
 import { buildMetadata } from "@/lib/seo/metadata";
 
-export const revalidate = 300;
+// "Permanent" — cached until a store CRUD/toggle purges "stores:list" (or
+// the daily Vercel Cron sweep), not on a time-based schedule.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({

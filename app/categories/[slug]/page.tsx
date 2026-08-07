@@ -20,7 +20,10 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { renderCategoryIcon } from "@/lib/icons";
 import { getUtcPeriodKey } from "@/lib/content/template";
 
-export const revalidate = 300;
+// "Permanent" — cached until the category itself, an underlying store, or
+// coupon purges its tag (category:<slug>/stores:list/coupons:list), or the
+// daily Vercel Cron sweep runs. Not on a time-based schedule.
+export const revalidate = false;
 
 export async function generateStaticParams() {
   const categories = await getCategories();
