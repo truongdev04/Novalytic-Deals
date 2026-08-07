@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
 import type { Store as PrismaStore } from "@prisma/client";
 import { syncCouponWithStoreEvent } from "./events";
@@ -17,7 +18,7 @@ function throwIfSlugConflict(error: unknown): never {
 }
 
 function toStore(row: PrismaStore): Store {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -44,7 +45,7 @@ function toStore(row: PrismaStore): Store {
     seoDiscountSnapshotPeriod: row.seoDiscountSnapshotPeriod,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
+  });
 }
 
 const getAllStoresCached = unstable_cache(
@@ -138,7 +139,9 @@ export const getFeaturedStores = unstable_cache(
     // desc order from the query above.
     const pinned = [...featured]
       .filter((s) => s.isPin)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      // Nhiều store có thể cùng updatedAt (import hàng loạt, updateMany của
+      // rollover) nên cần tiebreak, không thì thứ tự phụ thuộc Prisma.
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime() || a.id.localeCompare(b.id));
     const rest = featured.filter((s) => !s.isPin);
     return [...pinned, ...rest].slice(0, limit).map(toStore);
   },
@@ -190,21 +193,39 @@ export async function getStoreOwnerId(id: string): Promise<string | undefined> {
   return row?.createdById ?? undefined;
 }
 
+// Tagged stores:list so purgeTag("stores:list") (any store CRUD/toggle) also
+// busts the route cache of composite pages that render these ids (event
+// pages, home). Key sorts the ids so the same set in a different order still
+// hits the same cache entry.
 export async function getStoresByIds(ids: string[]): Promise<Store[]> {
   if (ids.length === 0) return [];
-  const rows = await prisma.store.findMany({
-    where: { id: { in: ids }, isActive: true },
-  });
-  const map = new Map(rows.map((row) => [row.id, toStore(row)]));
-  return ids.map((id) => map.get(id)).filter((s): s is Store => Boolean(s));
+  return unstable_cache(
+    async () => {
+      const rows = await prisma.store.findMany({
+        where: { id: { in: ids }, isActive: true },
+      });
+      const map = new Map(rows.map((row) => [row.id, toStore(row)]));
+      return ids.map((id) => map.get(id)).filter((s): s is Store => Boolean(s));
+    },
+    [`stores:by-ids:${[...ids].sort().join(",")}`],
+    { tags: ["stores:list"], revalidate: false }
+  )();
 }
 
+// Same reasoning as getStoresByIds — tagged so a store CRUD/toggle purges
+// the category pages that list its stores.
 export async function getStoresByCategory(categoryId: string): Promise<Store[]> {
-  const rows = await prisma.store.findMany({
-    where: { isActive: true, categoryIds: { has: categoryId } },
-    orderBy: { createdAt: "desc" },
-  });
-  return rows.map(toStore);
+  return unstable_cache(
+    async () => {
+      const rows = await prisma.store.findMany({
+        where: { isActive: true, categoryIds: { has: categoryId } },
+        orderBy: { createdAt: "desc" },
+      });
+      return rows.map(toStore);
+    },
+    [`stores:by-category:${categoryId}`],
+    { tags: ["stores:list"], revalidate: false }
+  )();
 }
 
 export async function getRelatedStores(store: Store, limit = 4): Promise<Store[]> {
@@ -234,34 +255,43 @@ export async function getRelatedStoresCount(store: Store): Promise<number> {
   });
 }
 
+// Tagged stores:list so purgeTag("stores:list") also busts the cached
+// GET /api/stores?q= (dynamic="force-static") responses this feeds — that
+// route used to inherit nothing from this function.
 export async function searchStores(
   query: string,
   opts: { take?: number; nameStartsWith?: boolean } = {}
 ): Promise<Store[]> {
   const q = query.trim();
   if (!q) return getStores();
-  const rows = await prisma.store.findMany({
-    where: {
-      isActive: true,
-      // Autocomplete (nameStartsWith) only wants type-ahead suggestions —
-      // matching on name prefix at the DB level, not "contains" — otherwise
-      // `take` truncates the result set before alphabetically-later prefix
-      // matches (e.g. "The Wizards Box") ever get a chance to appear,
-      // since stores with "the" merely somewhere in their name/description
-      // fill the quota first.
-      ...(opts.nameStartsWith
-        ? { name: { startsWith: q, mode: "insensitive" as const } }
-        : {
-            OR: [
-              { name: { contains: q, mode: "insensitive" as const } },
-              { description: { contains: q, mode: "insensitive" as const } },
-            ],
-          }),
+  return unstable_cache(
+    async () => {
+      const rows = await prisma.store.findMany({
+        where: {
+          isActive: true,
+          // Autocomplete (nameStartsWith) only wants type-ahead suggestions —
+          // matching on name prefix at the DB level, not "contains" — otherwise
+          // `take` truncates the result set before alphabetically-later prefix
+          // matches (e.g. "The Wizards Box") ever get a chance to appear,
+          // since stores with "the" merely somewhere in their name/description
+          // fill the quota first.
+          ...(opts.nameStartsWith
+            ? { name: { startsWith: q, mode: "insensitive" as const } }
+            : {
+                OR: [
+                  { name: { contains: q, mode: "insensitive" as const } },
+                  { description: { contains: q, mode: "insensitive" as const } },
+                ],
+              }),
+        },
+        orderBy: { name: "asc" },
+        take: opts.take ?? 50,
+      });
+      return rows.map(toStore);
     },
-    orderBy: { name: "asc" },
-    take: opts.take ?? 50,
-  });
-  return rows.map(toStore);
+    [`stores:search:${q.toLowerCase()}:${opts.take ?? 50}:${opts.nameStartsWith ?? false}`],
+    { tags: ["stores:list"], revalidate: false }
+  )();
 }
 
 // Keeps Store.rating/ratingCount in sync with real approved reviews —

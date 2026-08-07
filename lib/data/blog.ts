@@ -1,11 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { BlogPost, BlogSeo } from "@/types";
 import type { BlogPost as PrismaBlogPost } from "@prisma/client";
 
 function toBlogPost(row: PrismaBlogPost): BlogPost {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -23,7 +24,7 @@ function toBlogPost(row: PrismaBlogPost): BlogPost {
     isFirst: row.isFirst,
     isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
-  };
+  });
 }
 
 const getAllBlogPostsCached = unstable_cache(
@@ -130,7 +131,7 @@ const BLOG_CARD_SELECT = {
 } satisfies Prisma.BlogPostSelect;
 
 function toBlogPostCard(row: Prisma.BlogPostGetPayload<{ select: typeof BLOG_CARD_SELECT }>): BlogPost {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -148,7 +149,7 @@ function toBlogPostCard(row: Prisma.BlogPostGetPayload<{ select: typeof BLOG_CAR
     isFirst: row.isFirst,
     isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
-  };
+  });
 }
 
 export const getBlogPostCards = unstable_cache(

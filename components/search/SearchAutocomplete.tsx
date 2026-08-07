@@ -30,6 +30,7 @@ export function SearchAutocomplete({
   inputClassName,
   defaultValue = "",
   resultMode = "store",
+  clearOnSelect = false,
 }: {
   id: string;
   placeholder?: string;
@@ -37,10 +38,17 @@ export function SearchAutocomplete({
   inputClassName?: string;
   defaultValue?: string;
   resultMode?: ResultMode;
+  // When true, selecting a result clears the input back to empty and shows
+  // the searched term as the placeholder instead — so the next search can
+  // be typed straight away without manually clearing it first. Only makes
+  // sense where the component stays mounted across the selection (e.g. the
+  // header search, which lives in the root layout and survives navigation).
+  clearOnSelect?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(defaultValue);
+  const [lastQuery, setLastQuery] = useState("");
   const [open, setOpen] = useState(false);
   // null = a search for the current query is in flight, [] = it finished with
   // zero matches (renders "No results found" and disables Enter).
@@ -50,7 +58,7 @@ export function SearchAutocomplete({
     const q = query.trim();
     if (!q) return;
     let cancelled = false;
-    const timeout = setTimeout(async () => {
+    (async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         const body = await res.json();
@@ -63,10 +71,9 @@ export function SearchAutocomplete({
       } catch {
         if (!cancelled) setResults([]);
       }
-    }, 300);
+    })();
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
     };
   }, [query]);
 
@@ -80,6 +87,14 @@ export function SearchAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  function handleSelectResult(store: StoreResult) {
+    if (clearOnSelect) {
+      setQuery("");
+      setLastQuery(store.name);
+    }
+    setOpen(false);
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") {
       setOpen(false);
@@ -90,7 +105,7 @@ export function SearchAutocomplete({
     // (or a search still in flight) means Enter does nothing.
     e.preventDefault();
     if (results && results.length > 0) {
-      setOpen(false);
+      handleSelectResult(results[0]);
       router.push(buildResultHref(resultMode, results[0]));
     }
   }
@@ -114,7 +129,7 @@ export function SearchAutocomplete({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={clearOnSelect && !query && lastQuery ? lastQuery : placeholder}
         autoComplete="off"
         aria-label="Search stores"
         className={cn(
@@ -147,7 +162,7 @@ export function SearchAutocomplete({
                 <li key={store.id}>
                   <Link
                     href={buildResultHref(resultMode, store)}
-                    onClick={() => setOpen(false)}
+                    onClick={() => handleSelectResult(store)}
                     className="block px-4 py-2.5 text-sm text-brand-950 hover:bg-surface-100"
                   >
                     {store.name}

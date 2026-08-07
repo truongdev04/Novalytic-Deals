@@ -19,7 +19,10 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { buildQueryUrl } from "@/lib/utils";
 import type { DealFilters } from "@/lib/data/deals";
 
-export const revalidate = 300;
+// "Permanent" — cached until a deal CRUD/toggle purges "deals:list" (or the
+// daily Vercel Cron sweep), not on a time-based schedule. filterDealsPaginated
+// (lib/data/deals.ts) now tags its own cache entries so this actually works.
+export const revalidate = false;
 
 // Deal grid tops out at 5 columns (lg breakpoint) — a "batch" is 10 rows of
 // that widest layout, i.e. how many deals load per initial page view / each

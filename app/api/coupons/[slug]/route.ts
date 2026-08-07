@@ -3,7 +3,7 @@ import { getCouponBySlug } from "@/lib/data";
 import { jsonError, jsonOk } from "@/lib/server/api/response";
 
 export const dynamic = "force-static";
-export const revalidate = 300;
+export const revalidate = false;
 
 export async function GET(
   _request: NextRequest,

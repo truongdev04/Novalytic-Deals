@@ -1,11 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Event } from "@/types";
 import type { Event as PrismaEvent } from "@prisma/client";
 
 function toEvent(row: PrismaEvent, storeIds: string[], couponIds: string[]): Event {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -18,7 +19,7 @@ function toEvent(row: PrismaEvent, storeIds: string[], couponIds: string[]): Eve
     featuredStoreIds: storeIds,
     featuredCouponIds: couponIds,
     createdAt: row.createdAt.toISOString(),
-  };
+  });
 }
 
 // One batched query for all events' store links, grouped in JS — avoids an
@@ -27,6 +28,7 @@ async function storeIdsByEventId(eventIds: string[]): Promise<Map<string, string
   const stores = await prisma.store.findMany({
     where: { eventId: { in: eventIds } },
     select: { id: true, eventId: true },
+    orderBy: { id: "asc" },
   });
   const map = new Map<string, string[]>();
   for (const s of stores) {
@@ -44,6 +46,7 @@ async function couponIdsByEventId(eventIds: string[]): Promise<Map<string, strin
   const rows = await prisma.eventCoupon.findMany({
     where: { eventId: { in: eventIds } },
     select: { eventId: true, couponId: true },
+    orderBy: { couponId: "asc" },
   });
   const map = new Map<string, string[]>();
   for (const r of rows) {
@@ -56,7 +59,7 @@ async function couponIdsByEventId(eventIds: string[]): Promise<Map<string, strin
 
 export const getEvents = unstable_cache(
   async (): Promise<Event[]> => {
-    const rows = await prisma.event.findMany();
+    const rows = await prisma.event.findMany({ orderBy: [{ startsAt: "asc" }, { id: "asc" }] });
     const eventIds = rows.map((r) => r.id);
     const [byStore, byCoupon] = await Promise.all([
       storeIdsByEventId(eventIds),
@@ -67,7 +70,10 @@ export const getEvents = unstable_cache(
       .sort(
         (a, b) =>
           new Date(a.startsAt ?? "9999-12-31").getTime() -
-          new Date(b.startsAt ?? "9999-12-31").getTime()
+            new Date(b.startsAt ?? "9999-12-31").getTime() ||
+          // Event chưa đặt startsAt đều rơi về cùng sentinel, nên không có
+          // tiebreak thì thứ tự phụ thuộc thứ tự Prisma trả về.
+          a.id.localeCompare(b.id)
       );
   },
   ["events:list"],
@@ -89,6 +95,7 @@ export async function getEventsAdmin(filters: AdminEventFilters = {}): Promise<E
     async () => {
       const rows = await prisma.event.findMany({
         where: filters.createdById ? { createdById: filters.createdById } : undefined,
+        orderBy: [{ startsAt: "asc" }, { id: "asc" }],
       });
       const eventIds = rows.map((r) => r.id);
       const [byStore, byCoupon] = await Promise.all([
@@ -100,7 +107,8 @@ export async function getEventsAdmin(filters: AdminEventFilters = {}): Promise<E
         .sort(
           (a, b) =>
             new Date(a.startsAt ?? "9999-12-31").getTime() -
-            new Date(b.startsAt ?? "9999-12-31").getTime()
+              new Date(b.startsAt ?? "9999-12-31").getTime() ||
+            a.id.localeCompare(b.id)
         );
     },
     [`events:list:${scopeKey}`],
@@ -114,8 +122,16 @@ export async function getEventBySlug(slug: string): Promise<Event | undefined> {
       const row = await prisma.event.findUnique({ where: { slug } });
       if (!row) return undefined;
       const [stores, coupons] = await Promise.all([
-        prisma.store.findMany({ where: { eventId: row.id }, select: { id: true } }),
-        prisma.eventCoupon.findMany({ where: { eventId: row.id }, select: { couponId: true } }),
+        prisma.store.findMany({
+          where: { eventId: row.id },
+          select: { id: true },
+          orderBy: { id: "asc" },
+        }),
+        prisma.eventCoupon.findMany({
+          where: { eventId: row.id },
+          select: { couponId: true },
+          orderBy: { couponId: "asc" },
+        }),
       ]);
       return toEvent(row, stores.map((s) => s.id), coupons.map((c) => c.couponId));
     },
@@ -128,8 +144,12 @@ export async function getEventById(id: string): Promise<Event | undefined> {
   const row = await prisma.event.findUnique({ where: { id } });
   if (!row) return undefined;
   const [stores, coupons] = await Promise.all([
-    prisma.store.findMany({ where: { eventId: id }, select: { id: true } }),
-    prisma.eventCoupon.findMany({ where: { eventId: id }, select: { couponId: true } }),
+    prisma.store.findMany({ where: { eventId: id }, select: { id: true }, orderBy: { id: "asc" } }),
+    prisma.eventCoupon.findMany({
+      where: { eventId: id },
+      select: { couponId: true },
+      orderBy: { couponId: "asc" },
+    }),
   ]);
   return toEvent(row, stores.map((s) => s.id), coupons.map((c) => c.couponId));
 }

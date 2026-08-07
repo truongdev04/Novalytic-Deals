@@ -42,7 +42,11 @@ const StoreCarousel = dynamic(
 import { ensureAutoDealRollover } from "@/lib/content/dealsRefresh";
 import { ensureAutoCouponRollover } from "@/lib/content/couponsRefresh";
 
-export const revalidate = 300;
+// "Permanent" — cached until an admin edit purges the relevant tag, or the
+// daily Vercel Cron (app/api/cron/daily-refresh/route.ts) runs the
+// coupon-expiry + Auto Coupon/Deal/Popular rollover checks and purges
+// afterward. Not on a time-based schedule.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await getSeoSettings();

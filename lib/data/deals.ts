@@ -1,11 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Deal } from "@/types";
 import type { Deal as PrismaDeal } from "@prisma/client";
 
 function toDeal(row: PrismaDeal): Deal {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     storeId: row.storeId,
@@ -26,7 +27,7 @@ function toDeal(row: PrismaDeal): Deal {
     lastHourClicks: row.lastHourClicks,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
+  });
 }
 
 function throwIfSlugConflict(error: unknown): never {
@@ -146,26 +147,35 @@ async function filterDealsByDiscountPaginated(
 
 // Same filtering as getDeals but with real DB-level pagination — used where
 // the caller needs an accurate `total` for a page count (e.g. /deals).
+// Tagged deals:list so purgeTag("deals:list") (any deal CRUD/toggle) busts
+// /deals' route cache — this was previously a plain, untagged Prisma call,
+// so on-demand purges had no effect on that page.
 export async function filterDealsPaginated(
   filters: DealFilters,
   page: number,
   pageSize: number
 ): Promise<{ items: Deal[]; total: number }> {
-  if (filters.sort === "discount") {
-    return filterDealsByDiscountPaginated(filters, page, pageSize);
-  }
+  return unstable_cache(
+    async () => {
+      if (filters.sort === "discount") {
+        return filterDealsByDiscountPaginated(filters, page, pageSize);
+      }
 
-  const where = buildDealWhere(filters);
-  const [rows, total] = await prisma.$transaction([
-    prisma.deal.findMany({
-      where,
-      orderBy: buildDealOrderBy(filters.sort),
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.deal.count({ where }),
-  ]);
-  return { items: rows.map(toDeal), total };
+      const where = buildDealWhere(filters);
+      const [rows, total] = await prisma.$transaction([
+        prisma.deal.findMany({
+          where,
+          orderBy: buildDealOrderBy(filters.sort),
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        prisma.deal.count({ where }),
+      ]);
+      return { items: rows.map(toDeal), total };
+    },
+    [`deals:filtered:${JSON.stringify(filters)}:${page}:${pageSize}`],
+    { tags: ["deals:list"], revalidate: false }
+  )();
 }
 
 export interface AdminDealFilters {

@@ -26,7 +26,11 @@ import { formatDiscount, isExpired } from "@/lib/utils";
 import { resolveStoreContent } from "@/lib/content/defaults";
 import { getUtcMonthName } from "@/lib/content/template";
 
-export const revalidate = 86400;
+// "Permanent" — cached until the store itself, one of its coupons, or a
+// review purges its tag (store:<slug>/coupons:list, see
+// recomputeStoreRating), or the daily Vercel Cron sweep runs. Not on a
+// time-based schedule.
+export const revalidate = false;
 
 export async function generateStaticParams() {
   const stores = await getStores();

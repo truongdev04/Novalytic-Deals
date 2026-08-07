@@ -20,6 +20,7 @@ RESEND_API_KEY=
 TURNSTILE_SITE_KEY= TURNSTILE_SECRET_KEY=
 AFFILIATE_DEFAULT_NETWORK=
 NEXT_PUBLIC_SITE_URL= NEXT_PUBLIC_GA_ID= NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
+CRON_SECRET=
 ```
 
 Placeholder — thêm library-specific default khác (date lib, HTTP client convention) khi quyết định.

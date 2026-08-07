@@ -52,7 +52,7 @@ export async function Header() {
           </nav>
 
           <div className="hidden flex-1 items-center justify-end md:flex">
-            <SearchAutocomplete id="header-search" className="max-w-xs" />
+            <SearchAutocomplete id="header-search" className="max-w-xs" clearOnSelect />
           </div>
 
           <div className="flex items-center gap-1">

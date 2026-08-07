@@ -1,11 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { stripUndefined } from "./normalize";
 import type { Category, CategoryFaqItem, CategorySeo } from "@/types";
 import type { Category as PrismaCategory } from "@prisma/client";
 
 function toCategory(row: PrismaCategory): Category {
-  return {
+  return stripUndefined({
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -17,12 +18,14 @@ function toCategory(row: PrismaCategory): Category {
     seo: row.seo as unknown as CategorySeo,
     faq: row.faq as unknown as CategoryFaqItem[],
     createdAt: row.createdAt.toISOString(),
-  };
+  });
 }
 
 export const getCategories = unstable_cache(
   async (): Promise<Category[]> => {
-    const rows = await prisma.category.findMany({ orderBy: { createdAt: "desc" } });
+    const rows = await prisma.category.findMany({
+      orderBy: [{ createdAt: "desc" }, { slug: "asc" }],
+    });
     return rows.map(toCategory);
   },
   ["categories:list"],
@@ -44,7 +47,7 @@ export async function getCategoriesAdmin(filters: AdminCategoryFilters = {}): Pr
     async () => {
       const rows = await prisma.category.findMany({
         where: filters.createdById ? { createdById: filters.createdById } : undefined,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { slug: "asc" }],
       });
       return rows.map(toCategory);
     },
@@ -57,7 +60,7 @@ export const getFeaturedCategories = unstable_cache(
   async (limit = 8): Promise<Category[]> => {
     const rows = await prisma.category.findMany({
       where: { isFeatured: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { slug: "asc" }],
       take: limit,
     });
     return rows.map(toCategory);

@@ -12,7 +12,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { buildMetadata } from "@/lib/seo/metadata";
 import type { BlogPost } from "@/types";
 
-export const revalidate = 300;
+// "Permanent" — cached until a blog post/topic CRUD purges "blog:list" /
+// "blog-topics:list" (or the daily Vercel Cron sweep), not on a time-based
+// schedule.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({

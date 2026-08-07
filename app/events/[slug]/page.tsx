@@ -21,7 +21,10 @@ import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { resolveEventFaq } from "@/lib/content/defaults";
 
-export const revalidate = 300;
+// "Permanent" — cached until the event, an underlying store, or coupon
+// purges its tag (event:<slug>/stores:list/coupons:list), or the daily
+// Vercel Cron sweep runs. Not on a time-based schedule.
+export const revalidate = false;
 
 // Curated deals grid tops out at 5 columns (lg breakpoint) — cap to 4 rows.
 const CURATED_DEALS_LIMIT = 20;

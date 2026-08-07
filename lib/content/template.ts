@@ -74,6 +74,27 @@ export function pickRandomBlock(template: string | undefined): string | undefine
   return blocks[Math.floor(Math.random() * blocks.length)];
 }
 
+// Bản tất định của pickRandomLine/pickRandomBlock, dùng cho đường render phía
+// server (lib/content/defaults.ts). Cùng seed luôn cho cùng kết quả, nên trang
+// prerender ra byte giống hệt sau mỗi lần revalidate — điều kiện để Vercel
+// dedup và không tính ISR Write Unit. Đồng thời bảo đảm generateMetadata và
+// body của cùng một trang không chọn ra hai biến thể mâu thuẫn nhau.
+//
+// pickRandom* ở trên vẫn giữ cho form admin, nơi mỗi lần mở form muốn gợi ý
+// một bản nháp khác nhau (trang admin là dynamic, không phải ISR).
+function pickBySeed(candidates: string[], seed: string): string | undefined {
+  if (candidates.length === 0) return undefined;
+  return candidates[(hashSeed(seed) >>> 0) % candidates.length];
+}
+
+export function pickSeededLine(template: string | undefined, seed: string): string | undefined {
+  return pickBySeed(splitTemplateLines(template), seed);
+}
+
+export function pickSeededBlock(template: string | undefined, seed: string): string | undefined {
+  return pickBySeed(splitTemplateBlocks(template), seed);
+}
+
 // Deterministically assigns storeId to exactly one set via consistent
 // hashing (hash-ring lookup): the set whose hash is the smallest value
 // >= hash(storeId), wrapping to the globally smallest-hash set if none
