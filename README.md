@@ -20,6 +20,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Local development database
+
+`.env` points at the production Supabase database — don't run against it locally. Instead, spin up a local Postgres via Docker:
+
+```bash
+npm run db:up       # start local Postgres (docker compose), port 5434
+npm run db:migrate   # apply Prisma migrations
+npm run db:seed      # load mock data (data/*.json) + a local admin user
+npm run dev           # http://localhost:3000, now reading from the local DB
+```
+
+`.env.local` (gitignored) holds the local `DATABASE_URL`/`DIRECT_URL` and overrides `.env` for `next dev`/`next start` and for the `db:*` scripts — everything else (Cloudinary, Resend, etc.) still falls back to `.env`. Log into `/admin` with the `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD` set in `.env.local`.
+
+Other useful commands: `npm run db:studio` (browse data), `npm run db:down` (stop the container).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

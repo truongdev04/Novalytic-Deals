@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: novalyticdeals-db-local
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: novalyticdeals_dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - novalyticdeals_db_local_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d novalyticdeals_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  novalyticdeals_db_local_data:
