@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "nextjs-toploader/app";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
+import { Columns as ColumnsIcon, Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
@@ -22,6 +22,29 @@ const EVENT_FILTER_ALL = "all";
 const EVENT_FILTER_UNCATEGORIZED = "uncategorized";
 const BOOL_FILTER_ALL = "all";
 
+// Default columns (Logo/Name/.../Actions) are always shown and can't be
+// hidden — only these extra columns are toggleable via the Columns picker,
+// all off by default so the table stays compact until an admin opts in.
+const OPTIONAL_COLUMNS = [
+  { key: "website", label: "Website" },
+  { key: "rating", label: "Rating" },
+  { key: "affiliateNetwork", label: "Affiliate Network" },
+  { key: "updatedAt", label: "Updated At" },
+  { key: "couponCount", label: "Coupon Count" },
+] as const;
+type OptionalColumnKey = (typeof OPTIONAL_COLUMNS)[number]["key"];
+const DEFAULT_LOCKED_COLUMNS = [
+  "Logo",
+  "Name",
+  "Category",
+  "Event",
+  "Featured",
+  "Pin",
+  "Status",
+  "Date",
+  "Actions",
+];
+
 // Restores the scroll position saved right before navigating to Edit —
 // router.push({ scroll: false }) only stops Next.js from forcing a
 // scroll-to-top, it can't restore where the admin actually was, and
@@ -33,6 +56,7 @@ export function StoreTable({
   stores,
   categories,
   events,
+  couponCounts,
   total,
   page,
   pageSize,
@@ -40,6 +64,7 @@ export function StoreTable({
   stores: Store[];
   categories: Category[];
   events: Event[];
+  couponCounts: Record<string, number>;
   total: number;
   page: number;
   pageSize: number;
@@ -91,6 +116,29 @@ export function StoreTable({
   const [draftFeaturedFilter, setDraftFeaturedFilter] = useState(BOOL_FILTER_ALL);
   const [draftPinFilter, setDraftPinFilter] = useState(BOOL_FILTER_ALL);
   const [draftStatusFilter, setDraftStatusFilter] = useState(BOOL_FILTER_ALL);
+
+  const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumnKey>>(new Set());
+  const [draftVisibleColumns, setDraftVisibleColumns] = useState<Set<OptionalColumnKey>>(new Set());
+
+  function openColumnsModal() {
+    setDraftVisibleColumns(new Set(visibleColumns));
+    setShowColumnsModal(true);
+  }
+
+  function toggleDraftColumn(key: OptionalColumnKey) {
+    setDraftVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function applyColumns() {
+    setVisibleColumns(draftVisibleColumns);
+    setShowColumnsModal(false);
+  }
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((c) => [c.id, c.name])),
@@ -266,6 +314,15 @@ export function StoreTable({
             Clear All
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={openColumnsModal}
+          className="flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+        >
+          <ColumnsIcon className="h-4 w-4" />
+          Columns
+        </button>
       </div>
 
       <Modal open={showFilterModal} onOpenChange={setShowFilterModal} title="Filters">
@@ -333,6 +390,46 @@ export function StoreTable({
             Apply filter
           </Button>
         </div>
+      </Modal>
+
+      <Modal open={showColumnsModal} onOpenChange={setShowColumnsModal}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold text-brand-950">Columns</h2>
+          <button
+            type="button"
+            onClick={() => setDraftVisibleColumns(new Set())}
+            className="text-sm font-medium text-red-600 hover:underline"
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {DEFAULT_LOCKED_COLUMNS.map((label) => (
+            <label key={label} className="flex items-center gap-2 text-sm text-muted-400">
+              <input type="checkbox" checked disabled className="h-4 w-4" />
+              {label}
+            </label>
+          ))}
+          {OPTIONAL_COLUMNS.map((col) => (
+            <label
+              key={col.key}
+              className="flex items-center gap-2 text-sm text-brand-950"
+            >
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={draftVisibleColumns.has(col.key)}
+                onChange={() => toggleDraftColumn(col.key)}
+              />
+              {col.label}
+            </label>
+          ))}
+        </div>
+
+        <Button variant="primary" className="mt-5 w-full" onClick={applyColumns}>
+          Apply columns
+        </Button>
       </Modal>
 
       <div className="mt-3 flex items-center justify-between">
@@ -415,6 +512,13 @@ export function StoreTable({
               <th className="px-4 py-3">Pin</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Date</th>
+              {visibleColumns.has("website") && <th className="px-4 py-3">Website</th>}
+              {visibleColumns.has("rating") && <th className="px-4 py-3">Rating</th>}
+              {visibleColumns.has("affiliateNetwork") && (
+                <th className="px-4 py-3">Affiliate Network</th>
+              )}
+              {visibleColumns.has("updatedAt") && <th className="px-4 py-3">Updated At</th>}
+              {visibleColumns.has("couponCount") && <th className="px-4 py-3">Coupon Count</th>}
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -517,6 +621,42 @@ export function StoreTable({
                   <td className="whitespace-nowrap px-4 py-3 text-muted-600">
                     {new Date(store.createdAt).toLocaleDateString("en-US")}
                   </td>
+                  {visibleColumns.has("website") && (
+                    <td className="max-w-45 truncate px-4 py-3 text-muted-600">
+                      <a
+                        href={store.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={store.website}
+                        className="hover:text-brand-700 hover:underline"
+                      >
+                        {store.website}
+                      </a>
+                    </td>
+                  )}
+                  {visibleColumns.has("rating") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {store.rating.toFixed(1)} ({store.ratingCount})
+                    </td>
+                  )}
+                  {visibleColumns.has("affiliateNetwork") && (
+                    <td
+                      className="max-w-45 truncate px-4 py-3 text-muted-600"
+                      title={store.affiliateNetwork}
+                    >
+                      {store.affiliateNetwork}
+                    </td>
+                  )}
+                  {visibleColumns.has("updatedAt") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {new Date(store.updatedAt).toLocaleDateString("en-US")}
+                    </td>
+                  )}
+                  {visibleColumns.has("couponCount") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {couponCounts[store.id] ?? 0}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link
@@ -537,7 +677,10 @@ export function StoreTable({
             })}
             {stores.length === 0 && (
               <tr>
-                <td colSpan={selectionMode ? 10 : 9} className="px-4 py-6 text-center text-muted-500">
+                <td
+                  colSpan={(selectionMode ? 10 : 9) + visibleColumns.size}
+                  className="px-4 py-6 text-center text-muted-500"
+                >
                   No stores found.
                 </td>
               </tr>

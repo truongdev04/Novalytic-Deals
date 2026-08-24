@@ -83,7 +83,7 @@ export async function getStoresAdminPaginated(
   filters: AdminStoreFilters,
   page: number,
   pageSize: number
-): Promise<{ items: Store[]; total: number }> {
+): Promise<{ items: Store[]; total: number; couponCounts: Record<string, number> }> {
   const where: Prisma.StoreWhereInput = {};
   if (filters.categoryId) where.categoryIds = { has: filters.categoryId };
   if (filters.eventId !== undefined) where.eventId = filters.eventId;
@@ -101,10 +101,12 @@ export async function getStoresAdminPaginated(
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: { _count: { select: { coupons: true } } },
     }),
     prisma.store.count({ where }),
   ]);
-  return { items: rows.map(toStore), total };
+  const couponCounts = Object.fromEntries(rows.map((row) => [row.id, row._count.coupons]));
+  return { items: rows.map(toStore), total, couponCounts };
 }
 
 // Own query (not derived from getAllStoresCached) so the public path never

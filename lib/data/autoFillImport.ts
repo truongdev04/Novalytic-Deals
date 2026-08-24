@@ -38,6 +38,14 @@ async function runAutoFillImport(
 
   const created: AutoFillStoreSummary[] = [];
   const reused: AutoFillStoreSummary[] = [];
+  const storeErrors: StoreRowError[] = [...parsed.storeErrors];
+  // Slugs actually created new in THIS run — separate from slugToId (which
+  // also holds reused/pre-existing slugs) so the coupon loop below can tell
+  // "brand new store" apart from "already existed". Policy: coupons only
+  // get created alongside a brand-new store; a reused (already-existing)
+  // store's coupons in the file are skipped, to avoid re-creating duplicate
+  // coupons whenever a file with overlapping stores gets re-imported.
+  const createdSlugs = new Set<string>();
 
   for (const { row, input } of parsed.stores) {
     if (slugToId.has(input.slug)) {
@@ -47,6 +55,7 @@ async function runAutoFillImport(
 
     if (dryRun) {
       created.push({ row, name: input.name, slug: input.slug });
+      createdSlugs.add(input.slug);
       // Placeholder so a duplicate name later in this same file resolves to
       // "reused" in the preview too — never read as a real id in dry-run mode.
       slugToId.set(input.slug, input.slug);
@@ -79,6 +88,7 @@ async function runAutoFillImport(
       });
       slugToId.set(store.slug, store.id);
       created.push({ row, name: input.name, slug: input.slug });
+      createdSlugs.add(store.slug);
     } catch (error) {
       if (error instanceof Error && error.message === "SLUG_TAKEN") {
         // Rare race between the dedup read above and this write — the store
@@ -90,7 +100,17 @@ async function runAutoFillImport(
           continue;
         }
       }
-      throw error;
+      // Unexpected DB error for this one store (data itself already passed
+      // Zod validation at parse time, so this isn't a bad-input problem) —
+      // record it and move on to the next store instead of aborting the
+      // whole batch. slugToId is left unset for this slug, so its coupons
+      // fall into the "store not found" branch below instead of silently
+      // attaching to nothing.
+      storeErrors.push({
+        row,
+        name: input.name,
+        message: error instanceof Error ? error.message : "Lỗi không xác định khi tạo store.",
+      });
     }
   }
 
@@ -99,15 +119,25 @@ async function runAutoFillImport(
 
   for (const { row, storeName, storeSlug, input } of parsed.coupons) {
     if (!slugToId.has(storeSlug)) {
-      // Shouldn't happen — parseAutoFillWorkbook already rejected coupons
-      // whose store failed validation — guarded anyway so one unexpected
-      // gap can't crash the whole batch.
+      // Store for this coupon either failed validation at parse time
+      // (parseAutoFillWorkbook already excludes those coupons — this is a
+      // defensive fallback) or failed to create/reuse during commit above —
+      // either way it was never created/reused, so skip this coupon too.
       couponErrors.push({
         row,
         title: input.title,
         storeName,
-        message: "Không xác định được store đã tạo/tái sử dụng cho coupon này.",
+        message: "Store bị lỗi nên coupon này cũng bị bỏ qua.",
       });
+      continue;
+    }
+
+    if (!createdSlugs.has(storeSlug)) {
+      // Store already existed (reused, not created new this run) — skip its
+      // coupons too, per policy, so re-importing a file whose stores were
+      // already onboarded doesn't create duplicate coupons for them. Not an
+      // error (expected/intentional), so it's silently skipped rather than
+      // reported in couponErrors — only genuine errors get surfaced there.
       continue;
     }
 
@@ -150,7 +180,7 @@ async function runAutoFillImport(
   }
 
   return {
-    stores: { created, reused, errors: parsed.storeErrors },
+    stores: { created, reused, errors: storeErrors },
     coupons: { created: couponsCreated, errors: couponErrors },
     reviewNotes: parsed.reviewNotes,
   };

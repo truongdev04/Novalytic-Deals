@@ -54,7 +54,7 @@ export default async function AdminStoresPage({
     createdById: scoped ? session?.user?.id : undefined,
   };
 
-  const [{ items: stores, total }, categories, events, popularStoresSettings] = await Promise.all([
+  const [{ items: stores, total, couponCounts }, categories, events, popularStoresSettings] = await Promise.all([
     getStoresAdminPaginated(filters, page, pageSize),
     getCategories(),
     getEvents(),
@@ -79,6 +79,7 @@ export default async function AdminStoresPage({
           stores={stores}
           categories={categories}
           events={events}
+          couponCounts={couponCounts}
           total={total}
           page={page}
           pageSize={pageSize}
