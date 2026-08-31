@@ -51,6 +51,3 @@ next-env.d.ts
 
 # claude code / mcp scratch output (local only)
 .playwright-mcp/
-
-# reference screenshots pasted into chats — not site assets
-/public/images/anh/
