@@ -15,18 +15,20 @@ export function PageHero({
   children: React.ReactNode;
 }) {
   return (
-    <section className="px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-brand-900">
-        {imageSrc ? (
-          <Image src={imageSrc} alt="" fill priority className="object-cover" />
-        ) : null}
-        <div
-          className={cn(
-            "relative flex min-h-[360px] flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[420px] sm:px-6 sm:py-16",
-            contentClassName
-          )}
-        >
-          {children}
+    <section className="pt-4 sm:pt-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl bg-brand-900">
+          {imageSrc ? (
+            <Image src={imageSrc} alt="" fill priority className="object-cover" />
+          ) : null}
+          <div
+            className={cn(
+              "relative flex min-h-[360px] flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[420px] sm:px-6 sm:py-16",
+              contentClassName
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </section>

@@ -93,7 +93,7 @@ export function DealProductCard({ deal, store }: { deal: Deal; store: Store }) {
             {deal.price}
           </span>
           {deal.originalPrice && (
-            <span className="text-sm text-muted-400 line-through">
+            <span className="text-sm text-muted-500 line-through">
               {deal.currency}
               {deal.originalPrice}
             </span>

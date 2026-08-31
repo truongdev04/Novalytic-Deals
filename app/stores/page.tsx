@@ -9,6 +9,7 @@ import {
 } from "@/lib/data";
 import { rankPopularStores } from "@/lib/content/popularStoresRefresh";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -80,7 +81,7 @@ export default async function StoresPage() {
   return (
     <div>
       <PageHero imageSrc={banner.imageUrl || undefined}>
-        <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-6xl">
+        <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-5xl">
           {banner.title || "Every store, one place to save."}
         </h1>
         <p className="mt-4 max-w-xl text-brand-100">
@@ -97,24 +98,31 @@ export default async function StoresPage() {
         </div>
       </PageHero>
 
-      <Container className="py-10">
+      <Container className="pt-10">
         <Breadcrumb items={[{ name: "Stores", path: "/stores" }]} />
+      </Container>
 
-        <div className="mt-10">
+      <DividedSections className="mt-10 pb-16">
+        <section>
+          <Container>
           <SectionHeader title="Find stores by category" align="left" />
           <CategoryGrid categories={categories} />
-        </div>
+          </Container>
+        </section>
 
-        <div className="mt-14">
+        <section>
+          <Container>
           <VerifiedStoresSection
             featuredStores={featuredStores}
             categories={categoriesWithFeaturedStore}
             storesByCategoryId={storesByCategoryId}
             verifiedCouponCountByStore={verifiedCouponCountByStore}
           />
-        </div>
+          </Container>
+        </section>
 
-        <div className="mt-14">
+        <section>
+          <Container>
           <SectionHeader
             title="Complete store index"
             subtitle="Every indexed store, organized alphabetically."
@@ -155,8 +163,9 @@ export default async function StoresPage() {
               );
             })}
           </div>
-        </div>
-      </Container>
+          </Container>
+        </section>
+      </DividedSections>
     </div>
   );
 }

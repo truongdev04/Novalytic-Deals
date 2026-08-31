@@ -11,6 +11,7 @@ import {
   getApprovedReviewsByStore,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { StoreHeader } from "@/components/store/StoreHeader";
@@ -124,34 +125,36 @@ export default async function StorePage({
             {activeCoupons.length} active {activeCoupons.length === 1 ? "offer" : "offers"} available
           </p>
 
-          <div className="mt-6">
-            <StoreCouponTabs coupons={coupons} store={store} />
-          </div>
-
-          {store.aboutStore && (
-            <div className="mt-12">
-              <SectionHeader title={`About ${store.name}`} align="left" />
-              <RichHtml html={store.aboutStore} className="text-sm text-muted-600" />
+          <DividedSections className="mt-6">
+            <div>
+              <StoreCouponTabs coupons={coupons} store={store} />
             </div>
-          )}
 
-          {store.howToApply && (
-            <div className="mt-12">
-              <SectionHeader title="How to apply" align="left" />
-              <RichHtml html={store.howToApply} className="text-sm text-muted-600" />
+            {store.aboutStore && (
+              <div>
+                <SectionHeader title={`About ${store.name}`} align="left" />
+                <RichHtml html={store.aboutStore} className="text-sm text-muted-600" />
+              </div>
+            )}
+
+            {store.howToApply && (
+              <div>
+                <SectionHeader title={`How to apply ${store.name} coupon codes?`} align="left" />
+                <RichHtml html={store.howToApply} className="text-sm text-muted-600" />
+              </div>
+            )}
+
+            <div>
+              <ReviewsSection store={store} reviews={reviews} />
             </div>
-          )}
 
-          {store.faq.length > 0 && (
-            <div className="mt-12">
-              <SectionHeader title="Frequently asked questions" align="left" />
-              <FAQAccordion items={store.faq} />
-            </div>
-          )}
-
-          <div className="mt-12">
-            <ReviewsSection store={store} reviews={reviews} />
-          </div>
+            {store.faq.length > 0 && (
+              <div>
+                <SectionHeader title="Frequently asked questions" align="left" />
+                <FAQAccordion items={store.faq} />
+              </div>
+            )}
+          </DividedSections>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBlogPostCards, getFeaturedBlogPosts, getBlogTopics } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { BlogCard } from "@/components/blog/BlogCard";
@@ -46,42 +47,52 @@ export default async function BlogIndexPage({
 
   return (
     <>
-      <Container className="py-10">
+      <Container className="pt-10">
         <Breadcrumb items={[{ name: "Blog", path: "/blog" }]} />
         <h1 className="sr-only">Blog</h1>
+      </Container>
 
-        <div className="mt-6 space-y-16">
-          {heroPost && <BlogHero post={heroPost} />}
+      <DividedSections className="mt-6 pb-14">
+        {heroPost && (
+          <section>
+            <Container>
+              <BlogHero post={heroPost} />
+            </Container>
+          </section>
+        )}
 
-          {featuredRow.length > 0 && (
-            <div>
-              <SectionHeader title="Featured" align="left" />
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {featuredRow.map((post) => (
-                  <BlogCard key={post.id} post={post} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <SectionHeader title="Latest" align="left" />
-
-            <div className="mb-6 flex flex-wrap gap-2">
-              <CategoryChip name="All" href="/blog" active={!activeTopic} />
-              {topicsWithPosts.map((t) => (
-                <CategoryChip key={t.id} name={t.name} href={`/blog?topic=${t.slug}`} active={activeTopic?.id === t.id} />
+        {featuredRow.length > 0 && (
+          <section>
+            <Container>
+            <SectionHeader title="Featured" align="left" />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredRow.map((post) => (
+                <BlogCard key={post.id} post={post} />
               ))}
             </div>
+            </Container>
+          </section>
+        )}
 
-            {filteredPosts.length === 0 ? (
-              <EmptyState title="No articles found" description="Try browsing all articles instead." />
-            ) : (
-              <BlogPostGrid key={topic ?? "all"} posts={filteredPosts} />
-            )}
+        <section>
+          <Container>
+          <SectionHeader title="Latest" align="left" />
+
+          <div className="mb-6 flex flex-wrap gap-2">
+            <CategoryChip name="All" href="/blog" active={!activeTopic} />
+            {topicsWithPosts.map((t) => (
+              <CategoryChip key={t.id} name={t.name} href={`/blog?topic=${t.slug}`} active={activeTopic?.id === t.id} />
+            ))}
           </div>
-        </div>
-      </Container>
+
+          {filteredPosts.length === 0 ? (
+            <EmptyState title="No articles found" description="Try browsing all articles instead." />
+          ) : (
+            <BlogPostGrid key={topic ?? "all"} posts={filteredPosts} />
+          )}
+          </Container>
+        </section>
+      </DividedSections>
 
       <section className="bg-brand-700">
         <Container className="flex flex-col items-center gap-6 py-14 text-center">

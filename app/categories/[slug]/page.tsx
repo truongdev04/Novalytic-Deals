@@ -8,6 +8,7 @@ import {
   getBestCategoryCoupons,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { StoreGrid } from "@/components/store/StoreGrid";
@@ -71,58 +72,68 @@ export default async function CategoryPage({
   ];
 
   return (
-    <Container className="py-10">
-      {category.faq.length > 0 && <JsonLd data={faqPageJsonLd(category.faq)} />}
-      <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
+    <>
+      <Container className="pt-10">
+        {category.faq.length > 0 && <JsonLd data={faqPageJsonLd(category.faq)} />}
+        <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
 
-      <Breadcrumb items={breadcrumbItems} />
+        <Breadcrumb items={breadcrumbItems} />
 
-      <div className="relative mt-4 overflow-hidden rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 px-6 py-12 text-center sm:py-16">
-        <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-white">
-          {renderCategoryIcon(category, { iconClassName: "h-8 w-8" })}
-        </span>
-        <h1 className="mt-4 font-heading text-3xl font-bold text-white sm:text-4xl">
-          {category.name}
-        </h1>
-        <p className="mt-2 text-brand-100">{category.description}</p>
-      </div>
-
-      {topStores.length > 0 && (
-        <div className="mt-10">
-          <SectionHeader title="Top stores" align="left" />
-          <StoreGrid
-            stores={topStores}
-            verifiedCouponCountByStore={verifiedCouponCountByStore}
-            viewAllHref={`/categories/${category.slug}/stores`}
-          />
+        <div className="relative mt-4 overflow-hidden rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 px-6 py-12 text-center sm:py-16">
+          <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-white">
+            {renderCategoryIcon(category, { iconClassName: "h-8 w-8" })}
+          </span>
+          <h1 className="mt-4 font-heading text-4xl font-bold text-white sm:text-5xl">
+            {category.name}
+          </h1>
+          <p className="mt-2 text-brand-100">{category.description}</p>
         </div>
-      )}
+      </Container>
 
-      <div className="mt-10">
-        <SectionHeader title={`Best ${category.name} Coupon`} align="left" />
-        {bestCoupons.length === 0 ? (
-          <EmptyState
-            title="No active coupons right now"
-            description="Check back soon for new offers in this category."
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {bestCoupons.map((coupon) => {
-              const store = storeById.get(coupon.storeId);
-              return store ? (
-                <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
-              ) : null;
-            })}
-          </div>
+      <DividedSections className="mt-10 pb-16">
+        {topStores.length > 0 && (
+          <section>
+            <Container>
+            <SectionHeader title="Top stores" align="left" />
+            <StoreGrid
+              stores={topStores}
+              verifiedCouponCountByStore={verifiedCouponCountByStore}
+              viewAllHref={`/categories/${category.slug}/stores`}
+            />
+            </Container>
+          </section>
         )}
-      </div>
 
-      {category.faq.length > 0 && (
-        <div className="mt-12">
-          <SectionHeader title="Frequently asked questions" align="left" />
-          <FAQAccordion items={category.faq} />
-        </div>
-      )}
-    </Container>
+        <section>
+          <Container>
+          <SectionHeader title={`Best ${category.name} Coupon`} align="left" />
+          {bestCoupons.length === 0 ? (
+            <EmptyState
+              title="No active coupons right now"
+              description="Check back soon for new offers in this category."
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {bestCoupons.map((coupon) => {
+                const store = storeById.get(coupon.storeId);
+                return store ? (
+                  <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
+                ) : null;
+              })}
+            </div>
+          )}
+          </Container>
+        </section>
+
+        {category.faq.length > 0 && (
+          <section>
+            <Container>
+            <SectionHeader title="Frequently asked questions" align="left" />
+            <FAQAccordion items={category.faq} />
+            </Container>
+          </section>
+        )}
+      </DividedSections>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import {
   getVerifiedCouponCountByStoreIds,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -91,21 +92,26 @@ export default async function EventPage({
         <p className="max-w-xl text-brand-100">{event.description}</p>
       </PageHero>
 
-      <Container className="py-10">
+      <Container className="pt-10">
         <Breadcrumb items={breadcrumbItems} />
+      </Container>
 
+      <DividedSections className="mt-10 pb-16">
         {stores.length > 0 && (
-          <div className="mt-10">
+          <section>
+            <Container>
             <SectionHeader title="Featured stores" align="left" />
             <StoreGrid
               stores={stores}
               verifiedCouponCountByStore={verifiedCouponCountByStore}
               viewAllHref={`/events/${event.slug}/stores`}
             />
-          </div>
+            </Container>
+          </section>
         )}
 
-        <div className="mt-10">
+        <section>
+          <Container>
           <SectionHeader title="Curated deals" align="left" />
           {coupons.length === 0 ? (
             <EmptyState
@@ -122,15 +128,18 @@ export default async function EventPage({
               })}
             </div>
           )}
-        </div>
+          </Container>
+        </section>
 
         {faq.length > 0 && (
-          <div className="mt-12">
+          <section>
+            <Container>
             <SectionHeader title="Frequently asked questions" align="left" />
             <FAQAccordion items={faq} />
-          </div>
+            </Container>
+          </section>
         )}
-      </Container>
+      </DividedSections>
     </div>
   );
 }

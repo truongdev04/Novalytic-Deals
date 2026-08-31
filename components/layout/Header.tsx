@@ -27,16 +27,19 @@ export async function Header() {
                 <img
                   src={settings.logoUrl}
                   alt={settings.title}
-                  className="h-9 w-9 shrink-0 rounded-lg object-contain"
+                  draggable={false}
+                  className="pointer-events-none max-h-16 w-auto shrink-0 object-contain"
                 />
               ) : (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
-                  <Tag className="h-5 w-5" />
-                </span>
+                <>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+                    <Tag className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 truncate font-heading text-lg font-semibold text-brand-950 sm:text-2xl lg:text-3xl">
+                    {settings.title || "NovalyticDeals"}
+                  </span>
+                </>
               )}
-              <span className="min-w-0 truncate font-heading text-lg font-semibold text-brand-950 sm:text-2xl lg:text-3xl">
-                {settings.title || "NovalyticDeals"}
-              </span>
             </Link>
 
             <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">

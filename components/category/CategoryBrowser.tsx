@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { CategoryCard } from "@/components/category/CategoryCard";
@@ -20,6 +21,11 @@ export function CategoryBrowser({
 }) {
   const [query, setQuery] = useState("");
 
+  const featured = useMemo(
+    () => categories.filter((category) => category.isFeatured),
+    [categories]
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return categories;
@@ -29,6 +35,8 @@ export function CategoryBrowser({
         category.description?.toLowerCase().includes(q)
     );
   }, [categories, query]);
+
+  const searching = query.trim().length > 0;
 
   return (
     <>
@@ -52,30 +60,48 @@ export function CategoryBrowser({
         </div>
       </PageHero>
 
-      <Container className="py-10">
-        {breadcrumb}
+      <Container className="pt-10">{breadcrumb}</Container>
 
-        <div className="mt-10">
-          <SectionHeader
-            title="Featured categories"
-            subtitle="Hand-picked categories worth a look"
-            align="left"
-          />
+      <DividedSections className="mt-10 pb-16">
+        {!searching && featured.length > 0 && (
+          <section>
+            <Container>
+              <SectionHeader
+                title="Featured categories"
+                subtitle="Hand-picked categories worth a look"
+                align="left"
+              />
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {featured.map((category) => (
+                  <CategoryCard key={category.id} category={category} showCount={false} />
+                ))}
+              </div>
+            </Container>
+          </section>
+        )}
 
-          {filtered.length === 0 ? (
-            <EmptyState
-              title="No categories found"
-              description="Try a different search term."
+        <section>
+          <Container>
+            <SectionHeader
+              title="All categories"
+              subtitle="Browse the full list"
+              align="left"
             />
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {filtered.map((category) => (
-                <CategoryCard key={category.id} category={category} showCount={false} />
-              ))}
-            </div>
-          )}
-        </div>
-      </Container>
+            {filtered.length === 0 ? (
+              <EmptyState
+                title="No categories found"
+                description="Try a different search term."
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {filtered.map((category) => (
+                  <CategoryCard key={category.id} category={category} showCount={false} />
+                ))}
+              </div>
+            )}
+          </Container>
+        </section>
+      </DividedSections>
     </>
   );
 }

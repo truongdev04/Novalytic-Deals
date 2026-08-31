@@ -11,6 +11,7 @@ import {
   getContentConfigSettings,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { Hero } from "@/components/home/Hero";
 import { HowItWorks } from "@/components/home/HowItWorks";
@@ -91,84 +92,102 @@ export default async function HomePage() {
     <>
       <Hero />
 
-      <div className="space-y-20 py-16">
-        <Container>
-          <SectionHeader
-            title="Popular stores"
-            subtitle="Shop from the most trusted retailers and save with exclusive coupon codes"
-          />
-          <StoreCarousel stores={stores} />
-        </Container>
+      <div className="py-16">
+      <DividedSections spacing="loose">
+        <section>
+          <Container>
+            <SectionHeader
+              title="Popular stores"
+              subtitle="Shop from the most trusted retailers and save with exclusive coupon codes"
+            />
+            <StoreCarousel stores={stores} />
+          </Container>
+        </section>
 
-        <Container>
-          <SectionHeader
-            title="Today's best deals"
-            subtitle="Limited time offers you don't want to miss"
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {deals.map((deal) => {
-              const store = storeById.get(deal.storeId);
-              return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
-            })}
-          </div>
-        </Container>
+        <section>
+          <Container>
+            <SectionHeader
+              title="Today's best deals"
+              subtitle="Limited time offers you don't want to miss"
+            />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {deals.map((deal) => {
+                const store = storeById.get(deal.storeId);
+                return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
+              })}
+            </div>
+          </Container>
+        </section>
 
-        <Container>
-          <SectionHeader
-            title="Trending coupon"
-            subtitle="The codes everyone's using right now"
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {trendingCoupons.map((coupon) => {
-              const store = storeById.get(coupon.storeId);
-              return store ? (
-                <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
-              ) : null;
-            })}
-          </div>
-        </Container>
+        <section>
+          <Container>
+            <SectionHeader
+              title="Trending coupon"
+              subtitle="The codes everyone's using right now"
+            />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {trendingCoupons.map((coupon) => {
+                const store = storeById.get(coupon.storeId);
+                return store ? (
+                  <CouponGridCard key={coupon.id} coupon={coupon} store={store} />
+                ) : null;
+              })}
+            </div>
+          </Container>
+        </section>
 
-        <Container>
-          <SectionHeader
-            title="NovalyticDeals Exclusive Codes"
-            subtitle="Verified codes you won't find anywhere else"
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {exclusiveCoupons.map((coupon) => {
-              const store = storeById.get(coupon.storeId);
-              return store ? <CouponGridCard key={coupon.id} coupon={coupon} store={store} /> : null;
-            })}
-          </div>
-        </Container>
+        <section>
+          <Container>
+            <SectionHeader
+              title="NovalyticDeals Exclusive Codes"
+              subtitle="Verified codes you won't find anywhere else"
+            />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {exclusiveCoupons.map((coupon) => {
+                const store = storeById.get(coupon.storeId);
+                return store ? <CouponGridCard key={coupon.id} coupon={coupon} store={store} /> : null;
+              })}
+            </div>
+          </Container>
+        </section>
 
-        <Container>
-          <SectionHeader
-            title="Popular categories"
-            subtitle="Explore deals by category and find exactly what you need"
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {categories.map((category) => (
-              <CategoryCard key={category.id} category={category} showCount={false} />
-            ))}
-          </div>
-        </Container>
+        <section>
+          <Container>
+            <SectionHeader
+              title="Popular categories"
+              subtitle="Explore deals by category and find exactly what you need"
+            />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {categories.map((category) => (
+                <CategoryCard key={category.id} category={category} showCount={false} />
+              ))}
+            </div>
+          </Container>
+        </section>
 
-        <Container>
-          <HowItWorks />
-        </Container>
+        <section>
+          <Container>
+            <HowItWorks />
+          </Container>
+        </section>
 
-        <Container>
-          <WhyTrustUs />
-        </Container>
+        <section>
+          <Container>
+            <WhyTrustUs />
+          </Container>
+        </section>
 
-        <Container>
-          <SectionHeader title="From our blog" subtitle="Tips, guides, and insights to help you save more" />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))}
-          </div>
-        </Container>
+        <section>
+          <Container>
+            <SectionHeader title="From our blog" subtitle="Tips, guides, and insights to help you save more" />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {posts.map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
+            </div>
+          </Container>
+        </section>
+      </DividedSections>
       </div>
     </>
   );

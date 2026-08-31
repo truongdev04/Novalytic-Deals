@@ -1,23 +1,44 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { Link } from "next-view-transitions";
 import {
   filterDealsPaginated,
   getCategories,
   getCategoryBySlug,
+  getContentConfigSettings,
+  getFeaturedStores,
   getStores,
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
+import { DividedSections } from "@/components/layout/DividedSections";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { SectionHeader } from "@/components/layout/SectionHeader";
 import { DealsHero } from "@/components/deal/DealsHero";
-import { FilterSidebar } from "@/components/search/FilterSidebar";
-import { SortDropdown } from "@/components/search/SortDropdown";
+import { DealsFilters } from "@/components/search/DealsFilters";
 import { ActiveFiltersBar, type ActiveFilter } from "@/components/search/ActiveFiltersBar";
 import { DealProductCard } from "@/components/deal/DealProductCard";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { CardSkeleton } from "@/components/ui/LoadingSkeleton";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { buildQueryUrl } from "@/lib/utils";
 import type { DealFilters } from "@/lib/data/deals";
+
+// Code-split embla-carousel out of the deals page's main bundle — kept
+// server-rendered (default ssr:true) since the store cards inside are real
+// internal links with SEO value, only the carousel JS itself is deferred.
+const StoreCarousel = dynamic(
+  () => import("@/components/store/StoreCarousel").then((mod) => mod.StoreCarousel),
+  {
+    loading: () => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    ),
+  }
+);
 
 // "Permanent" — cached until a deal CRUD/toggle purges "deals:list" (or the
 // daily Vercel Cron sweep), not on a time-based schedule. filterDealsPaginated
@@ -56,10 +77,12 @@ export default async function DealsPage({
   }>;
 }) {
   const params = await searchParams;
-  const [categories, stores, category] = await Promise.all([
+  const config = await getContentConfigSettings();
+  const [categories, stores, category, featuredStores] = await Promise.all([
     getCategories(),
     getStores(),
     params.category ? getCategoryBySlug(params.category) : undefined,
+    getFeaturedStores(config.pagination.featuredStoresCount),
   ]);
 
   const currentBatch = Math.max(1, Number(params.page) || 1);
@@ -87,47 +110,61 @@ export default async function DealsPage({
     <>
       <DealsHero defaultQuery={params.q} />
 
-      <Container className="py-10">
+      <Container className="pt-10">
         <Breadcrumb items={[{ name: "Deals", path: "/deals" }]} />
-
-        <div className="mt-6 flex flex-col gap-3">
-          <div className="flex flex-wrap justify-end gap-3">
-            <FilterSidebar categories={categories} />
-            <SortDropdown />
-          </div>
-          <ActiveFiltersBar
-            basePath="/deals"
-            params={params}
-            filters={activeFilters}
-          />
-        </div>
-
-        <div className="mt-8">
-          {pageItems.length === 0 ? (
-            <EmptyState
-              title="No deals found matching your filters"
-              description="Try adjusting your search or clearing filters to see more results."
-            />
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {pageItems.map((deal) => {
-                const store = storeById.get(deal.storeId);
-                return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
-              })}
-            </div>
-          )}
-        </div>
-
-        {hasMore && (
-          <div className="mt-10 flex justify-center">
-            <Button asChild variant="outline" size="lg" className="rounded-xl">
-              <Link href={buildQueryUrl("/deals", params, { page: String(currentBatch + 1) })}>
-                Show more
-              </Link>
-            </Button>
-          </div>
-        )}
       </Container>
+
+      <DividedSections className="mt-10 pb-16">
+        {featuredStores.length > 0 && (
+          <section>
+            <Container>
+              <SectionHeader title="Popular stores" align="left" />
+              <StoreCarousel stores={featuredStores} />
+            </Container>
+          </section>
+        )}
+
+        <section>
+          <Container>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h2 className="font-heading text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+                Featured Deals
+              </h2>
+              <DealsFilters categories={categories} />
+            </div>
+
+            {activeFilters.length > 0 && (
+              <div className="mb-6">
+                <ActiveFiltersBar basePath="/deals" params={params} filters={activeFilters} />
+              </div>
+            )}
+
+            {pageItems.length === 0 ? (
+              <EmptyState
+                title="No deals found matching your filters"
+                description="Try adjusting your search or clearing filters to see more results."
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                {pageItems.map((deal) => {
+                  const store = storeById.get(deal.storeId);
+                  return store ? <DealProductCard key={deal.id} deal={deal} store={store} /> : null;
+                })}
+              </div>
+            )}
+
+            {hasMore && (
+              <div className="mt-10 flex justify-center">
+                <Button asChild variant="outline" size="lg" className="rounded-xl">
+                  <Link href={buildQueryUrl("/deals", params, { page: String(currentBatch + 1) })}>
+                    Show more
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </Container>
+        </section>
+      </DividedSections>
     </>
   );
 }
