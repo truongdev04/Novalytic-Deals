@@ -70,7 +70,7 @@ const getAllSiteSettingsRaw = unstable_cache(
       "settings:footer",
       "settings:custom-scripts",
     ],
-    revalidate: 300,
+    revalidate: false,
   }
 );
 
@@ -93,6 +93,31 @@ const DEFAULT_COUPON_REFRESH_SETTINGS: CouponRefreshSettings = {
 };
 
 const DEFAULT_CONTENT_CONFIG_SETTINGS: ContentConfigSettings = {
+  pageBanners: {
+    home: {
+      imageUrl: "",
+      title: "Verified coupon codes & exclusive deals",
+      description:
+        "Save more on your favorite brands with thousands of tested and verified discount codes.",
+    },
+    stores: {
+      imageUrl: "",
+      title: "Every store, one place to save.",
+      description:
+        "Browse verified coupon codes and deals from your favorite retailers, organized from A to Z.",
+    },
+    deals: {
+      imageUrl: "",
+      title: "Today's Best Deals",
+      description:
+        "Hand-picked discounts on the products you actually want — updated every hour.",
+    },
+    categories: {
+      imageUrl: "",
+      title: "All Categories",
+      description: "Browse every coupon category in one place.",
+    },
+  },
   pagination: {
     dealsPageSize: 9,
     featuredStoresCount: 8,
@@ -524,7 +549,11 @@ interface IntegrationsRaw {
   resendApiKey?: string;
   contactInboxEmail?: string;
   systemFromEmail?: string;
+  turnstileSiteKey?: string;
   turnstileSecretKey?: string;
+  cloudinaryCloudName?: string;
+  cloudinaryApiKey?: string;
+  cloudinaryApiSecret?: string;
   gaId?: string;
   gtmId?: string;
   plausibleDomain?: string;
@@ -601,12 +630,34 @@ export async function getIntegrationsSettingsView(): Promise<IntegrationsSetting
     },
     contactInboxEmail: raw.contactInboxEmail ?? "",
     systemFromEmail: raw.systemFromEmail ?? "",
-    turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
-    turnstileSiteKeySource: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? "env" : "none",
+    turnstileSiteKey: raw.turnstileSiteKey ?? "",
+    turnstileSiteKeyEnv: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+    turnstileSiteKeySource: raw.turnstileSiteKey
+      ? "db"
+      : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+        ? "env"
+        : "none",
     turnstileSecretKey: {
       configured: turnstileConfigured,
       source: raw.turnstileSecretKey ? "db" : process.env.TURNSTILE_SECRET_KEY ? "env" : "none",
       maskedPreview: maskSecret(raw.turnstileSecretKey),
+    },
+    cloudinaryCloudName: raw.cloudinaryCloudName ?? "",
+    cloudinaryCloudNameEnv: process.env.CLOUDINARY_CLOUD_NAME ?? "",
+    cloudinaryCloudNameSource: raw.cloudinaryCloudName
+      ? "db"
+      : process.env.CLOUDINARY_CLOUD_NAME
+        ? "env"
+        : "none",
+    cloudinaryApiKey: {
+      configured: Boolean(raw.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY),
+      source: raw.cloudinaryApiKey ? "db" : process.env.CLOUDINARY_API_KEY ? "env" : "none",
+      maskedPreview: maskSecret(raw.cloudinaryApiKey),
+    },
+    cloudinaryApiSecret: {
+      configured: Boolean(raw.cloudinaryApiSecret || process.env.CLOUDINARY_API_SECRET),
+      source: raw.cloudinaryApiSecret ? "db" : process.env.CLOUDINARY_API_SECRET ? "env" : "none",
+      maskedPreview: maskSecret(raw.cloudinaryApiSecret),
     },
     gaId: raw.gaId ?? "",
     gtmId: raw.gtmId ?? "",
@@ -628,6 +679,12 @@ export async function setIntegrationsSettings(
   }
   if (patch.systemFromEmail !== undefined) {
     next.systemFromEmail = patch.systemFromEmail || undefined;
+  }
+  if (patch.turnstileSiteKey !== undefined) {
+    next.turnstileSiteKey = patch.turnstileSiteKey || undefined;
+  }
+  if (patch.cloudinaryCloudName !== undefined) {
+    next.cloudinaryCloudName = patch.cloudinaryCloudName || undefined;
   }
   if (patch.gaId !== undefined) {
     next.gaId = patch.gaId || undefined;
@@ -651,6 +708,12 @@ export async function setIntegrationsSettings(
   }
   if (patch.turnstileSecretKey) {
     next.turnstileSecretKey = patch.turnstileSecretKey;
+  }
+  if (patch.cloudinaryApiKey) {
+    next.cloudinaryApiKey = patch.cloudinaryApiKey;
+  }
+  if (patch.cloudinaryApiSecret) {
+    next.cloudinaryApiSecret = patch.cloudinaryApiSecret;
   }
   for (const field of patch.clearFields ?? []) {
     delete next[field];
@@ -682,6 +745,24 @@ export async function getEffectiveContactInboxEmail(): Promise<string | undefine
 export async function getEffectiveTurnstileConfig(): Promise<{ secretKey?: string }> {
   const raw = await getIntegrationsRaw();
   return { secretKey: raw.turnstileSecretKey || process.env.TURNSTILE_SECRET_KEY };
+}
+
+export async function getEffectiveTurnstileSiteKey(): Promise<string | undefined> {
+  const raw = await getIntegrationsRaw();
+  return raw.turnstileSiteKey || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || undefined;
+}
+
+export async function getEffectiveCloudinaryConfig(): Promise<{
+  cloudName?: string;
+  apiKey?: string;
+  apiSecret?: string;
+}> {
+  const raw = await getIntegrationsRaw();
+  return {
+    cloudName: raw.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: raw.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY,
+    apiSecret: raw.cloudinaryApiSecret || process.env.CLOUDINARY_API_SECRET,
+  };
 }
 
 export async function getEffectiveAnalyticsConfig(): Promise<{
@@ -734,14 +815,12 @@ export const getPopularStoresSettings = unstable_cache(
     return { ...DEFAULT_POPULAR_STORES_SETTINGS, ...stored };
   },
   ["settings:popular-stores"],
-  { tags: ["settings:popular-stores"], revalidate: 60 }
+  { tags: ["settings:popular-stores"], revalidate: false }
 );
 
-// No purgeTag here: one caller (ensurePopularStoresAutoRollover) runs inside
-// the home page's own render, where revalidateTag is disallowed. Callers
-// outside a render (route handlers) purge "settings:popular-stores"
-// themselves; the render-path caller relies on this setting's own 60s
-// revalidate window.
+// No purgeTag here: both callers purge afterward — refreshPopularStoresNow()
+// and ensurePopularStoresAutoRollover() each call
+// purgeTag("settings:popular-stores") once done.
 export async function setPopularStoresSettings(
   patch: Partial<PopularStoresSettings>
 ): Promise<PopularStoresSettings> {
@@ -762,13 +841,11 @@ export const getDealRefreshSettings = unstable_cache(
     return { ...DEFAULT_DEAL_REFRESH_SETTINGS, ...stored };
   },
   ["settings:deal-refresh"],
-  { tags: ["settings:deal-refresh"], revalidate: 60 }
+  { tags: ["settings:deal-refresh"], revalidate: false }
 );
 
-// No purgeTag here: one caller (ensureAutoDealRollover) runs inside the home
-// page's own render, where revalidateTag is disallowed. Callers outside a
-// render (route handlers) purge "settings:deal-refresh" themselves; the
-// render-path caller relies on this setting's own 60s revalidate window.
+// No purgeTag here: both callers purge afterward — refreshDealsNow() and
+// ensureAutoDealRollover() each call purgeTag("settings:deal-refresh") once done.
 export async function setDealRefreshSettings(
   patch: Partial<DealRefreshSettings>
 ): Promise<DealRefreshSettings> {
@@ -789,13 +866,12 @@ export const getCouponRefreshSettings = unstable_cache(
     return { ...DEFAULT_COUPON_REFRESH_SETTINGS, ...stored };
   },
   ["settings:coupon-refresh"],
-  { tags: ["settings:coupon-refresh"], revalidate: 60 }
+  { tags: ["settings:coupon-refresh"], revalidate: false }
 );
 
-// No purgeTag here: one caller (ensureAutoCouponRollover) runs inside the home
-// page's own render, where revalidateTag is disallowed. Callers outside a
-// render (route handlers) purge "settings:coupon-refresh" themselves; the
-// render-path caller relies on this setting's own 60s revalidate window.
+// No purgeTag here: both callers purge afterward — refreshCouponsNow() and
+// ensureAutoCouponRollover() each call purgeTag("settings:coupon-refresh")
+// once done.
 export async function setCouponRefreshSettings(
   patch: Partial<CouponRefreshSettings>
 ): Promise<CouponRefreshSettings> {
@@ -842,7 +918,15 @@ export async function setSeoSettings(input: SeoSettings): Promise<SeoSettings> {
 export async function getContentConfigSettings(): Promise<ContentConfigSettings> {
   const all = await getAllSiteSettingsRaw();
   const stored = (all[CONTENT_CONFIG_KEY] as unknown as Partial<ContentConfigSettings>) ?? {};
+  const defaultBanners = DEFAULT_CONTENT_CONFIG_SETTINGS.pageBanners;
+  const storedBanners: Partial<ContentConfigSettings["pageBanners"]> = stored.pageBanners ?? {};
   return {
+    pageBanners: {
+      home: { ...defaultBanners.home, ...storedBanners.home },
+      stores: { ...defaultBanners.stores, ...storedBanners.stores },
+      deals: { ...defaultBanners.deals, ...storedBanners.deals },
+      categories: { ...defaultBanners.categories, ...storedBanners.categories },
+    },
     pagination: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.pagination, ...stored.pagination },
     templates: { ...DEFAULT_CONTENT_CONFIG_SETTINGS.templates, ...stored.templates },
   };

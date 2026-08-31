@@ -12,6 +12,7 @@ function toReview(row: PrismaReview): Review {
     title: row.title,
     body: row.body,
     isApproved: row.isApproved,
+    isRead: row.isRead,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -19,6 +20,15 @@ function toReview(row: PrismaReview): Review {
 export async function getApprovedReviewsByStore(storeId: string): Promise<Review[]> {
   const rows = await prisma.review.findMany({
     where: { storeId, isApproved: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toReview);
+}
+
+// Admin detail page — every review for a store, approved or hidden, newest first.
+export async function getReviewsByStore(storeId: string): Promise<Review[]> {
+  const rows = await prisma.review.findMany({
+    where: { storeId },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(toReview);
@@ -45,28 +55,52 @@ export async function getAllReviews(): Promise<Review[]> {
   return rows.map(toReview);
 }
 
-// Admin-facing paginated list — no filters today (the table has none), just
-// DB-level pagination instead of fetching every review into memory.
-export async function getReviewsAdminPaginated(
-  page: number,
-  pageSize: number
-): Promise<{ items: Review[]; total: number }> {
-  const [rows, total] = await prisma.$transaction([
-    prisma.review.findMany({
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.review.count(),
-  ]);
-  return { items: rows.map(toReview), total };
+export interface StoreReviewSummary {
+  storeId: string;
+  /** Mean of every review's rating for the store (approved or not); 0 when none. */
+  averageRating: number;
+  reviewCount: number;
+  /** Reviews an admin hasn't opened yet (isRead === false). */
+  newCount: number;
+  /** Reviews currently hidden from the storefront (isApproved === false). */
+  hiddenCount: number;
 }
 
-// "Pending moderation" stat for the admin header — a dedicated count query
-// instead of `.filter(r => !r.isApproved).length` on a page that no longer
-// contains every row. Review.isApproved is indexed.
-export async function getPendingReviewCount(): Promise<number> {
-  return prisma.review.count({ where: { isApproved: false } });
+// Pure rollup of raw review rows into one summary per store — split out from
+// the query so it can be unit-tested without a database.
+export function rollupStoreReviewSummaries(
+  rows: { storeId: string; rating: number; isRead: boolean; isApproved: boolean }[]
+): StoreReviewSummary[] {
+  const byStore = new Map<
+    string,
+    { sum: number; count: number; newCount: number; hiddenCount: number }
+  >();
+  for (const row of rows) {
+    const entry = byStore.get(row.storeId) ?? { sum: 0, count: 0, newCount: 0, hiddenCount: 0 };
+    entry.sum += row.rating;
+    entry.count += 1;
+    if (!row.isRead) entry.newCount += 1;
+    if (!row.isApproved) entry.hiddenCount += 1;
+    byStore.set(row.storeId, entry);
+  }
+
+  return [...byStore.entries()].map(([storeId, entry]) => ({
+    storeId,
+    averageRating: entry.count > 0 ? entry.sum / entry.count : 0,
+    reviewCount: entry.count,
+    newCount: entry.newCount,
+    hiddenCount: entry.hiddenCount,
+  }));
+}
+
+// One row per store that has at least one review. The reviews table stays
+// small (one row per visitor submission), so a single scan + in-memory
+// rollup is simpler and cheaper than three grouped aggregate queries.
+export async function getStoreReviewSummaries(): Promise<StoreReviewSummary[]> {
+  const rows = await prisma.review.findMany({
+    select: { storeId: true, rating: true, isRead: true, isApproved: true },
+  });
+  return rollupStoreReviewSummaries(rows);
 }
 
 export async function setReviewApproved(id: string, isApproved: boolean): Promise<Review> {
@@ -75,7 +109,22 @@ export async function setReviewApproved(id: string, isApproved: boolean): Promis
   return toReview(row);
 }
 
+// Called when an admin opens a store's review detail page — everything there
+// counts as seen, so it stops adding to that store's "new" count.
+export async function markStoreReviewsRead(storeId: string): Promise<void> {
+  await prisma.review.updateMany({
+    where: { storeId, isRead: false },
+    data: { isRead: true },
+  });
+}
+
 export async function deleteReview(id: string): Promise<void> {
   const row = await prisma.review.delete({ where: { id } });
   await recomputeStoreRating(row.storeId);
+}
+
+export async function deleteReviewsByStore(storeId: string): Promise<number> {
+  const { count } = await prisma.review.deleteMany({ where: { storeId } });
+  await recomputeStoreRating(storeId);
+  return count;
 }

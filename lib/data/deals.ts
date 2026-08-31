@@ -17,6 +17,7 @@ function toDeal(row: PrismaDeal): Deal {
     categoryId: row.categoryId,
     originalPrice: row.originalPrice ?? undefined,
     price: row.price,
+    currency: row.currency,
     offer: row.offer ?? undefined,
     url: row.url,
     imageUrl: row.imageUrl,
@@ -47,7 +48,7 @@ const getAllDealsCached = unstable_cache(
     return rows.map(toDeal);
   },
   ["deals:list"],
-  { tags: ["deals:list"], revalidate: 300 }
+  { tags: ["deals:list"], revalidate: false }
 );
 
 export async function getAllDeals(): Promise<Deal[]> {
@@ -78,11 +79,23 @@ const getActiveDealsCached = unstable_cache(
     return rows.map(toDeal);
   },
   ["deals:active"],
-  { tags: ["deals:list"], revalidate: 300 }
+  { tags: ["deals:list"], revalidate: false }
 );
 
 export async function getDeals(): Promise<Deal[]> {
   return getActiveDealsCached();
+}
+
+// Uncached, on purpose — same reasoning as getActiveStoresForRanking in
+// lib/data/stores.ts: the Deal rollover ranks by live lastHourClicks, which
+// the public click ping bumps without a purge, so it must not read the
+// (revalidate:false) "deals:list" cache. Rollover / manual "Refresh Deal" only.
+export async function getActiveDealsForRanking(): Promise<Deal[]> {
+  const rows = await prisma.deal.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toDeal);
 }
 
 export interface DealFilters {
@@ -231,7 +244,7 @@ export const getFeaturedDeals = unstable_cache(
     return rows.map(toDeal);
   },
   ["deals:featured"],
-  { tags: ["deals:list"], revalidate: 300 }
+  { tags: ["deals:list"], revalidate: false }
 );
 
 export async function setDealFeatured(id: string, isFeatured: boolean): Promise<Deal> {
@@ -261,8 +274,10 @@ export async function setDealEvent(id: string, eventId: string | null): Promise<
 }
 
 // Public click ping (app/api/deals/[id]/click) — mirrors incrementStoreCurrentMonthClicks.
-// No purgeTag: absorbed by deals:list's own 300s revalidate window, same
-// reasoning as incrementCouponUsage.
+// No purgeTag (this fires on every affiliate click — far too hot to purge):
+// deals:list now caches permanently, so the bumped count only surfaces in
+// listings on the next content edit or the daily cron's ranking pass. The
+// ranking itself stays correct — the cron purges deals:list before ranking.
 export async function incrementDealCurrentHourClicks(id: string): Promise<Deal | undefined> {
   try {
     const row = await prisma.deal.update({
@@ -278,11 +293,9 @@ export async function incrementDealCurrentHourClicks(id: string): Promise<Deal |
 // Bulk-sets which deals are Featured based on a click ranking (see
 // lib/content/dealsRefresh.ts) — turns on the winners, turns off any active
 // deal that was Featured but didn't make the cut. Mirrors applyFeaturedSelection
-// in lib/data/stores.ts. No purgeTag here for the same reason as that
-// function: shared by the manual "Refresh Deal" route (purges itself) and the
-// lazy auto-rollover running inside the home page's own render (where
-// revalidateTag is disallowed) — the render path relies on deals:list's own
-// 300s revalidate window.
+// in lib/data/stores.ts. No purgeTag here: both callers purge afterward —
+// refreshDealsNow() (manual "Refresh Deal") and ensureAutoDealRollover()
+// (daily cron) each call purgeTag("deals:list") once done.
 export async function applyDealFeaturedSelection(winnerIds: string[]): Promise<void> {
   await prisma.deal.updateMany({
     where: { id: { in: winnerIds } },
@@ -301,8 +314,8 @@ export async function applyDealFeaturedSelection(winnerIds: string[]): Promise<v
 // mirrors rolloverMonthlyClicks in lib/data/stores.ts.
 export async function rolloverHourlyDealClicks(): Promise<void> {
   await prisma.$executeRaw`UPDATE "deals" SET "lastHourClicks" = "currentHourClicks", "currentHourClicks" = 0`;
-  // No purgeTag here — same reasoning as rolloverMonthlyClicks: runs lazily
-  // inside the home page's own render (see ensureAutoDealRollover).
+  // No purgeTag here: the only caller (ensureAutoDealRollover) purges
+  // "deals:list" itself once the rollover completes.
 }
 
 export async function deleteDeal(id: string): Promise<void> {
@@ -320,6 +333,7 @@ export interface AdminDealFields {
   categoryId: string | null;
   originalPrice?: number | null;
   price: number;
+  currency: string;
   offer?: string | null;
   url: string;
   imageUrl: string;
@@ -345,6 +359,7 @@ export async function createDeal(fields: AdminDealCreateFields): Promise<Deal> {
         categoryId: fields.categoryId,
         originalPrice: fields.originalPrice ?? null,
         price: fields.price,
+        currency: fields.currency,
         offer: fields.offer || null,
         url: fields.url,
         imageUrl: fields.imageUrl,
@@ -374,6 +389,7 @@ export async function updateDeal(id: string, fields: AdminDealFields): Promise<D
         categoryId: fields.categoryId,
         originalPrice: fields.originalPrice ?? null,
         price: fields.price,
+        currency: fields.currency,
         offer: fields.offer || null,
         url: fields.url,
         imageUrl: fields.imageUrl,

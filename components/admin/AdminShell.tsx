@@ -6,11 +6,13 @@ import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { AccountStatusWatcher } from "@/components/admin/AccountStatusWatcher";
 
 export function AdminShell({
+  userId,
   role,
   permissions,
   email,
   children,
 }: {
+  userId: string;
   role?: "ADMIN" | "EDITOR";
   permissions?: string[];
   email: string;
@@ -20,7 +22,7 @@ export function AdminShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-50">
-      <AccountStatusWatcher />
+      <AccountStatusWatcher userId={userId} />
       <AdminSidebar
         role={role}
         permissions={permissions}

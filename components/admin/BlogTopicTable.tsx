@@ -56,6 +56,7 @@ export function BlogTopicTable({ topics }: { topics: BlogTopic[] }) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/blog/topics/${topic.id}`}
+                      prefetch={false}
                       aria-label={`Edit ${topic.name}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

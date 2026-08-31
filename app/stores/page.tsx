@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Link } from "next-view-transitions";
 import {
   getStores,
   getVerifiedCouponCountByStoreIds,
   getCategories,
+  getContentConfigSettings,
   groupStoresByLetter,
 } from "@/lib/data";
 import { rankPopularStores } from "@/lib/content/popularStoresRefresh";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
-import { AlphabetNav } from "@/components/store/AlphabetNav";
 import { VerifiedStoresSection } from "@/components/store/VerifiedStoresSection";
 import { CategoryGrid } from "@/components/category/CategoryGrid";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -37,9 +37,10 @@ const CATEGORY_TAB_LIMIT = 25;
 export default async function StoresPage() {
   const allStores = await getStores();
   const letterGroups = groupStoresByLetter(allStores);
-  const availableLetters = new Set(letterGroups.keys());
 
   const categories = await getCategories();
+  const { pageBanners } = await getContentConfigSettings();
+  const banner = pageBanners.stores;
 
   const storeById = new Map(allStores.map((store) => [store.id, store]));
   const rankedStoreIds = rankPopularStores(allStores, "lastMonthClicks", MOST_POPULAR_LIMIT);
@@ -78,42 +79,23 @@ export default async function StoresPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <Image
-            src="/images/hero/home-hero.svg"
-            alt=""
-            fill
-            priority
-            className="object-cover"
+      <PageHero imageSrc={banner.imageUrl || undefined}>
+        <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-6xl">
+          {banner.title || "Every store, one place to save."}
+        </h1>
+        <p className="mt-4 max-w-xl text-brand-100">
+          {banner.description ||
+            "Browse verified coupon codes and deals from your favorite retailers, organized from A to Z."}
+        </p>
+
+        <div className="mt-8 w-full max-w-xl">
+          <SearchAutocomplete
+            id="stores-hero-search"
+            placeholder="Search stores..."
+            inputClassName="h-14.5 rounded-2xl text-base"
           />
         </div>
-        <Container className="flex flex-col items-center py-14 text-center sm:py-21.5">
-          <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-6xl">
-            Every store, one place to save.
-          </h1>
-          <p className="mt-4 max-w-xl text-brand-100">
-            Browse verified coupon codes and deals from your favorite retailers, organized from A
-            to Z.
-          </p>
-
-          <div className="mt-8 w-full sm:w-3/5">
-            <SearchAutocomplete
-              id="stores-hero-search"
-              placeholder="Search stores..."
-              inputClassName="h-[58px] rounded-2xl text-base"
-            />
-          </div>
-
-          <div className="mt-8">
-            <AlphabetNav
-              availableLetters={availableLetters}
-              variant="dark"
-              className="justify-center"
-            />
-          </div>
-        </Container>
-      </section>
+      </PageHero>
 
       <Container className="py-10">
         <Breadcrumb items={[{ name: "Stores", path: "/stores" }]} />

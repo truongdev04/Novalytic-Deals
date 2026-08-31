@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import {
+  EVENT_CURATED_COUPON_LIMIT,
   getEventBySlug,
   getEvents,
   getCouponsByIds,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/data";
 import { Container } from "@/components/layout/Container";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { StoreGrid } from "@/components/store/StoreGrid";
 import { CouponGridCard } from "@/components/coupon/CouponGridCard";
@@ -26,8 +27,6 @@ import { resolveEventFaq } from "@/lib/content/defaults";
 // Vercel Cron sweep runs. Not on a time-based schedule.
 export const revalidate = false;
 
-// Curated deals grid tops out at 5 columns (lg breakpoint) — cap to 4 rows.
-const CURATED_DEALS_LIMIT = 20;
 
 export async function generateStaticParams() {
   const events = await getEvents();
@@ -59,8 +58,14 @@ export default async function EventPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
+  // "Curated deals" reads the event's stored, pre-randomized curatedCouponIds
+  // — not featuredCouponIds — so the public list only changes when an admin
+  // re-rolls it or a store leaves the event, never on re-render or when a
+  // store is added.
   const [coupons, stores, faq] = await Promise.all([
-    getCouponsByIds(event.featuredCouponIds),
+    // `?? []` guards a stale event:<slug> cache entry serialized before this
+    // field existed (pre-deploy) — it self-heals on the next event/store edit.
+    getCouponsByIds(event.curatedCouponIds ?? []),
     getStoresByIds(event.featuredStoreIds),
     resolveEventFaq(event.name),
   ]);
@@ -68,7 +73,7 @@ export default async function EventPage({
   const verifiedCouponCountByStore = await getVerifiedCouponCountByStoreIds(
     stores.map((s) => s.id)
   );
-  const visibleCoupons = coupons.slice(0, CURATED_DEALS_LIMIT);
+  const visibleCoupons = coupons.slice(0, EVENT_CURATED_COUPON_LIMIT);
   const breadcrumbItems = [
     { name: "Event Sales", path: "/events" },
     { name: event.name, path: `/events/${event.slug}` },
@@ -78,20 +83,13 @@ export default async function EventPage({
     <div>
       {faq.length > 0 && <JsonLd data={faqPageJsonLd(faq)} />}
       <JsonLd data={breadcrumbJsonLd(breadcrumbItems)} />
-      <section className="relative overflow-hidden">
-        {event.bannerUrl && (
-          <div className="absolute inset-0 -z-10">
-            <Image src={event.bannerUrl} alt="" fill priority className="object-cover" />
-          </div>
-        )}
-        <Container className="flex flex-col items-center gap-4 py-14 text-center sm:py-25">
-          <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/15 text-white">
-            {renderCategoryIcon(event, { iconClassName: "h-6 w-6" })}
-          </span>
-          <h1 className="font-heading text-4xl font-bold text-white sm:text-5xl">{event.name}</h1>
-          <p className="max-w-xl text-brand-100">{event.description}</p>
-        </Container>
-      </section>
+      <PageHero imageSrc={event.bannerUrl ?? undefined} contentClassName="gap-4">
+        <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/15 text-white">
+          {renderCategoryIcon(event, { iconClassName: "h-6 w-6" })}
+        </span>
+        <h1 className="font-heading text-4xl font-bold text-white sm:text-5xl">{event.name}</h1>
+        <p className="max-w-xl text-brand-100">{event.description}</p>
+      </PageHero>
 
       <Container className="py-10">
         <Breadcrumb items={breadcrumbItems} />

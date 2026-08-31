@@ -89,8 +89,14 @@ export interface IntegrationsSettingsView {
   contactInboxEmail?: string;
   systemFromEmail?: string;
   turnstileSiteKey?: string;
-  turnstileSiteKeySource: "env" | "none";
+  turnstileSiteKeyEnv?: string;
+  turnstileSiteKeySource: "db" | "env" | "none";
   turnstileSecretKey: SecretFieldView;
+  cloudinaryCloudName?: string;
+  cloudinaryCloudNameEnv?: string;
+  cloudinaryCloudNameSource: "db" | "env" | "none";
+  cloudinaryApiKey: SecretFieldView;
+  cloudinaryApiSecret: SecretFieldView;
   gaId?: string;
   gtmId?: string;
   plausibleDomain?: string;
@@ -163,9 +169,23 @@ export interface ContentConfigTemplates {
   eventFaqTemplate?: StoreFaqTemplateItem[];
 }
 
+export interface PageBanner {
+  imageUrl?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface ContentConfigPageBanners {
+  home: PageBanner;
+  stores: PageBanner;
+  deals: PageBanner;
+  categories: PageBanner;
+}
+
 export interface ContentConfigSettings {
   pagination: ContentConfigPagination;
   templates: ContentConfigTemplates;
+  pageBanners: ContentConfigPageBanners;
 }
 
 export interface CustomScriptsSettings {

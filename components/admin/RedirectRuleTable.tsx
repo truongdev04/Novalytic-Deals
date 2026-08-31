@@ -67,6 +67,7 @@ export function RedirectRuleTable({ rules }: { rules: RedirectRule[] }) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/settings/affiliate/redirects/${rule.id}`}
+                      prefetch={false}
                       aria-label={`Edit ${rule.source}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

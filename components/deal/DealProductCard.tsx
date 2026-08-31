@@ -88,9 +88,15 @@ export function DealProductCard({ deal, store }: { deal: Deal; store: Store }) {
         </div>
 
         <div className="mt-1.5 flex items-baseline gap-2">
-          <span className="font-heading text-lg font-bold text-brand-950">${deal.price}</span>
+          <span className="font-heading text-lg font-bold text-brand-950">
+            {deal.currency}
+            {deal.price}
+          </span>
           {deal.originalPrice && (
-            <span className="text-sm text-muted-400 line-through">${deal.originalPrice}</span>
+            <span className="text-sm text-muted-400 line-through">
+              {deal.currency}
+              {deal.originalPrice}
+            </span>
           )}
         </div>
 

@@ -86,6 +86,7 @@ export function EventTable({ events }: { events: Event[] }) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/events/${event.id}`}
+                      prefetch={false}
                       aria-label={`Edit ${event.name}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

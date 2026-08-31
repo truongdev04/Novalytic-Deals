@@ -35,7 +35,7 @@ const getAllBlogPostsCached = unstable_cache(
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   },
   ["blog:list"],
-  { tags: ["blog:list"], revalidate: 300 }
+  { tags: ["blog:list"], revalidate: false }
 );
 
 // Unfiltered — includes posts toggled off ("Status") for admin management.
@@ -99,7 +99,7 @@ const getActiveBlogPostsCached = unstable_cache(
     return rows.map(toBlogPost);
   },
   ["blog:active"],
-  { tags: ["blog:list"], revalidate: 300 }
+  { tags: ["blog:list"], revalidate: false }
 );
 
 export async function getBlogPosts(): Promise<BlogPost[]> {
@@ -162,7 +162,7 @@ export const getBlogPostCards = unstable_cache(
     return rows.map(toBlogPostCard);
   },
   ["blog:active:cards"],
-  { tags: ["blog:list"], revalidate: 300 }
+  { tags: ["blog:list"], revalidate: false }
 );
 
 export const getFeaturedBlogPosts = unstable_cache(
@@ -175,7 +175,7 @@ export const getFeaturedBlogPosts = unstable_cache(
     return rows.map(toBlogPost);
   },
   ["blog:featured"],
-  { tags: ["blog:list"], revalidate: 300 }
+  { tags: ["blog:list"], revalidate: false }
 );
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
@@ -186,7 +186,7 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefi
       return toBlogPost(row);
     },
     [`blog:${slug}`],
-    { tags: [`blog:${slug}`], revalidate: 300 }
+    { tags: [`blog:${slug}`], revalidate: false }
   )();
 }
 

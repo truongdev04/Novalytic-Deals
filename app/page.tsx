@@ -22,7 +22,6 @@ import { BlogCard } from "@/components/blog/BlogCard";
 import { CardSkeleton } from "@/components/ui/LoadingSkeleton";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { getSeoSettings } from "@/lib/data";
-import { ensurePopularStoresAutoRollover } from "@/lib/content/popularStoresRefresh";
 
 // Code-split embla-carousel out of the homepage's main bundle — kept
 // server-rendered (default ssr:true) since the store cards inside are real
@@ -39,9 +38,6 @@ const StoreCarousel = dynamic(
     ),
   }
 );
-import { ensureAutoDealRollover } from "@/lib/content/dealsRefresh";
-import { ensureAutoCouponRollover } from "@/lib/content/couponsRefresh";
-
 // "Permanent" — cached until an admin edit purges the relevant tag, or the
 // daily Vercel Cron (app/api/cron/daily-refresh/route.ts) runs the
 // coupon-expiry + Auto Coupon/Deal/Popular rollover checks and purges
@@ -60,17 +56,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  // Lazy monthly rollover for "Auto Popular" (see popularStoresRefresh.ts) —
-  // must complete before getFeaturedStores() below reads the store list, so
-  // it's awaited on its own rather than folded into the Promise.all.
-  await ensurePopularStoresAutoRollover();
-  // Lazy 8-hour rollover for "Auto Deal" (see lib/content/dealsRefresh.ts) —
-  // same reasoning, must complete before getFeaturedDeals() reads the list.
-  await ensureAutoDealRollover();
-  // Lazy 8-hour rollover for "Auto Coupon" (see lib/content/couponsRefresh.ts) —
-  // same reasoning, must complete before getTrendingCoupons() reads the list.
-  await ensureAutoCouponRollover();
-
+  // The Auto Popular / Auto Deal / Auto Coupon rollovers used to run here,
+  // lazily, on the first render past their interval. That pinned this page's
+  // effective revalidate to the 60s window of the settings they read (see
+  // git history) and defeated `revalidate = false`. They now run only from
+  // the daily Vercel Cron (app/api/cron/daily-refresh/route.ts), which also
+  // purges afterward — Auto Popular is monthly and Auto Deal/Coupon are 8h,
+  // so a once-a-day rollover is close enough.
   const config = await getContentConfigSettings();
   const [stores, categories, deals, trendingCoupons, exclusiveCoupons, posts] =
     await Promise.all([

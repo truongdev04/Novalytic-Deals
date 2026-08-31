@@ -54,7 +54,7 @@ const getAllStoresCached = unstable_cache(
     return rows.map(toStore);
   },
   ["stores:list"],
-  { tags: ["stores:list"], revalidate: 300 }
+  { tags: ["stores:list"], revalidate: false }
 );
 
 // Unfiltered — includes stores toggled off ("Status") for admin management.
@@ -123,11 +123,25 @@ const getActiveStoresCached = unstable_cache(
     return rows.map(toStore);
   },
   ["stores:active"],
-  { tags: ["stores:list"], revalidate: 300 }
+  { tags: ["stores:list"], revalidate: false }
 );
 
 export async function getStores(): Promise<Store[]> {
   return getActiveStoresCached();
+}
+
+// Uncached, on purpose. The Popular Stores rollover ranks by live
+// currentMonthClicks / lastMonthClicks, and those are bumped by the public
+// click ping without a purge (too hot). Reading getStores() here would rank
+// off a "stores:list" cache entry that — now that it's revalidate:false —
+// could be days stale on click counts. Only the rollover / manual "Refresh
+// Popular" path should call this.
+export async function getActiveStoresForRanking(): Promise<Store[]> {
+  const rows = await prisma.store.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toStore);
 }
 
 export const getFeaturedStores = unstable_cache(
@@ -148,7 +162,7 @@ export const getFeaturedStores = unstable_cache(
     return [...pinned, ...rest].slice(0, limit).map(toStore);
   },
   ["stores:featured"],
-  { tags: ["stores:list"], revalidate: 300 }
+  { tags: ["stores:list"], revalidate: false }
 );
 
 export async function getStoreBySlug(slug: string): Promise<Store | undefined> {
@@ -159,6 +173,14 @@ export async function getStoreBySlug(slug: string): Promise<Store | undefined> {
       return toStore(row);
     },
     [`store:${slug}`],
+    // Kept on a time window (not revalidate: false like the other getters):
+    // resolveStoreDiscountLabel() recomputes + persists the monthly SEO
+    // discount snapshot from inside the store page's generateMetadata, where
+    // purgeTag is disallowed. It compares the *cached* store's snapshot
+    // period against the current month, so this entry must age out on its own
+    // or a stale period would make every render rewrite the snapshot. Once a
+    // day per slug (~99 stores) is a negligible ISR-write cost. Admin edits
+    // still purge store:<slug> for immediate content updates.
     { tags: [`store:${slug}`], revalidate: 86400 }
   )();
 }
@@ -408,12 +430,10 @@ export async function incrementStoreCurrentMonthClicks(id: string): Promise<Stor
 // off any active store that was Featured but didn't make the cut this time.
 // Doesn't purge per-slug store:<slug> tags: the store detail page doesn't
 // render anything differently based on isFeatured.
-// No purgeTag here: this is shared by the manual "Refresh Popular" admin
-// action (safe to purge, runs in a route handler) and the lazy auto-rollover
-// that runs inside the home page's own render (revalidateTag is disallowed
-// during render) — see lib/content/popularStoresRefresh.ts. The manual path
-// purges explicitly itself; the render path relies on stores:list's own
-// 300s revalidate window.
+// No purgeTag here: both callers purge afterward — refreshPopularStoresNow()
+// (manual "Refresh Popular") and ensurePopularStoresAutoRollover() (daily
+// cron) each call purgeTag("stores:list") once done. See
+// lib/content/popularStoresRefresh.ts.
 export async function applyFeaturedSelection(winnerIds: string[]): Promise<void> {
   await prisma.store.updateMany({
     where: { id: { in: winnerIds } },
@@ -433,11 +453,8 @@ export async function applyFeaturedSelection(winnerIds: string[]): Promise<void>
 // can't reference another column's current value.
 export async function rolloverMonthlyClicks(): Promise<void> {
   await prisma.$executeRaw`UPDATE "stores" SET "lastMonthClicks" = "currentMonthClicks", "currentMonthClicks" = 0`;
-  // No purgeTag here: this runs lazily inside the home page's own render
-  // (see ensurePopularStoresAutoRollover), and revalidateTag is disallowed
-  // during render. stores:list already revalidates every 300s on its own,
-  // so the rollover's effect on getFeaturedStores() surfaces within that
-  // window without needing an explicit purge.
+  // No purgeTag here: the only caller (ensurePopularStoresAutoRollover)
+  // purges "stores:list" itself once the rollover completes.
 }
 
 // Coupon/Review rows cascade-delete at the DB level (see prisma/schema.prisma

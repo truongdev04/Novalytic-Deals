@@ -66,9 +66,11 @@ function splitTopLevelBlocks(html: string): string[] {
 // Parses a lightweight "## Heading" convention: whichever block's text starts
 // with "## " becomes a new Table-of-Contents section — independent of any
 // real heading style applied via the rich-text toolbar. Every other block
-// belongs to the current section's body. Two input shapes are supported:
-// legacy plain text saved before Body used a rich-text editor (blocks
-// separated by a blank line) and Tiptap HTML (blocks are its own
+// belongs to the current section's body; anything before the first "## "
+// heading (or an entire body with no headings) becomes a leading section with
+// an empty heading so nothing in the body is ever dropped. Two input shapes
+// are supported: legacy plain text saved before Body used a rich-text editor
+// (blocks separated by a blank line) and Tiptap HTML (blocks are its own
 // <p>/<h*>/<ul>/... tags). Swap for a real MDX/rehype pipeline once posts
 // come from a CMS.
 export function parseBlogSections(body: string): BlogSection[] {
@@ -78,6 +80,7 @@ export function parseBlogSections(body: string): BlogSection[] {
     : body.split("\n\n").map((block) => `<p>${escapeHtml(block)}</p>`);
 
   const sections: BlogSection[] = [];
+  let lead = "";
 
   for (const block of blocks) {
     const text = stripTags(block);
@@ -86,7 +89,13 @@ export function parseBlogSections(body: string): BlogSection[] {
       sections.push({ id: slugify(heading), heading, bodyHtml: "" });
     } else if (sections.length > 0) {
       sections[sections.length - 1].bodyHtml += block;
+    } else {
+      lead += block;
     }
+  }
+
+  if (stripTags(lead).length > 0 || /<img\b/i.test(lead)) {
+    sections.unshift({ id: "", heading: "", bodyHtml: lead });
   }
 
   return sections;

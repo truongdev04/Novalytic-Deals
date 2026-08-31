@@ -4,6 +4,7 @@ import {
   getCouponById,
   getCouponOwnerId,
   setCouponActive,
+  setCouponExclusive,
   setCouponFeatured,
   setCouponVerified,
   updateCoupon,
@@ -70,6 +71,10 @@ export async function PATCH(
   }
   if (typeof body?.verified === "boolean") {
     const coupon = await setCouponVerified(id, body.verified);
+    return jsonOk(coupon);
+  }
+  if (typeof body?.exclusive === "boolean") {
+    const coupon = await setCouponExclusive(id, body.exclusive);
     return jsonOk(coupon);
   }
   if (typeof body?.isActive === "boolean") {

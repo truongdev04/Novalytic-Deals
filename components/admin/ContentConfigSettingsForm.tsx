@@ -5,16 +5,29 @@ import {
   useForm,
   useFieldArray,
   useWatch,
+  Controller,
   type Control,
   type UseFormRegister,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "nextjs-toploader/app";
+import dynamic from "next/dynamic";
 import * as Accordion from "@radix-ui/react-accordion";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
+import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
+
+// Defers the Tiptap stack out of this form's initial bundle — only the
+// "Store — How To Apply" field uses it, on the Store Templates tab.
+const RichTextEditor = dynamic(
+  () => import("@/components/admin/RichTextEditor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-32 w-full animate-pulse rounded-lg bg-muted-100" />,
+  }
+);
 import {
   adminContentConfigSettingsSchema,
   type AdminContentConfigSettingsInput,
@@ -43,12 +56,21 @@ const fallbackStructureHint =
 
 const TABS = [
   { id: "pagination", label: "Listing & Pagination" },
+  { id: "banners", label: "Page Banners" },
   { id: "store", label: "Store Templates" },
   { id: "coupon", label: "Coupon Templates" },
   { id: "blog", label: "Blog Templates" },
   { id: "event", label: "Event Templates" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
+
+const PAGE_BANNERS = [
+  { key: "home", label: "Home page banner" },
+  { key: "stores", label: "Stores page banner" },
+  { key: "deals", label: "Deals page banner" },
+  { key: "categories", label: "Categories page banner" },
+] as const;
+type BannerKey = (typeof PAGE_BANNERS)[number]["key"];
 
 const paginationFields: { name: keyof AdminContentConfigSettingsInput["pagination"]; label: string }[] = [
   { name: "dealsPageSize", label: "Deals page size" },
@@ -104,7 +126,6 @@ const storeTemplateFields: TemplateFieldConfig[] = [
     rows: 8,
     hint: randomBlockHint,
   },
-  { name: "storeHowToApplyTemplate", label: "Store — How To Apply", multiline: true, rows: 8 },
 ];
 
 const couponTemplateFields: TemplateFieldConfig[] = [
@@ -175,6 +196,9 @@ function FaqSetFields({
     control,
     name: `templates.storeFaqTemplateSets.${setIndex}.items`,
   });
+  const watchedItems =
+    useWatch({ control, name: `templates.storeFaqTemplateSets.${setIndex}.items` }) ?? [];
+  const [openQuestion, setOpenQuestion] = useState<string>("");
 
   return (
     <Accordion.Item value={String(setIndex)} className="overflow-hidden rounded-lg border border-muted-200">
@@ -200,36 +224,65 @@ function FaqSetFields({
       </div>
 
       <Accordion.Content className="space-y-3 border-t border-muted-200 bg-surface-0 p-4 data-[state=open]:animate-fade-in">
-        {itemsArray.fields.map((item, itemIndex) => (
-          <div key={item.id} className="rounded-lg border border-muted-200 p-3">
-            <div className="flex items-start gap-2">
-              <div className="flex-1 space-y-2">
-                <input
-                  placeholder="Question"
-                  className={fieldClassName}
-                  {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.question` as const)}
-                />
-                <textarea
-                  placeholder="Answer"
-                  rows={2}
-                  className={fieldClassName}
-                  {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.answer` as const)}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => itemsArray.remove(itemIndex)}
-                aria-label="Remove question"
-                className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+        <Accordion.Root
+          type="single"
+          collapsible
+          value={openQuestion}
+          onValueChange={setOpenQuestion}
+          className="space-y-3"
+        >
+          {itemsArray.fields.map((item, itemIndex) => {
+            const headerLabel =
+              watchedItems[itemIndex]?.question?.trim() || `Question ${itemIndex + 1}`;
+            return (
+              <Accordion.Item
+                key={item.id}
+                value={item.id}
+                className="overflow-hidden rounded-lg border border-muted-200"
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+                <div className="flex items-center justify-between gap-2 bg-surface-0 px-3 py-2.5">
+                  <Accordion.Header className="min-w-0 flex-1">
+                    <Accordion.Trigger className="group flex w-full items-center gap-2.5 text-left focus-visible:outline-none">
+                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-500 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180" />
+                      <span className="truncate text-sm font-medium text-brand-950">
+                        {headerLabel}
+                      </span>
+                    </Accordion.Trigger>
+                  </Accordion.Header>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      itemsArray.remove(itemIndex);
+                    }}
+                    aria-label="Remove question"
+                    className="shrink-0 rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <Accordion.Content className="space-y-2 border-t border-muted-200 p-3 data-[state=open]:animate-fade-in">
+                  <input
+                    placeholder="Question"
+                    className={fieldClassName}
+                    {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.question` as const)}
+                  />
+                  <textarea
+                    placeholder="Answer"
+                    rows={3}
+                    className={fieldClassName}
+                    {...register(`templates.storeFaqTemplateSets.${setIndex}.items.${itemIndex}.answer` as const)}
+                  />
+                </Accordion.Content>
+              </Accordion.Item>
+            );
+          })}
+        </Accordion.Root>
         <button
           type="button"
-          onClick={() => itemsArray.append({ question: "", answer: "" })}
+          onClick={() => {
+            itemsArray.append({ question: "", answer: "" });
+          }}
           className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -243,14 +296,26 @@ function FaqSetFields({
 export function ContentConfigSettingsForm({ settings }: { settings: ContentConfigSettings }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("pagination");
+  const [pendingBanners, setPendingBanners] = useState<
+    Record<BannerKey, { file: File; provider: StorageProvider } | null>
+  >({ home: null, stores: null, deals: null, categories: null });
+  const [bannerImagesVersion, setBannerImagesVersion] = useState(0);
+
   const {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AdminContentConfigSettingsInput>({
     resolver: zodResolver(adminContentConfigSettingsSchema),
     defaultValues: {
+      pageBanners: {
+        home: { ...settings.pageBanners.home },
+        stores: { ...settings.pageBanners.stores },
+        deals: { ...settings.pageBanners.deals },
+        categories: { ...settings.pageBanners.categories },
+      },
       pagination: settings.pagination,
       templates: {
         storeSeoTitleTemplate: settings.templates.storeSeoTitleTemplate ?? "",
@@ -274,7 +339,9 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
 
   const faqSetsArray = useFieldArray({ control, name: "templates.storeFaqTemplateSets" });
   const eventFaqArray = useFieldArray({ control, name: "templates.eventFaqTemplate" });
-  const [openFaqSets, setOpenFaqSets] = useState<string[]>([]);
+  const watchedEventFaqs = useWatch({ control, name: "templates.eventFaqTemplate" }) ?? [];
+  const [openEventFaq, setOpenEventFaq] = useState<string>("");
+  const [openFaqSet, setOpenFaqSet] = useState<string>("");
   const [pendingDeleteFaqSetIndex, setPendingDeleteFaqSetIndex] = useState<number | null>(null);
   const pendingDeleteFaqSetItems =
     useWatch({
@@ -291,16 +358,17 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
       setId: crypto.randomUUID(),
       items: Array.from({ length: 5 }, () => ({ question: "", answer: "" })),
     });
-    setOpenFaqSets((prev) => [...prev, String(newIndex)]);
+    setOpenFaqSet(String(newIndex));
   }
 
   function handleRemoveFaqSet(index: number) {
     faqSetsArray.remove(index);
-    setOpenFaqSets((prev) =>
-      prev
-        .filter((value) => value !== String(index))
-        .map((value) => (Number(value) > index ? String(Number(value) - 1) : value))
-    );
+    setOpenFaqSet((prev) => {
+      if (prev === "") return "";
+      const prevNum = Number(prev);
+      if (prevNum === index) return "";
+      return prevNum > index ? String(prevNum - 1) : prev;
+    });
   }
 
   function confirmRemoveFaqSet() {
@@ -309,14 +377,47 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
     setPendingDeleteFaqSetIndex(null);
   }
 
+  async function uploadPendingImage(file: File, provider: StorageProvider): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("provider", provider);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.data?.url) {
+      throw new Error(body?.error || "Image upload failed");
+    }
+    return body.data.url;
+  }
+
   async function onSubmit(data: AdminContentConfigSettingsInput) {
     try {
+      const uploaded = await Promise.all(
+        PAGE_BANNERS.map(async ({ key }) => {
+          const pending = pendingBanners[key];
+          if (pending) {
+            return [key, await uploadPendingImage(pending.file, pending.provider)] as const;
+          }
+          return [key, data.pageBanners[key].imageUrl ?? ""] as const;
+        })
+      );
+      const pageBanners = { ...data.pageBanners };
+      for (const [key, url] of uploaded) {
+        pageBanners[key] = { ...pageBanners[key], imageUrl: url };
+      }
+
       const res = await fetch("/api/admin/settings/content", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, pageBanners }),
       });
       if (!res.ok) throw new Error("save failed");
+
+      for (const [key, url] of uploaded) {
+        setValue(`pageBanners.${key}.imageUrl`, url);
+      }
+      setPendingBanners({ home: null, stores: null, deals: null, categories: null });
+      setBannerImagesVersion((v) => v + 1);
+
       toast.success("Settings saved.");
       router.refresh();
     } catch {
@@ -371,11 +472,94 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
           </div>
         </section>
 
+        <section hidden={activeTab !== "banners"} className="space-y-6">
+          <p className="text-xs text-muted-500">
+            Hero banner shown at the top of each landing page. Leave a field blank to fall back to
+            the built-in copy; leave the image blank for the default background.
+          </p>
+          {PAGE_BANNERS.map(({ key, label }) => (
+            <div key={key} className="space-y-4 rounded-lg border border-muted-200 p-4">
+              <h3 className="font-heading text-sm font-semibold text-brand-950">{label}</h3>
+              <Controller
+                key={`${key}-${bannerImagesVersion}`}
+                control={control}
+                name={`pageBanners.${key}.imageUrl`}
+                render={({ field }) => (
+                  <ImageUploadField
+                    label="Banner image"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    aspectClassName="aspect-video w-72"
+                    allowManualUrl
+                    deferUpload
+                    onFileSelected={(file, provider) => {
+                      setPendingBanners((prev) => ({
+                        ...prev,
+                        [key]: file ? { file, provider } : null,
+                      }));
+                    }}
+                  />
+                )}
+              />
+              <div>
+                <label
+                  htmlFor={`pageBanners.${key}.title`}
+                  className="mb-1.5 block text-sm font-medium text-brand-950"
+                >
+                  Title
+                </label>
+                <input
+                  id={`pageBanners.${key}.title`}
+                  className={fieldClassName}
+                  {...register(`pageBanners.${key}.title`)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor={`pageBanners.${key}.description`}
+                  className="mb-1.5 block text-sm font-medium text-brand-950"
+                >
+                  Description
+                </label>
+                <textarea
+                  id={`pageBanners.${key}.description`}
+                  rows={2}
+                  className={fieldClassName}
+                  {...register(`pageBanners.${key}.description`)}
+                />
+              </div>
+            </div>
+          ))}
+        </section>
+
         <section hidden={activeTab !== "store"} className="space-y-4">
           <p className="text-xs text-muted-500">{storeTemplateHint}</p>
           {storeTemplateFields.map((field) => (
             <TemplateField key={field.name} {...field} register={register} />
           ))}
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand-950">
+              Store — How To Apply
+            </label>
+            <Controller
+              control={control}
+              name="templates.storeHowToApplyTemplate"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="Steps a shopper follows to redeem a code at checkout. Use {name} for the store name."
+                  minHeightClassName="min-h-40"
+                  maxHeightClassName="max-h-96"
+                />
+              )}
+            />
+            <p className="mt-1 text-xs text-muted-500">
+              Rich text — applied to any store whose own &ldquo;How To Apply&rdquo; is left blank.
+              Use {"{name}"} where the store name should appear.
+            </p>
+          </div>
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
@@ -395,9 +579,10 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
               only reassigns the stores that were on it — other stores are unaffected.
             </p>
             <Accordion.Root
-              type="multiple"
-              value={openFaqSets}
-              onValueChange={setOpenFaqSets}
+              type="single"
+              collapsible
+              value={openFaqSet}
+              onValueChange={setOpenFaqSet}
               className="space-y-3"
             >
               {faqSetsArray.fields.map((field, setIndex) => (
@@ -444,11 +629,44 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
                 Add FAQ
               </button>
             </div>
-            <div className="space-y-3">
-              {eventFaqArray.fields.map((item, index) => (
-                <div key={item.id} className="rounded-lg border border-muted-200 p-3">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 space-y-2">
+            <Accordion.Root
+              type="single"
+              collapsible
+              value={openEventFaq}
+              onValueChange={setOpenEventFaq}
+              className="space-y-3"
+            >
+              {eventFaqArray.fields.map((item, index) => {
+                const headerLabel =
+                  watchedEventFaqs[index]?.question?.trim() || `FAQ ${index + 1}`;
+                return (
+                  <Accordion.Item
+                    key={item.id}
+                    value={item.id}
+                    className="overflow-hidden rounded-lg border border-muted-200"
+                  >
+                    <div className="flex items-center justify-between gap-2 bg-surface-0 px-3 py-2.5">
+                      <Accordion.Header className="min-w-0 flex-1">
+                        <Accordion.Trigger className="group flex w-full items-center gap-2.5 text-left focus-visible:outline-none">
+                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-500 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180" />
+                          <span className="truncate text-sm font-medium text-brand-950">
+                            {headerLabel}
+                          </span>
+                        </Accordion.Trigger>
+                      </Accordion.Header>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          eventFaqArray.remove(index);
+                        }}
+                        aria-label="Remove FAQ"
+                        className="shrink-0 rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Accordion.Content className="space-y-2 border-t border-muted-200 p-3 data-[state=open]:animate-fade-in">
                       <input
                         placeholder="Question"
                         className={fieldClassName}
@@ -456,23 +674,15 @@ export function ContentConfigSettingsForm({ settings }: { settings: ContentConfi
                       />
                       <textarea
                         placeholder="Answer"
-                        rows={2}
+                        rows={3}
                         className={fieldClassName}
                         {...register(`templates.eventFaqTemplate.${index}.answer` as const)}
                       />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => eventFaqArray.remove(index)}
-                      aria-label="Remove FAQ"
-                      className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </Accordion.Content>
+                  </Accordion.Item>
+                );
+              })}
+            </Accordion.Root>
           </div>
         </section>
       </div>

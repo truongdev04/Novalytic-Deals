@@ -31,7 +31,7 @@ async function writeAuthorsRaw(authors: Author[]): Promise<void> {
 
 export const getAuthors = unstable_cache(readAuthorsRaw, ["settings:authors"], {
   tags: ["settings:authors"],
-  revalidate: 300,
+  revalidate: false,
 });
 
 export async function getAuthorById(id: string): Promise<Author | null> {

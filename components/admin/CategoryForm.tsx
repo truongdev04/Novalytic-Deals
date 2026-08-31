@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "nextjs-toploader/app";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { adminCategorySchema, type AdminCategoryInput } from "@/lib/validators/admin/category";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { ScrollableSingleSelectDropdown } from "@/components/admin/ScrollableSingleSelectDropdown";
+import { FaqPasteModal } from "@/components/admin/FaqPasteModal";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { slugify } from "@/lib/utils";
 import { iconMap, renderCategoryIcon } from "@/lib/icons";
@@ -33,6 +34,19 @@ export function CategoryForm({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingIconFile, setPendingIconFile] = useState<File | null>(null);
   const [pendingIconProvider, setPendingIconProvider] = useState<StorageProvider>("cloudinary");
+  const [showFaqPaste, setShowFaqPaste] = useState(false);
+  // Every FAQ card starts expanded; the admin collapses the ones they're done
+  // with. Tracks the collapsed cards by react-hook-form field id.
+  const [closedFaqIds, setClosedFaqIds] = useState<Set<string>>(new Set());
+
+  function toggleFaqOpen(id: string) {
+    setClosedFaqIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const {
     register,
@@ -52,11 +66,16 @@ export function CategoryForm({
           iconImageUrl: category.iconImageUrl ?? "",
           parentId: category.parentId ?? "",
           isFeatured: category.isFeatured,
+          faq: category.faq,
           seoTitle: category.seo.title,
           seoDescription: category.seo.description,
         }
-      : { isFeatured: false, iconName: "", iconImageUrl: "" },
+      : { isFeatured: false, iconName: "", iconImageUrl: "", faq: [] },
   });
+
+  const faqArray = useFieldArray({ control, name: "faq" });
+  // Live question text so a card's header shows the question once it's typed.
+  const watchedFaqs = useWatch({ control, name: "faq" });
 
   const parentOptions = [
     { value: "", label: "None" },
@@ -278,6 +297,90 @@ export function CategoryForm({
             )}
           </div>
 
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-brand-950">
+                FAQs <span className="text-muted-400">(optional)</span>
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFaqPaste(true)}
+                  className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                >
+                  <ClipboardPaste className="h-3.5 w-3.5" />
+                  Paste FAQs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => faqArray.append({ question: "", answer: "" })}
+                  className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add FAQ
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {faqArray.fields.map((item, index) => {
+                const isOpen = !closedFaqIds.has(item.id);
+                const headerLabel =
+                  watchedFaqs?.[index]?.question?.trim() || `FAQ #${index + 1}`;
+                return (
+                  <div key={item.id} className="rounded-lg border border-muted-200">
+                    <div className="flex items-center justify-between px-3 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleFaqOpen(item.id)}
+                        aria-expanded={isOpen}
+                        className="flex flex-1 items-center gap-2 overflow-hidden text-left text-sm font-medium text-brand-950"
+                      >
+                        {isOpen ? (
+                          <ChevronUp className="h-4 w-4 shrink-0 text-muted-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-500" />
+                        )}
+                        <span className="truncate">{headerLabel}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => faqArray.remove(index)}
+                        aria-label={`Remove FAQ #${index + 1}`}
+                        className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {isOpen && (
+                      <div className="space-y-2 border-t border-muted-200 p-3">
+                        <input
+                          placeholder="Question"
+                          className={fieldClassName}
+                          {...register(`faq.${index}.question` as const)}
+                        />
+                        <textarea
+                          placeholder="Answer"
+                          rows={3}
+                          className={fieldClassName}
+                          {...register(`faq.${index}.answer` as const)}
+                        />
+                        {errors.faq?.[index] && (
+                          <p className="text-xs text-red-600">
+                            {errors.faq[index]?.question?.message ||
+                              errors.faq[index]?.answer?.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {faqArray.fields.length === 0 && (
+                <p className="text-xs text-muted-400">No FAQs added yet.</p>
+              )}
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm font-medium text-brand-950">
               <input type="checkbox" className="h-4 w-4" {...register("isFeatured")} />
@@ -292,6 +395,12 @@ export function CategoryForm({
           </div>
         </div>
       </form>
+
+      <FaqPasteModal
+        open={showFaqPaste}
+        onOpenChange={setShowFaqPaste}
+        onParsed={(items) => faqArray.append(items)}
+      />
 
       <Modal
         open={showLeaveConfirm}

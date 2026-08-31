@@ -15,6 +15,10 @@ import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 const fieldClassName =
   "w-full rounded-xl border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
+function RequiredMark() {
+  return <span className="text-red-600"> *</span>;
+}
+
 export function SubmitCouponForm() {
   const {
     register,
@@ -58,8 +62,29 @@ export function SubmitCouponForm() {
         {...register("honeypot")}
       />
       <div>
+        <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-brand-950">
+          Title
+          <RequiredMark />
+        </label>
+        <input
+          id="title"
+          placeholder="e.g. 20% Off Everything"
+          aria-invalid={Boolean(errors.title)}
+          aria-describedby={errors.title ? "title-error" : undefined}
+          className={fieldClassName}
+          {...register("title")}
+        />
+        {errors.title && (
+          <p id="title-error" className="mt-1 text-xs text-red-600">
+            {errors.title.message}
+          </p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="storeName" className="mb-1.5 block text-sm font-medium text-brand-950">
           Store name
+          <RequiredMark />
         </label>
         <input
           id="storeName"
@@ -79,6 +104,7 @@ export function SubmitCouponForm() {
       <div>
         <label htmlFor="websiteUrl" className="mb-1.5 block text-sm font-medium text-brand-950">
           Link Website
+          <RequiredMark />
         </label>
         <input
           id="websiteUrl"
@@ -106,6 +132,7 @@ export function SubmitCouponForm() {
       <div>
         <label htmlFor="discountValue" className="mb-1.5 block text-sm font-medium text-brand-950">
           Discount
+          <RequiredMark />
         </label>
         <div className="flex">
           <select
@@ -142,6 +169,7 @@ export function SubmitCouponForm() {
       <div>
         <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-brand-950">
           Description
+          <RequiredMark />
         </label>
         <textarea
           id="description"
@@ -169,6 +197,7 @@ export function SubmitCouponForm() {
       <div>
         <label htmlFor="submitterEmail" className="mb-1.5 block text-sm font-medium text-brand-950">
           Your email
+          <RequiredMark />
         </label>
         <input
           id="submitterEmail"

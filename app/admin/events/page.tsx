@@ -3,6 +3,8 @@ import { Plus } from "lucide-react";
 import { auth } from "@/auth";
 import { getEventsAdmin } from "@/lib/data";
 import { EventTable } from "@/components/admin/EventTable";
+import { EventBulkStoresButton } from "@/components/admin/EventBulkStoresButton";
+import { EventCuratedCouponsButton } from "@/components/admin/EventCuratedCouponsButton";
 import { isDataScoped } from "@/lib/permissions";
 
 export default async function AdminEventsPage() {
@@ -23,13 +25,17 @@ export default async function AdminEventsPage() {
           <h1 className="font-heading text-2xl font-bold text-brand-950">Events</h1>
           <p className="mt-1 text-sm text-muted-500">{events.length} events.</p>
         </div>
-        <Link
-          href="/admin/events/new"
-          className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add Event
-        </Link>
+        <div className="flex items-center gap-2">
+          <EventCuratedCouponsButton events={eventsNewestFirst} />
+          <EventBulkStoresButton events={eventsNewestFirst} />
+          <Link
+            href="/admin/events/new"
+            className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Event
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6">

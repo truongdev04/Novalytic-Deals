@@ -1,8 +1,8 @@
 import {
   applyDealFeaturedSelection,
+  getActiveDealsForRanking,
   getContentConfigSettings,
   getDealRefreshSettings,
-  getDeals,
   rolloverHourlyDealClicks,
   setDealRefreshSettings,
 } from "@/lib/data";
@@ -25,7 +25,10 @@ export function rankDealsByClicks(deals: Deal[], limit: number): string[] {
 }
 
 async function refreshDealsByLastHourClicks(): Promise<void> {
-  const [deals, config] = await Promise.all([getDeals(), getContentConfigSettings()]);
+  const [deals, config] = await Promise.all([
+    getActiveDealsForRanking(),
+    getContentConfigSettings(),
+  ]);
   const winnerIds = rankDealsByClicks(deals, config.pagination.bestDealsCount);
   await applyDealFeaturedSelection(winnerIds);
 }
@@ -42,24 +45,24 @@ export async function refreshDealsNow(): Promise<{ lastRefreshedAt: string }> {
   return { lastRefreshedAt };
 }
 
-// Lazy 8-hour rollover for "Auto Deal" — mirrors the pattern in
-// lib/content/popularStoresRefresh.ts (compare stored vs. current, recompute
-// only when stale) but elapsed-time based rather than a calendar period key,
-// since an 8h cycle has no natural calendar anchor the way a month does.
-// Meant to be awaited once at the top of the home page's data-fetching, so
-// the first real page load 8+ hours after the last rollover performs it
-// before getFeaturedDeals() is read in the same request.
-export async function ensureAutoDealRollover(): Promise<void> {
+// 8-hour rollover for "Auto Deal" — elapsed-time based (an 8h cycle has no
+// calendar anchor the way a month does). Runs from the daily Vercel Cron
+// (app/api/cron/daily-refresh); purges its own tags since it's a route
+// handler. Returns whether it actually did work.
+export async function ensureAutoDealRollover(): Promise<boolean> {
   const settings = await getDealRefreshSettings();
-  if (!settings.autoDealEnabled) return;
+  if (!settings.autoDealEnabled) return false;
 
   const elapsedMs = settings.lastRolloverAt
     ? Date.now() - new Date(settings.lastRolloverAt).getTime()
     : Infinity;
-  if (elapsedMs < AUTO_DEAL_INTERVAL_MS) return;
+  if (elapsedMs < AUTO_DEAL_INTERVAL_MS) return false;
 
   await rolloverHourlyDealClicks();
   await refreshDealsByLastHourClicks();
   const now = new Date().toISOString();
   await setDealRefreshSettings({ lastRolloverAt: now, lastRefreshedAt: now });
+  purgeTag("deals:list");
+  purgeTag("settings:deal-refresh");
+  return true;
 }

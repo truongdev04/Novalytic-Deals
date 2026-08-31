@@ -14,7 +14,7 @@ import { JsonLd } from "@/lib/seo/JsonLdScript";
 import { articleJsonLd } from "@/lib/seo/jsonld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { parseBlogSections } from "@/lib/blog";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { resolveBlogContent } from "@/lib/content/defaults";
 import { SITE_URL as siteUrl } from "@/lib/constants/site";
 
@@ -91,11 +91,22 @@ export default async function BlogPostPage({
 
           <div className="mt-8 space-y-8">
             {sections.map((section) => (
-              <section key={section.id} id={section.id} className="scroll-mt-24">
-                <h2 className="font-heading text-xl font-semibold text-brand-950">{section.heading}</h2>
+              <section
+                key={section.id || "lead"}
+                id={section.id || undefined}
+                className="scroll-mt-24"
+              >
+                {section.heading && (
+                  <h2 className="font-heading text-xl font-semibold text-brand-950">
+                    {section.heading}
+                  </h2>
+                )}
                 <RichHtml
                   html={section.bodyHtml}
-                  className="mt-3 space-y-4 text-muted-700 leading-relaxed"
+                  className={cn(
+                    "space-y-4 text-muted-700 leading-relaxed",
+                    section.heading && "mt-3"
+                  )}
                 />
               </section>
             ))}

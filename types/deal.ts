@@ -11,6 +11,7 @@ export interface Deal {
   categoryId: string | null;
   originalPrice?: number;
   price: number;
+  currency: string;
   offer?: string;
   url: string;
   imageUrl: string;

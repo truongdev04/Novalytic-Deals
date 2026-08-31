@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   if (!ALLOWED_TYPES.includes(file.type)) return jsonError(400, "Unsupported image type");
   if (file.size > MAX_SIZE_BYTES) return jsonError(400, "Image must be smaller than 5MB");
 
-  if (provider === "cloudinary" && !isCloudinaryConfigured()) {
+  if (provider === "cloudinary" && !(await isCloudinaryConfigured())) {
     return jsonError(
       500,
       "Cloudinary isn't configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET."

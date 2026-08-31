@@ -71,7 +71,11 @@ const SORTED_ROUTE_PERMISSIONS = [...ROUTE_PERMISSIONS].sort(
 export function getRequiredPermission(
   pathname: string
 ): EditorPermission | typeof ADMIN_ONLY | null {
-  if (pathname === "/admin" || pathname === "/admin/login") return null;
+  if (pathname === "/admin/login") return null;
+  // The Dashboard landing page is now a grantable permission like any other
+  // section (matched exactly so unmapped /admin/* routes still fall through
+  // to ADMIN_ONLY below).
+  if (pathname === "/admin") return "dashboard";
   if (pathname === "/api/admin/upload" || pathname.startsWith("/api/admin/upload/")) return null;
   // Self-status check — every authenticated admin/editor polls this to
   // detect their own account being deactivated/deleted mid-session.
@@ -97,6 +101,34 @@ export function canAccess(
   if (required === null) return true;
   if (required === ADMIN_ONLY) return false;
   return (permissions ?? []).includes(required);
+}
+
+/**
+ * Where to send an editor who can't access the page they landed on — the
+ * Dashboard when they have the `dashboard` permission, otherwise the first
+ * admin section they can open, and `/admin/login` if they have none. Keeps
+ * the proxy's post-denial redirect from bouncing forever on `/admin` itself.
+ */
+export function firstAccessiblePath(
+  role: "ADMIN" | "EDITOR" | undefined,
+  permissions: string[] | undefined
+): string {
+  if (role === "ADMIN") return "/admin";
+  const perms = permissions ?? [];
+  if (perms.includes("dashboard")) return "/admin";
+
+  // Declaration order of ROUTE_PERMISSIONS mirrors the sidebar, so the first
+  // hit is the topmost section this editor can open.
+  for (const route of ROUTE_PERMISSIONS) {
+    if (
+      route.prefix.startsWith("/admin/") &&
+      route.permission !== ADMIN_ONLY &&
+      perms.includes(route.permission)
+    ) {
+      return route.prefix;
+    }
+  }
+  return "/admin/login";
 }
 
 /**

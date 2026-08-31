@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       iconImageUrl: parsed.data.iconImageUrl || null,
       parentId: parsed.data.parentId || null,
       isFeatured: parsed.data.isFeatured,
+      faq: parsed.data.faq,
       seo: { title: parsed.data.seoTitle, description: parsed.data.seoDescription },
       createdById: session.user.id,
     });

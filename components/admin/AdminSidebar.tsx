@@ -72,7 +72,9 @@ function buildNavItems(
   ];
 
   return [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    ...(has("dashboard")
+      ? [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true }]
+      : []),
     ...(has("stores") ? [{ href: "/admin/stores", label: "Stores", icon: Store }] : []),
     ...(has("coupons") ? [{ href: "/admin/coupons", label: "Coupons", icon: Ticket }] : []),
     ...(has("deals") ? [{ href: "/admin/deals", label: "Deals", icon: Tags }] : []),

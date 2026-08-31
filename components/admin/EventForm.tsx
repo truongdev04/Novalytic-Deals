@@ -19,6 +19,11 @@ import type { Coupon, Event, Store } from "@/types";
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
+// The "Selected coupons" preview under the Featured Coupons picker only
+// renders this many rows (newest first) so a long selection doesn't blow
+// up the form — the rest stay selected and are saved on submit.
+const SELECTED_COUPONS_PREVIEW_LIMIT = 10;
+
 function requiredMark() {
   return <span className="text-red-600"> *</span>;
 }
@@ -332,6 +337,11 @@ export function EventForm({
                     );
                   }
                   const selectedCoupons = eventCoupons.filter((c) => selectedSet.has(c.id));
+                  const visibleSelectedCoupons = [...selectedCoupons]
+                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                    .slice(0, SELECTED_COUPONS_PREVIEW_LIMIT);
+                  const hiddenSelectedCount =
+                    selectedCoupons.length - visibleSelectedCoupons.length;
 
                   return (
                     <>
@@ -365,9 +375,16 @@ export function EventForm({
                       <div className="mt-3">
                         <p className="text-xs font-medium text-muted-500">
                           Selected coupons ({selectedCoupons.length})
+                          {hiddenSelectedCount > 0 && (
+                            <span className="font-normal">
+                              {" "}
+                              — showing {SELECTED_COUPONS_PREVIEW_LIMIT} newest, {hiddenSelectedCount}{" "}
+                              more hidden
+                            </span>
+                          )}
                         </p>
                         <div className="mt-1.5 space-y-1.5">
-                          {selectedCoupons.map((coupon) => (
+                          {visibleSelectedCoupons.map((coupon) => (
                             <div
                               key={coupon.id}
                               className="flex items-center justify-between gap-2 rounded-lg border border-muted-200 bg-surface-0 px-3 py-1.5 text-sm"

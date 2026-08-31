@@ -121,18 +121,20 @@ export function ImageUploadField({
 
       <div className="mb-2 flex items-center gap-2">
         <span className="text-xs font-medium text-muted-600">Storage</span>
-        <div className="w-44">
+        <div className="w-32">
           <SingleSelectDropdown
             options={PROVIDERS}
             value={provider}
             onChange={(v) => setProvider(v as StorageProvider)}
+            triggerClassName="px-2.5 py-2 text-xs"
+            optionClassName="text-xs"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div
-          className={`relative overflow-hidden rounded-lg border border-dashed border-muted-300 bg-surface-100 ${aspectClassName}`}
+          className={`relative shrink-0 overflow-hidden rounded-lg border border-dashed border-muted-300 bg-surface-100 ${aspectClassName}`}
         >
           {displayUrl ? (
             <>
@@ -140,7 +142,7 @@ export function ImageUploadField({
                 // eslint-disable-next-line @next/next/no-img-element -- local blob: preview or manually-pasted external URL, next/image can't optimize either
                 <img src={displayUrl} alt={label} className="h-full w-full object-cover" />
               ) : (
-                <Image src={displayUrl} alt={label} fill sizes="128px" className="object-cover" />
+                <Image src={displayUrl} alt={label} fill sizes="224px" className="object-cover" />
               )}
               <button
                 type="button"

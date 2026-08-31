@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
   if (!verified) return jsonError(400, "Verification failed. Please try again.");
 
   await createSubmittedCoupon({
+    title: parsed.data.title,
     storeName: parsed.data.storeName,
     websiteUrl: parsed.data.websiteUrl,
     code: parsed.data.code,
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
   if (inbox) {
     const { subject, html } = submitCouponNotificationEmail(
       parsed.data.storeName,
+      parsed.data.title,
       parsed.data.description
     );
     await sendEmail({ to: inbox, subject, html });

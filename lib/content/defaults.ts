@@ -67,7 +67,10 @@ export async function resolveStoreContent(store: Store): Promise<Store> {
     ...store,
     description: store.description || blockToHtml(descriptionBlock),
     aboutStore: store.aboutStore || applyTemplate(t.storeAboutTemplate, name),
-    howToApply: store.howToApply || blockToHtml(applyTemplate(t.storeHowToApplyTemplate, name)) || undefined,
+    // storeHowToApplyTemplate is authored as rich text (HTML) in Content
+    // Configuration, same as storeAboutTemplate — pass it straight through
+    // to RichHtml rather than running the plain-text blockToHtml() on it.
+    howToApply: store.howToApply || applyTemplate(t.storeHowToApplyTemplate, name) || undefined,
     faq:
       store.faq.length > 0
         ? store.faq

@@ -19,6 +19,8 @@ export function SingleSelectDropdown({
   searchable = false,
   searchPlaceholder = "Search...",
   disabled = false,
+  triggerClassName,
+  optionClassName,
 }: {
   options: SelectOption[];
   value: string;
@@ -28,6 +30,12 @@ export function SingleSelectDropdown({
   searchable?: boolean;
   searchPlaceholder?: string;
   disabled?: boolean;
+  /** Extra classes merged onto the trigger button — e.g. tighter padding or a
+   * smaller text size for a compact dropdown. */
+  triggerClassName?: string;
+  /** Extra classes merged onto each option row in the panel — e.g. a smaller
+   * text size to match a compact trigger. */
+  optionClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -95,7 +103,10 @@ export function SingleSelectDropdown({
         type="button"
         disabled={disabled}
         onClick={() => (open ? closeDropdown() : setOpen(true))}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-left text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-left text-sm text-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50",
+          triggerClassName
+        )}
       >
         <span className={cn("truncate", !selected && "text-muted-400")}>
           {selected ? selected.label : placeholder}
@@ -139,7 +150,8 @@ export function SingleSelectDropdown({
                   }}
                   className={cn(
                     "block w-full px-3 py-1.5 text-left text-sm hover:bg-surface-100",
-                    option.value === value ? "font-semibold text-brand-700" : "text-brand-950"
+                    option.value === value ? "font-semibold text-brand-700" : "text-brand-950",
+                    optionClassName
                   )}
                 >
                   {option.label}

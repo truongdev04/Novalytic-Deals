@@ -247,3 +247,16 @@ body {
   background-color: var(--surface-100);
   font-weight: 600;
 }
+
+/* iOS Safari auto-zooms the page when a focused form control has a computed
+   font-size below 16px. Most fields use Tailwind's text-sm (14px), so pin
+   them to 16px on phone-sized viewports where that zoom happens. Left
+   unlayered so it wins over the text-sm utility (@layer utilities) without
+   needing !important. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

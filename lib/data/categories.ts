@@ -29,7 +29,7 @@ export const getCategories = unstable_cache(
     return rows.map(toCategory);
   },
   ["categories:list"],
-  { tags: ["categories:list"], revalidate: 300 }
+  { tags: ["categories:list"], revalidate: false }
 );
 
 export interface AdminCategoryFilters {
@@ -52,7 +52,7 @@ export async function getCategoriesAdmin(filters: AdminCategoryFilters = {}): Pr
       return rows.map(toCategory);
     },
     [`categories:list:${scopeKey}`],
-    { tags: ["categories:list"], revalidate: 300 }
+    { tags: ["categories:list"], revalidate: false }
   )();
 }
 
@@ -66,7 +66,7 @@ export const getFeaturedCategories = unstable_cache(
     return rows.map(toCategory);
   },
   ["categories:featured"],
-  { tags: ["categories:list"], revalidate: 300 }
+  { tags: ["categories:list"], revalidate: false }
 );
 
 export async function getCategoryBySlug(slug: string): Promise<Category | undefined> {
@@ -76,7 +76,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | undefi
       return row ? toCategory(row) : undefined;
     },
     [`category:${slug}`],
-    { tags: [`category:${slug}`], revalidate: 300 }
+    { tags: [`category:${slug}`], revalidate: false }
   )();
 }
 
@@ -98,6 +98,7 @@ export interface AdminCategoryFields {
   iconImageUrl?: string | null;
   parentId?: string | null;
   isFeatured: boolean;
+  faq: CategoryFaqItem[];
   seo: CategorySeo;
 }
 
@@ -129,7 +130,7 @@ export async function createCategory(fields: AdminCategoryCreateFields): Promise
         parentId: fields.parentId || null,
         isFeatured: fields.isFeatured,
         seo: fields.seo as unknown as Prisma.InputJsonValue,
-        faq: [] as unknown as Prisma.InputJsonValue,
+        faq: fields.faq as unknown as Prisma.InputJsonValue,
         createdById: fields.createdById,
       },
     });
@@ -156,6 +157,7 @@ export async function updateCategory(
         iconImageUrl: fields.iconImageUrl || null,
         parentId: fields.parentId || null,
         isFeatured: fields.isFeatured,
+        faq: fields.faq as unknown as Prisma.InputJsonValue,
         seo: fields.seo as unknown as Prisma.InputJsonValue,
       },
     });

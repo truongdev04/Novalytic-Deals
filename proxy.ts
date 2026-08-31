@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "./auth.config";
 import { redis } from "@/lib/server/cache/redis";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, firstAccessiblePath } from "@/lib/permissions";
 
 const { auth } = NextAuth(authConfig);
 
@@ -45,10 +45,25 @@ export default auth(async (req) => {
     if (isAdminApi) {
       return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/admin", req.url));
+    // Not just "/admin" — an editor without the `dashboard` permission would
+    // bounce forever if we always sent them there.
+    const fallback = firstAccessiblePath(
+      req.auth?.user?.role,
+      req.auth?.user?.permissions
+    );
+    if (pathname === fallback) {
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
+    return NextResponse.redirect(new URL(fallback, req.url));
   }
 });
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/((?!_next|api).*)"],
+  // The third pattern also excludes any path ending in a file extension
+  // (robots.txt, sitemap.xml, favicon.ico, /images/*.svg, /tools/**/*.html …).
+  // Those are static assets — they never match a redirect rule, but without
+  // this each bot/crawler hit still spent a function invocation + a network
+  // redis.hget. Safe while no redirect rule's `source` ends in an extension
+  // (verified: redirect_rules is currently empty).
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/((?!_next|api|.*\\.[\\w]+$).*)"],
 };

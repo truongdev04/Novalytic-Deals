@@ -1,11 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
+import { getEffectiveCloudinaryConfig } from "@/lib/data/settings";
 
-export function isCloudinaryConfigured() {
-  return Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET
-  );
+export async function isCloudinaryConfigured() {
+  const config = await getEffectiveCloudinaryConfig();
+  return Boolean(config.cloudName && config.apiKey && config.apiSecret);
 }
 
 export async function uploadToCloudinary(
@@ -13,12 +11,15 @@ export async function uploadToCloudinary(
   file: File,
   options?: { format?: string }
 ): Promise<string> {
-  if (!isCloudinaryConfigured()) throw new Error("Cloudinary isn't configured");
+  const config = await getEffectiveCloudinaryConfig();
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) {
+    throw new Error("Cloudinary isn't configured");
+  }
 
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
   });
 
   const arrayBuffer = await file.arrayBuffer();

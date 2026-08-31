@@ -3,15 +3,41 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { ShieldAlert } from "lucide-react";
-
-const POLL_INTERVAL_MS = 20_000;
-const AUTO_LOGOUT_AFTER_MS = 8_000;
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Sessions are JWT-based, so a role/status change doesn't invalidate an
-// already-open session. This polls the current user's own status and,
-// the moment it's deactivated or the account is deleted, blocks the UI
-// with a non-dismissable dialog and forces a sign-out.
-export function AccountStatusWatcher() {
+// already-open session. This watches the current user's own status and, the
+// moment it's deactivated or the account is deleted, blocks the UI with a
+// non-dismissable dialog and forces a sign-out.
+//
+// Detection is layered so no single failure (dropped socket, unconfigured
+// env, missed broadcast) can leave a deactivated admin still working:
+//   1. check() on mount
+//   2. Realtime broadcast on `user-status:<id>`  → check()   (instant path)
+//   3. check() on every (re)subscribe            → closes reconnect gaps,
+//      since broadcast messages sent while disconnected are NOT replayed
+//   4. check() on window focus / visibilitychange
+//   5. a slow safety-net poll                    → covers 2–4 all failing
+//      at once, or Supabase being unreachable entirely
+// /api/admin/session/status (which reads the DB) stays the single source of
+// truth; every layer above just decides *when* to call it.
+const SAFETY_POLL_MS = 5 * 60_000;
+const AUTO_LOGOUT_AFTER_MS = 8_000;
+
+let supabaseSingleton: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return null;
+  if (!supabaseSingleton) {
+    supabaseSingleton = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return supabaseSingleton;
+}
+
+export function AccountStatusWatcher({ userId }: { userId: string }) {
   const [deactivated, setDeactivated] = useState(false);
   const checkingRef = useRef(false);
   // Guards against the auto-logout timer and a manual button click both
@@ -49,24 +75,38 @@ export function AccountStatusWatcher() {
           setDeactivated(true);
         }
       } catch {
-        // Transient network error — don't false-trigger, next poll will retry.
+        // Transient network error — don't false-trigger, a later check retries.
       } finally {
         checkingRef.current = false;
       }
     }
 
     check();
-    const interval = setInterval(check, POLL_INTERVAL_MS);
+    const interval = setInterval(check, SAFETY_POLL_MS);
     window.addEventListener("focus", check);
     document.addEventListener("visibilitychange", check);
+
+    const supabase = getSupabase();
+    const channel = supabase
+      ? supabase
+          .channel(`user-status:${userId}`)
+          .on("broadcast", { event: "changed" }, () => check())
+          .subscribe((status) => {
+            // Fires on the first subscribe and on every automatic
+            // re-subscribe after a dropped connection — re-check so a
+            // status change that happened during the outage isn't missed.
+            if (status === "SUBSCRIBED") check();
+          })
+      : null;
 
     return () => {
       cancelled = true;
       clearInterval(interval);
       window.removeEventListener("focus", check);
       document.removeEventListener("visibilitychange", check);
+      if (supabase && channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!deactivated) return;

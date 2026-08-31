@@ -20,21 +20,26 @@ export async function refreshCouponsNow(): Promise<{ lastRefreshedAt: string }> 
   return { lastRefreshedAt };
 }
 
-// Lazy 8-hour rollover for "Auto Coupon" — mirrors ensureAutoDealRollover:
-// elapsed-time based (no natural calendar anchor like a month), checked once
-// per home page render by comparing Date.now() against a stored
-// lastRolloverAt timestamp, only doing work once 8h have actually elapsed.
-export async function ensureAutoCouponRollover(): Promise<void> {
+// 8-hour rollover for "Auto Coupon" — mirrors ensureAutoDealRollover:
+// elapsed-time based (no calendar anchor). Runs from the daily Vercel Cron
+// (app/api/cron/daily-refresh); purges its own tags since it's a route
+// handler. refreshTrendingCoupons() ranks off getTrendingCandidateCoupons(),
+// which is an uncached direct query — so no stale-click concern here.
+// Returns whether it actually did work.
+export async function ensureAutoCouponRollover(): Promise<boolean> {
   const settings = await getCouponRefreshSettings();
-  if (!settings.autoCouponEnabled) return;
+  if (!settings.autoCouponEnabled) return false;
 
   const elapsedMs = settings.lastRolloverAt
     ? Date.now() - new Date(settings.lastRolloverAt).getTime()
     : Infinity;
-  if (elapsedMs < AUTO_COUPON_INTERVAL_MS) return;
+  if (elapsedMs < AUTO_COUPON_INTERVAL_MS) return false;
 
   await rolloverHourlyCouponClicks();
   await refreshTrendingCoupons();
   const now = new Date().toISOString();
   await setCouponRefreshSettings({ lastRolloverAt: now, lastRefreshedAt: now });
+  purgeTag("coupons:list");
+  purgeTag("settings:coupon-refresh");
+  return true;
 }

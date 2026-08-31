@@ -112,6 +112,7 @@ export function CategoryTable({ categories }: { categories: Category[] }) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/categories/${category.id}`}
+                      prefetch={false}
                       aria-label={`Edit ${category.name}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

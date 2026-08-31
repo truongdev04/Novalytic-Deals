@@ -377,7 +377,7 @@ export function DealTable({
             <tr>
               {selectionMode && <th className="w-10 px-4 py-3" />}
               <th className="px-4 py-3">Image</th>
-              <th className="px-4 py-3">Name</th>
+              <th className="w-64 min-w-64 px-4 py-3">Name</th>
               <th className="px-4 py-3">Store</th>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Event</th>
@@ -408,7 +408,9 @@ export function DealTable({
                       <Image src={deal.imageUrl} alt={deal.name} fill sizes="44px" className="object-cover" />
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-medium text-brand-950">{deal.name}</td>
+                  <td className="w-64 min-w-64 max-w-64 px-4 py-3 font-medium text-brand-950">
+                    <span className="line-clamp-2">{deal.name}</span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {store && (
@@ -472,6 +474,7 @@ export function DealTable({
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/admin/deals/${deal.id}`}
+                        prefetch={false}
                         aria-label={`Edit ${deal.name}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

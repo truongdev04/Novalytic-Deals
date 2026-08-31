@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTurnstileSiteKey } from "@/components/forms/TurnstileConfig";
 
 type TurnstileAppearance = "always" | "execute" | "interaction-only";
 
@@ -36,7 +37,7 @@ export function TurnstileWidget({
   appearance?: TurnstileAppearance;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const siteKey = useTurnstileSiteKey();
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;

@@ -20,6 +20,8 @@ const fieldClassName =
 
 const DEAL_TYPES: DealType[] = ["DEAL", "CODE"];
 
+const CURRENCY_OPTIONS = ["$", "€", "£", "CHF"];
+
 function requiredMark() {
   return <span className="text-red-600"> *</span>;
 }
@@ -49,9 +51,8 @@ export function DealForm({
   // an existing deal (never regenerate a published slug) — same guard
   // CouponForm uses for its store-driven slug regeneration.
   const [slugTouched, setSlugTouched] = useState(Boolean(deal));
-  // Offer is auto-computed from Original Price/Price until the admin edits
-  // it directly, after which it's left alone.
-  const [offerTouched, setOfferTouched] = useState(Boolean(deal?.offer));
+  // Offer can be typed manually, but any later edit to Original Price or Price
+  // recalculates it and overwrites whatever was there (see the effect below).
 
   async function uploadPendingImage(file: File, provider: StorageProvider): Promise<string> {
     const formData = new FormData();
@@ -86,6 +87,7 @@ export function DealForm({
           categoryId: deal.categoryId,
           originalPrice: deal.originalPrice,
           price: deal.price,
+          currency: deal.currency,
           offer: deal.offer ?? "",
           url: deal.url,
           imageUrl: deal.imageUrl,
@@ -102,6 +104,7 @@ export function DealForm({
           categoryId: null,
           originalPrice: undefined,
           price: 0,
+          currency: "$",
           offer: "",
           url: "",
           imageUrl: "",
@@ -114,11 +117,9 @@ export function DealForm({
   const originalPrice = useWatch({ control, name: "originalPrice" });
   const price = useWatch({ control, name: "price" });
 
-  // Auto-fill the Offer badge ("-20%") from Original Price/Price as soon as
-  // both are present, until the admin edits Offer directly — same
-  // touched-guard pattern as the slug auto-fill below.
+  // Recalculate the Offer badge ("-20%") whenever Original Price or Price
+  // changes, overwriting any manually typed value.
   useEffect(() => {
-    if (offerTouched) return;
     if (
       typeof originalPrice === "number" &&
       originalPrice > 0 &&
@@ -129,7 +130,7 @@ export function DealForm({
       const percentOff = Math.round(((originalPrice - price) / originalPrice) * 100);
       setValue("offer", `-${percentOff}%`, { shouldDirty: true });
     }
-  }, [originalPrice, price, offerTouched, setValue]);
+  }, [originalPrice, price, setValue]);
 
   async function onSubmit(data: AdminDealInput) {
     try {
@@ -311,7 +312,7 @@ export function DealForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div>
               <label
                 htmlFor="originalPrice"
@@ -346,6 +347,27 @@ export function DealForm({
               />
               {errors.price && <p className="mt-1 text-xs text-red-600">{errors.price.message}</p>}
             </div>
+
+            <div>
+              <label htmlFor="currency" className="mb-1.5 block text-sm font-medium text-brand-950">
+                Currency{requiredMark()}
+              </label>
+              <input
+                id="currency"
+                list="currency-options"
+                placeholder="e.g. $"
+                className={fieldClassName}
+                {...register("currency")}
+              />
+              <datalist id="currency-options">
+                {CURRENCY_OPTIONS.map((symbol) => (
+                  <option key={symbol} value={symbol} />
+                ))}
+              </datalist>
+              {errors.currency && (
+                <p className="mt-1 text-xs text-red-600">{errors.currency.message}</p>
+              )}
+            </div>
           </div>
 
           <div>
@@ -356,10 +378,11 @@ export function DealForm({
               id="offer"
               placeholder="e.g. -20%"
               className={fieldClassName}
-              {...register("offer", { onChange: () => setOfferTouched(true) })}
+              {...register("offer")}
             />
             <p className="mt-1 text-xs text-muted-500">
-              Auto-calculated from Original Price and Price — edit to override.
+              Auto-calculated from Original Price and Price — changing either one recalculates and
+              overwrites any manual text.
             </p>
             {errors.offer && <p className="mt-1 text-xs text-red-600">{errors.offer.message}</p>}
           </div>

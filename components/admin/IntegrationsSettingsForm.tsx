@@ -16,10 +16,18 @@ import type { IntegrationsSettingsView } from "@/types";
 const fieldClassName =
   "w-full rounded-lg border border-muted-300 bg-surface-0 px-4 py-2.5 text-sm text-brand-950 placeholder:text-muted-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500";
 
+type ClearableSecret =
+  | "resendApiKey"
+  | "turnstileSecretKey"
+  | "cloudinaryApiKey"
+  | "cloudinaryApiSecret";
+
 type NonSecretFields = Pick<
   AdminIntegrationsSettingsInput,
   | "contactInboxEmail"
   | "systemFromEmail"
+  | "turnstileSiteKey"
+  | "cloudinaryCloudName"
   | "gaId"
   | "gtmId"
   | "plausibleDomain"
@@ -31,9 +39,9 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
   const router = useRouter();
   const [resendApiKey, setResendApiKey] = useState("");
   const [turnstileSecretKey, setTurnstileSecretKey] = useState("");
-  const [clearFields, setClearFields] = useState<Set<"resendApiKey" | "turnstileSecretKey">>(
-    new Set()
-  );
+  const [cloudinaryApiKey, setCloudinaryApiKey] = useState("");
+  const [cloudinaryApiSecret, setCloudinaryApiSecret] = useState("");
+  const [clearFields, setClearFields] = useState<Set<ClearableSecret>>(new Set());
 
   const {
     register,
@@ -44,6 +52,8 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
       adminIntegrationsSettingsSchema.pick({
         contactInboxEmail: true,
         systemFromEmail: true,
+        turnstileSiteKey: true,
+        cloudinaryCloudName: true,
         gaId: true,
         gtmId: true,
         plausibleDomain: true,
@@ -54,6 +64,8 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
     defaultValues: {
       contactInboxEmail: view.contactInboxEmail ?? "",
       systemFromEmail: view.systemFromEmail ?? "",
+      turnstileSiteKey: view.turnstileSiteKey ?? "",
+      cloudinaryCloudName: view.cloudinaryCloudName ?? "",
       gaId: view.gaId ?? "",
       gtmId: view.gtmId ?? "",
       plausibleDomain: view.plausibleDomain ?? "",
@@ -62,7 +74,7 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
     },
   });
 
-  function toggleClear(field: "resendApiKey" | "turnstileSecretKey") {
+  function toggleClear(field: ClearableSecret) {
     setClearFields((prev) => {
       const next = new Set(prev);
       if (next.has(field)) next.delete(field);
@@ -77,6 +89,8 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
         ...data,
         resendApiKey: resendApiKey || undefined,
         turnstileSecretKey: turnstileSecretKey || undefined,
+        cloudinaryApiKey: cloudinaryApiKey || undefined,
+        cloudinaryApiSecret: cloudinaryApiSecret || undefined,
         clearFields: Array.from(clearFields),
       };
       const res = await fetch("/api/admin/settings/integrations", {
@@ -88,6 +102,8 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
       toast.success("Settings saved.");
       setResendApiKey("");
       setTurnstileSecretKey("");
+      setCloudinaryApiKey("");
+      setCloudinaryApiSecret("");
       setClearFields(new Set());
       router.refresh();
     } catch {
@@ -128,6 +144,24 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
 
       <div className="space-y-4 rounded-lg border border-muted-200 p-4">
         <h3 className="font-heading text-sm font-semibold text-brand-950">Security & Captcha</h3>
+        <div>
+          <label
+            htmlFor="turnstileSiteKey"
+            className="mb-1.5 block text-sm font-medium text-brand-950"
+          >
+            Turnstile site key
+          </label>
+          <input
+            id="turnstileSiteKey"
+            className={fieldClassName}
+            placeholder={
+              view.turnstileSiteKeySource === "env" && view.turnstileSiteKeyEnv
+                ? view.turnstileSiteKeyEnv
+                : "0x4AAAAAAA..."
+            }
+            {...register("turnstileSiteKey")}
+          />
+        </div>
         <SecretField
           id="turnstileSecretKey"
           label="Turnstile secret key"
@@ -137,11 +171,56 @@ export function IntegrationsSettingsForm({ view }: { view: IntegrationsSettingsV
           cleared={clearFields.has("turnstileSecretKey")}
           onToggleClear={() => toggleClear("turnstileSecretKey")}
         />
-        <p className="mt-2 text-xs text-muted-500">
-          Turnstile site key is public and configured via <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>{" "}
-          in the environment
-          {view.turnstileSiteKey ? ` (currently: ${view.turnstileSiteKey})` : " (not set)"}.
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-muted-200 p-4">
+        <h3 className="font-heading text-sm font-semibold text-brand-950">Cloudinary</h3>
+        <p className="text-xs text-muted-500">
+          Used for image uploads. Values saved here override the{" "}
+          <code>CLOUDINARY_CLOUD_NAME</code>, <code>CLOUDINARY_API_KEY</code> and{" "}
+          <code>CLOUDINARY_API_SECRET</code> environment variables.
         </p>
+        <div>
+          <label
+            htmlFor="cloudinaryCloudName"
+            className="mb-1.5 block text-sm font-medium text-brand-950"
+          >
+            Cloudinary Cloud Name
+          </label>
+          <input
+            id="cloudinaryCloudName"
+            className={fieldClassName}
+            placeholder={
+              view.cloudinaryCloudNameSource === "env" && view.cloudinaryCloudNameEnv
+                ? view.cloudinaryCloudNameEnv
+                : "your-cloud-name"
+            }
+            {...register("cloudinaryCloudName")}
+          />
+          {view.cloudinaryCloudNameSource === "env" && (
+            <p className="mt-1.5 text-xs text-muted-500">
+              Currently coming from the environment. Leave blank to keep using it.
+            </p>
+          )}
+        </div>
+        <SecretField
+          id="cloudinaryApiKey"
+          label="Cloudinary API Key"
+          view={view.cloudinaryApiKey}
+          value={cloudinaryApiKey}
+          onChange={setCloudinaryApiKey}
+          cleared={clearFields.has("cloudinaryApiKey")}
+          onToggleClear={() => toggleClear("cloudinaryApiKey")}
+        />
+        <SecretField
+          id="cloudinaryApiSecret"
+          label="Cloudinary Secret"
+          view={view.cloudinaryApiSecret}
+          value={cloudinaryApiSecret}
+          onChange={setCloudinaryApiSecret}
+          cleared={clearFields.has("cloudinaryApiSecret")}
+          onToggleClear={() => toggleClear("cloudinaryApiSecret")}
+        />
       </div>
 
       <div className="space-y-4 rounded-lg border border-muted-200 p-4">

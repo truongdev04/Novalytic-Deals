@@ -42,18 +42,17 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-    ],
+    // Custom loader (lib/image/cloudinaryLoader.ts) — bypasses Vercel Image
+    // Optimization entirely. Cloudinary URLs get a responsive `w_<width>,
+    // f_auto,q_auto` transform injected (srcSet still built by next/image);
+    // everything else (local SVG, pasted URLs) passes through untouched.
+    // This removes the "pay twice" cost on Image Optimization + Fast Origin
+    // Transfer for our Cloudinary-hosted logos/deal images.
+    //
+    // remotePatterns / minimumCacheTTL are intentionally gone: they only
+    // configure the built-in optimizer, which no longer runs.
+    loader: "custom",
+    loaderFile: "./lib/image/cloudinaryLoader.ts",
   },
 };
 

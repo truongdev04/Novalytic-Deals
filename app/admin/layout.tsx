@@ -13,6 +13,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminShell
+      userId={session.user?.id ?? ""}
       role={session.user?.role}
       permissions={session.user?.permissions}
       email={session.user?.email ?? ""}

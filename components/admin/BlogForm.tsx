@@ -339,7 +339,8 @@ export function BlogForm({
             </span>
             <p className="mb-1.5 text-xs text-muted-400">
               A line starting with <code>## </code> starts a new Table of Contents section —
-              this is independent of the Heading style button on the toolbar.
+              this is independent of the Heading style button on the toolbar. Content before
+              the first <code>## </code> shows as an intro above the sections.
             </p>
             <Controller
               control={control}

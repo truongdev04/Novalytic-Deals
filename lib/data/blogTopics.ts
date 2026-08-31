@@ -21,7 +21,7 @@ export const getBlogTopics = unstable_cache(
     return rows.map(toBlogTopic);
   },
   ["blog-topics:list"],
-  { tags: ["blog-topics:list"], revalidate: 300 }
+  { tags: ["blog-topics:list"], revalidate: false }
 );
 
 export async function getBlogTopicBySlug(slug: string): Promise<BlogTopic | undefined> {
@@ -31,7 +31,7 @@ export async function getBlogTopicBySlug(slug: string): Promise<BlogTopic | unde
       return row ? toBlogTopic(row) : undefined;
     },
     [`blog-topic:${slug}`],
-    { tags: [`blog-topic:${slug}`], revalidate: 300 }
+    { tags: [`blog-topic:${slug}`], revalidate: false }
   )();
 }
 

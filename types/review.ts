@@ -6,5 +6,6 @@ export interface Review {
   title: string;
   body: string;
   isApproved: boolean;
+  isRead: boolean;
   createdAt: string;
 }

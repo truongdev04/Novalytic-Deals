@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { auth } from "@/auth";
-import { getBlogPostsAdminPaginated, type AdminBlogFilters } from "@/lib/data";
+import {
+  getBlogPostsAdminPaginated,
+  getCategories,
+  getBlogTopics,
+  type AdminBlogFilters,
+} from "@/lib/data";
 import { BlogTable } from "@/components/admin/BlogTable";
 import { PAGE_SIZE_OPTIONS } from "@/lib/constants/admin";
 import { isDataScoped } from "@/lib/permissions";
@@ -39,7 +44,11 @@ export default async function AdminBlogPage({
     createdById: scoped ? session?.user?.id : undefined,
   };
 
-  const { items: posts, total } = await getBlogPostsAdminPaginated(filters, page, pageSize);
+  const [{ items: posts, total }, categories, topics] = await Promise.all([
+    getBlogPostsAdminPaginated(filters, page, pageSize),
+    getCategories(),
+    getBlogTopics(),
+  ]);
 
   return (
     <div>
@@ -58,7 +67,14 @@ export default async function AdminBlogPage({
       </div>
 
       <div className="mt-6">
-        <BlogTable posts={posts} total={total} page={page} pageSize={pageSize} />
+        <BlogTable
+          posts={posts}
+          categories={categories}
+          topics={topics}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+        />
       </div>
     </div>
   );

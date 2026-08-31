@@ -1,8 +1,8 @@
 import {
   applyFeaturedSelection,
+  getActiveStoresForRanking,
   getContentConfigSettings,
   getPopularStoresSettings,
-  getStores,
   rolloverMonthlyClicks,
   setPopularStoresSettings,
 } from "@/lib/data";
@@ -36,7 +36,10 @@ export function rankPopularStores(stores: Store[], clickField: ClickField, limit
 }
 
 async function refreshPopularStoresByClicks(clickField: ClickField): Promise<void> {
-  const [stores, config] = await Promise.all([getStores(), getContentConfigSettings()]);
+  const [stores, config] = await Promise.all([
+    getActiveStoresForRanking(),
+    getContentConfigSettings(),
+  ]);
   const winnerIds = rankPopularStores(stores, clickField, config.pagination.featuredStoresCount);
   await applyFeaturedSelection(winnerIds);
 }
@@ -53,18 +56,17 @@ export async function refreshPopularStoresNow(): Promise<{ lastRefreshedAt: stri
   return { lastRefreshedAt };
 }
 
-// Lazy monthly rollover for "Auto Popular" — mirrors the pattern in
-// lib/content/storeSeoSnapshot.ts (compare a stored UTC "YYYY-MM" period key,
-// recompute only when it's stale) but site-wide instead of per-store: meant
-// to be awaited once at the top of the home page's data-fetching, so the
-// first real page load after 00:00 UTC on the 1st performs the rollover
-// before getFeaturedStores() is read in the same request.
-export async function ensurePopularStoresAutoRollover(): Promise<void> {
+// Monthly rollover for "Auto Popular" — compares a stored UTC "YYYY-MM"
+// period key, recomputes only when stale. Runs from the daily Vercel Cron
+// (app/api/cron/daily-refresh); purges its own tags since it's a route
+// handler now, not a render. Returns whether it actually did work, so the
+// cron knows if anything downstream needs refreshing.
+export async function ensurePopularStoresAutoRollover(): Promise<boolean> {
   const settings = await getPopularStoresSettings();
-  if (!settings.autoPopularEnabled) return;
+  if (!settings.autoPopularEnabled) return false;
 
   const currentPeriod = getUtcPeriodKey(new Date());
-  if (settings.lastRolloverPeriod === currentPeriod) return;
+  if (settings.lastRolloverPeriod === currentPeriod) return false;
 
   await rolloverMonthlyClicks();
   await refreshPopularStoresByClicks("lastMonthClicks");
@@ -72,4 +74,7 @@ export async function ensurePopularStoresAutoRollover(): Promise<void> {
     lastRolloverPeriod: currentPeriod,
     lastRefreshedAt: new Date().toISOString(),
   });
+  purgeTag("stores:list");
+  purgeTag("settings:popular-stores");
+  return true;
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { submitCouponSchema } from "./submitCoupon";
 
 const validInput = {
+  title: "20% Off Everything",
   storeName: "Amazon",
   websiteUrl: "https://www.amazon.com",
   code: "SAVE20",
@@ -31,9 +32,14 @@ describe("submitCouponSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a description shorter than 10 characters", () => {
-    const result = submitCouponSchema.safeParse({ ...validInput, description: "too short" });
+  it("rejects a missing title", () => {
+    const result = submitCouponSchema.safeParse({ ...validInput, title: "" });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a short description (no minimum length)", () => {
+    const result = submitCouponSchema.safeParse({ ...validInput, description: "10% off" });
+    expect(result.success).toBe(true);
   });
 
   it("rejects an invalid submitter email", () => {

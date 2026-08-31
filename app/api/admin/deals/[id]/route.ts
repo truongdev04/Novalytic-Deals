@@ -48,6 +48,7 @@ export async function PATCH(
         categoryId: fullUpdate.data.categoryId,
         originalPrice: fullUpdate.data.originalPrice ?? null,
         price: fullUpdate.data.price,
+        currency: fullUpdate.data.currency,
         offer: fullUpdate.data.offer || null,
         url: fullUpdate.data.url,
         imageUrl: fullUpdate.data.imageUrl,

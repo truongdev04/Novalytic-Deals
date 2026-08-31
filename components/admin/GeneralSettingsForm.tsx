@@ -100,45 +100,12 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
         <input id="title" className={fieldClassName} {...register("title")} />
         {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
       </div>
-      <div>
-        <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Site description
-        </label>
-        <textarea id="description" rows={3} className={fieldClassName} {...register("description")} />
-        {errors.description && (
-          <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="slogan" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Slogan <span className="text-muted-400">(optional)</span>
-        </label>
-        <input
-          id="slogan"
-          placeholder="e.g. Save more, shop smarter"
-          className={fieldClassName}
-          {...register("slogan")}
-        />
-        <p className="mt-1 text-xs text-muted-500">
-          Shown as the big headline on the homepage hero.
-        </p>
-      </div>
-
-      <div>
-        <label htmlFor="topDescription" className="mb-1.5 block text-sm font-medium text-brand-950">
-          Top Description <span className="text-muted-400">(optional)</span>
-        </label>
-        <textarea
-          id="topDescription"
-          rows={2}
-          className={fieldClassName}
-          {...register("topDescription")}
-        />
-        <p className="mt-1 text-xs text-muted-500">
-          Shown under the headline on the homepage hero.
-        </p>
-      </div>
+      {/* Site description / Slogan / Top Description are no longer edited here,
+          but still power the homepage hero + meta-description fallback, so
+          their stored values are carried through the save untouched. */}
+      <input type="hidden" {...register("description")} />
+      <input type="hidden" {...register("slogan")} />
+      <input type="hidden" {...register("topDescription")} />
 
       <div>
         <label
@@ -168,7 +135,7 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
               label="Logo"
               value={field.value ?? ""}
               onChange={field.onChange}
-              aspectClassName="aspect-square w-24"
+              aspectClassName="aspect-square w-36"
               allowManualUrl
               deferUpload
               onFileSelected={(file, provider) => {
@@ -187,7 +154,7 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
               label="Favicon"
               value={field.value ?? ""}
               onChange={field.onChange}
-              aspectClassName="aspect-square w-16"
+              aspectClassName="aspect-square w-24"
               allowManualUrl
               deferUpload
               onFileSelected={(file, provider) => {
@@ -206,7 +173,7 @@ export function GeneralSettingsForm({ settings }: { settings: GeneralSettings })
               label="Default OG image"
               value={field.value ?? ""}
               onChange={field.onChange}
-              aspectClassName="aspect-video w-40"
+              aspectClassName="aspect-video w-52"
               allowManualUrl
               deferUpload
               onFileSelected={(file, provider) => {

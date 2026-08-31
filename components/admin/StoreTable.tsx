@@ -661,6 +661,7 @@ export function StoreTable({
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/admin/stores/${store.id}?from=${encodeURIComponent(currentListUrl)}`}
+                        prefetch={false}
                         onClick={() =>
                           sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY))
                         }

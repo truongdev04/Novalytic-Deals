@@ -3,10 +3,12 @@ import { z } from "zod";
 export const passwordSchema = z.string().min(8, "Password must be at least 8 characters");
 
 // Functional areas an EDITOR can be granted access to. Every admin section
-// except User Management (Admin-only) has a permission key here; this list
-// is the single source of truth consumed by both the sidebar
-// (components/admin/AdminSidebar.tsx) and route enforcement (lib/permissions.ts).
+// except User Management (Admin-only) has a permission key here — including
+// the Dashboard landing page. This list is the single source of truth
+// consumed by both the sidebar (components/admin/AdminSidebar.tsx) and route
+// enforcement (lib/permissions.ts).
 export const EDITOR_PERMISSION_VALUES = [
+  "dashboard",
   "stores",
   "coupons",
   "deals",
@@ -29,6 +31,7 @@ export const EDITOR_PERMISSION_VALUES = [
 export type EditorPermission = (typeof EDITOR_PERMISSION_VALUES)[number];
 
 export const EDITOR_PERMISSION_OPTIONS: { value: EditorPermission; label: string }[] = [
+  { value: "dashboard", label: "Dashboard" },
   { value: "stores", label: "Stores" },
   { value: "coupons", label: "Coupons" },
   { value: "deals", label: "Deals" },

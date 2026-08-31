@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       categoryId: parsed.data.categoryId,
       originalPrice: parsed.data.originalPrice ?? null,
       price: parsed.data.price,
+      currency: parsed.data.currency,
       offer: parsed.data.offer || null,
       url: parsed.data.url,
       imageUrl: parsed.data.imageUrl,

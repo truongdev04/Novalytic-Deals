@@ -25,6 +25,7 @@ export const adminDealSchema = z
     categoryId: z.string().nullable(),
     originalPrice: z.number().min(0, "Must be 0 or more").optional(),
     price: z.number().min(0, "Must be 0 or more"),
+    currency: z.string().min(1, "Currency is required"),
     offer: z.string().optional().or(z.literal("")),
     url: urlField("URL is required"),
     imageUrl: z.string().min(1, "Image is required"),

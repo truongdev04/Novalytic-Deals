@@ -60,13 +60,15 @@ export interface CouponFilters {
 // permanently and no longer re-render often enough to hit that fallback.
 // If any of the expiring coupons was currently Trending, backfill
 // immediately rather than waiting for the next manual/8h refresh.
-export async function expireOverdueCoupons(): Promise<void> {
+// Returns how many coupons were flipped off — the cron uses that to decide
+// whether "coupons:list" needs a purge at all.
+export async function expireOverdueCoupons(): Promise<number> {
   const now = new Date();
   const expiredTrendingCount = await prisma.coupon.count({
     where: { isActive: true, expiresAt: { lt: now }, isTrending: true },
   });
 
-  await prisma.coupon.updateMany({
+  const { count } = await prisma.coupon.updateMany({
     where: { isActive: true, expiresAt: { lt: now } },
     data: { isActive: false, isFeatured: false, isTrending: false },
   });
@@ -74,21 +76,26 @@ export async function expireOverdueCoupons(): Promise<void> {
   if (expiredTrendingCount > 0) {
     await refreshTrendingCoupons();
   }
+
+  return count;
 }
 
 // Every public coupon getter used to inherit this tick for free by routing
 // through getAllCouponsCached(). Now that the public getters query the
 // active-only table directly (to avoid pulling every coupon into memory),
-// each one must call this explicitly instead — cached so the underlying
-// updateMany still runs at most once per revalidate window / purge, exactly
-// like before.
+// each one must call this explicitly instead — cached (tag "coupons:list",
+// revalidate: false) so expireOverdueCoupons only actually runs on a purge:
+// any coupon mutation, or the daily cron. Between those, user-facing
+// correctness is already handled at query time (notExpiredWhere / isExpired
+// filters); this tick just keeps the persisted isActive/isFeatured/isTrending
+// flags tidy.
 const ensureCouponsExpired = unstable_cache(
   async (): Promise<number> => {
     await expireOverdueCoupons();
     return Date.now();
   },
   ["coupons:expiry-tick"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 // Pure ranking: every eligible coupon (verified, not exclusive, not expired)
@@ -191,7 +198,7 @@ const getAllCouponsCached = unstable_cache(
     return rows.map(toCoupon);
   },
   ["coupons:list"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 // Unfiltered — includes coupons toggled off ("Status") for admin management.
@@ -213,7 +220,7 @@ const getActiveCouponsCached = unstable_cache(
     return rows.map(toCoupon);
   },
   ["coupons:active"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 export async function getCoupons(): Promise<Coupon[]> {
@@ -229,7 +236,7 @@ export async function getCouponBySlug(slug: string): Promise<Coupon | undefined>
       return toCoupon(row);
     },
     [`coupon:${slug}`],
-    { tags: [`coupon:${slug}`], revalidate: 300 }
+    { tags: [`coupon:${slug}`], revalidate: false }
   )();
 }
 
@@ -281,7 +288,7 @@ export const getFeaturedCoupons = unstable_cache(
     return rows.map(toCoupon);
   },
   ["coupons:featured"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 // Trending is fully system-managed (see refreshTrendingCoupons /
@@ -299,7 +306,7 @@ export const getTrendingCoupons = unstable_cache(
     return rows.map(toCoupon);
   },
   ["coupons:trending"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 export const getExclusiveCoupons = unstable_cache(
@@ -319,7 +326,7 @@ export const getExclusiveCoupons = unstable_cache(
     return rows.map(toCoupon);
   },
   ["coupons:exclusive"],
-  { tags: ["coupons:list"], revalidate: 300 }
+  { tags: ["coupons:list"], revalidate: false }
 );
 
 // One slot per store — keeps the section from being dominated by a single
@@ -609,6 +616,13 @@ export async function setCouponVerified(id: string, verified: boolean): Promise<
     where: { id },
     data: { verified, verifiedAt: verified ? new Date() : null },
   });
+  purgeTag("coupons:list");
+  purgeTag(`coupon:${row.slug}`);
+  return toCoupon(row);
+}
+
+export async function setCouponExclusive(id: string, exclusive: boolean): Promise<Coupon> {
+  const row = await prisma.coupon.update({ where: { id }, data: { exclusive } });
   purgeTag("coupons:list");
   purgeTag(`coupon:${row.slug}`);
   return toCoupon(row);

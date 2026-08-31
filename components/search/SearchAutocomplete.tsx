@@ -31,6 +31,7 @@ export function SearchAutocomplete({
   defaultValue = "",
   resultMode = "store",
   clearOnSelect = false,
+  autoFocus = false,
 }: {
   id: string;
   placeholder?: string;
@@ -38,6 +39,7 @@ export function SearchAutocomplete({
   inputClassName?: string;
   defaultValue?: string;
   resultMode?: ResultMode;
+  autoFocus?: boolean;
   // When true, selecting a result clears the input back to empty and shows
   // the searched term as the placeholder instead — so the next search can
   // be typed straight away without manually clearing it first. Only makes
@@ -118,6 +120,7 @@ export function SearchAutocomplete({
       <input
         id={id}
         type="text"
+        autoFocus={autoFocus}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);

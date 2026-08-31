@@ -197,6 +197,7 @@ model Deal {
   category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   originalPrice Float?
   price         Float
+  currency      String    @default("$")
   offer         String?
   url           String
   imageUrl      String
@@ -280,6 +281,13 @@ model Event {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Ordered, randomized subset of this event's coupons shown in the public
+  // "Curated deals" section. Kept separate from the admin-picked
+  // eventCoupons ("Featured Coupons") join table: only the admin "Randomize
+  // curated coupons" action and the store-leaves-event backfill ever write
+  // it, so the public list stays stable between those explicit changes.
+  curatedCouponIds String[] @default([])
+
   stores       Store[]
   deals        Deal[]
   eventCoupons EventCoupon[]
@@ -316,11 +324,15 @@ model Review {
   title      String
   body       String
   isApproved Boolean  @default(false)
+  // Admin "seen" flag — false until an admin opens the store's review detail
+  // page. Drives the "new reviews" count and the grey row highlight.
+  isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([storeId])
   @@index([isApproved])
+  @@index([isRead])
   @@map("reviews")
 }
 
@@ -339,6 +351,7 @@ model NewsletterSubscriber {
 
 model SubmittedCoupon {
   id              String           @id @default(cuid())
+  title           String   @default("")
   storeName       String
   websiteUrl      String   @default("")
   code            String?
@@ -348,6 +361,11 @@ model SubmittedCoupon {
   expiresAt       DateTime?
   submitterEmail  String
   status          SubmissionStatus @default(PENDING)
+  // Coupon created when this submission was approved (via the "create coupon"
+  // dialog). Plain string, no FK: deleting the submission deletes this coupon
+  // explicitly in code, but deleting the coupon elsewhere just leaves a stale
+  // id here (harmless — the delete path guards for a missing coupon).
+  couponId        String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 

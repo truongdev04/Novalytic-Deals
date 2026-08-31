@@ -23,10 +23,14 @@ export function contactNotificationEmail(name: string, email: string, message: s
   };
 }
 
-export function submitCouponNotificationEmail(storeName: string, description: string) {
+export function submitCouponNotificationEmail(
+  storeName: string,
+  title: string,
+  description: string
+) {
   return {
     subject: `New coupon submission: ${escapeHtml(storeName)}`,
-    html: `<p><strong>Store:</strong> ${escapeHtml(storeName)}</p><p>${escapeHtml(description)}</p>`,
+    html: `<p><strong>Store:</strong> ${escapeHtml(storeName)}</p><p><strong>Title:</strong> ${escapeHtml(title)}</p><p>${escapeHtml(description)}</p>`,
   };
 }
 

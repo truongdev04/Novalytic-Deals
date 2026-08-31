@@ -154,6 +154,7 @@ function FooterColumnFields({
               {isPersisted ? (
                 <Link
                   href={`/admin/settings/footer/items/new?columnIndex=${columnIndex}`}
+                  prefetch={false}
                   className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -186,6 +187,7 @@ function FooterColumnFields({
                     {isPersisted ? (
                       <Link
                         href={`/admin/settings/footer/items/${liveItem.itemId}`}
+                        prefetch={false}
                         aria-label={`Edit ${liveItem.name || "item"}`}
                         className="shrink-0 rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

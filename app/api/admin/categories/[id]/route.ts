@@ -43,6 +43,7 @@ export async function PATCH(
         iconImageUrl: fullUpdate.data.iconImageUrl || null,
         parentId: fullUpdate.data.parentId || null,
         isFeatured: fullUpdate.data.isFeatured,
+        faq: fullUpdate.data.faq,
         seo: { title: fullUpdate.data.seoTitle, description: fullUpdate.data.seoDescription },
       });
       return jsonOk(category);

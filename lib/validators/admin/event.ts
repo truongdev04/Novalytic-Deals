@@ -13,3 +13,31 @@ export const adminEventSchema = z.object({
 });
 
 export type AdminEventInput = z.infer<typeof adminEventSchema>;
+
+export const adminEventBulkAssignSchema = z.object({
+  eventId: z.string().min(1, "Event is required"),
+  count: z.coerce.number().int("Must be a whole number").min(1, "Must be at least 1"),
+});
+
+export type AdminEventBulkAssignInput = z.infer<typeof adminEventBulkAssignSchema>;
+
+export const adminEventBulkResetSchema = z
+  .object({
+    eventId: z.string().min(1, "Event is required"),
+    all: z.boolean(),
+    count: z.coerce.number().int("Must be a whole number").min(1, "Must be at least 1").optional(),
+  })
+  .refine((data) => data.all || typeof data.count === "number", {
+    message: "Count is required unless resetting all stores",
+    path: ["count"],
+  });
+
+export type AdminEventBulkResetInput = z.infer<typeof adminEventBulkResetSchema>;
+
+// `eventId: "all"` re-rolls the curated coupons of every event the caller
+// can access; any other value targets that one event.
+export const adminEventRandomizeCouponsSchema = z.object({
+  eventId: z.string().min(1, "Event is required"),
+});
+
+export type AdminEventRandomizeCouponsInput = z.infer<typeof adminEventRandomizeCouponsSchema>;

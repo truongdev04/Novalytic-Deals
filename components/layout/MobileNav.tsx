@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as Accordion from "@radix-ui/react-accordion";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { renderCategoryIcon } from "@/lib/icons";
+import { Button } from "@/components/ui/Button";
 import type { Event } from "@/types";
 
 const navLinks = [
@@ -77,6 +78,12 @@ export function MobileNav({ events }: { events: Event[] }) {
                 </Accordion.Content>
               </Accordion.Item>
             </Accordion.Root>
+
+            <Button asChild className="mt-4 w-full">
+              <Link href="/submit" onClick={() => setOpen(false)}>
+                Submit Coupon
+              </Link>
+            </Button>
           </nav>
         </Dialog.Content>
       </Dialog.Portal>

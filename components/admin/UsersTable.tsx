@@ -91,6 +91,7 @@ export function UsersTable({ users, currentUserId }: { users: AdminUser[]; curre
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/users/${user.id}/edit`}
+                      prefetch={false}
                       aria-label={`Edit ${user.email}`}
                       className="rounded-lg p-1.5 text-muted-500 hover:bg-surface-100 hover:text-brand-900"
                     >

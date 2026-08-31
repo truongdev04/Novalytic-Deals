@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/Toast";
 import { ImageUploadField, type StorageProvider } from "@/components/admin/ImageUploadField";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { FaqPasteModal } from "@/components/admin/FaqPasteModal";
-import { slugify } from "@/lib/utils";
+import { slugify, stripHtml } from "@/lib/utils";
 import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import {
   applyTemplate,
@@ -171,7 +171,7 @@ export function StoreForm({
     flattenBlock(applyTemplate(descriptionBlock, nameValue)) ||
     "Short blurb shown on store cards and listings";
   const howToApplyPlaceholder =
-    applyTemplate(templates.storeHowToApplyTemplate, nameValue) ||
+    stripHtml(applyTemplate(templates.storeHowToApplyTemplate, nameValue)) ||
     "Steps shoppers should follow to redeem a coupon at checkout";
   const faqSets = templates.storeFaqTemplateSets ?? [];
   const previewFaqSet = store

@@ -18,9 +18,15 @@ function toEvent(row: PrismaEvent, storeIds: string[], couponIds: string[]): Eve
     endsAt: row.endsAt?.toISOString(),
     featuredStoreIds: storeIds,
     featuredCouponIds: couponIds,
+    curatedCouponIds: row.curatedCouponIds ?? [],
     createdAt: row.createdAt.toISOString(),
   });
 }
+
+// How many coupons the public event page's "Curated deals" section tops out
+// at — the randomize action fills up to this many, the store-leave backfill
+// tops back up to whatever the list held before.
+export const EVENT_CURATED_COUPON_LIMIT = 20;
 
 // One batched query for all events' store links, grouped in JS — avoids an
 // N+1 when listing every event.
@@ -77,7 +83,7 @@ export const getEvents = unstable_cache(
       );
   },
   ["events:list"],
-  { tags: ["events:list"], revalidate: 300 }
+  { tags: ["events:list"], revalidate: false }
 );
 
 export interface AdminEventFilters {
@@ -112,7 +118,7 @@ export async function getEventsAdmin(filters: AdminEventFilters = {}): Promise<E
         );
     },
     [`events:list:${scopeKey}`],
-    { tags: ["events:list"], revalidate: 300 }
+    { tags: ["events:list"], revalidate: false }
   )();
 }
 
@@ -136,7 +142,7 @@ export async function getEventBySlug(slug: string): Promise<Event | undefined> {
       return toEvent(row, stores.map((s) => s.id), coupons.map((c) => c.couponId));
     },
     [`event:${slug}`],
-    { tags: [`event:${slug}`], revalidate: 300 }
+    { tags: [`event:${slug}`], revalidate: false }
   )();
 }
 
@@ -283,6 +289,21 @@ export async function setStoreEvent(storeId: string, eventId: string | null): Pr
     await unionCouponsIntoEvent(eventId, exclusiveCoupons.map((c) => c.id));
   }
 
+  // Leaving an event (switched to another one, or cleared) drops this
+  // store's coupons from the old event's Featured Coupons join table and
+  // from its public randomized "Curated deals" list — replacing the pulled
+  // coupons in the latter with others still valid for that event.
+  if (previous?.eventId && previous.eventId !== eventId) {
+    const storeCoupons = await prisma.coupon.findMany({ where: { storeId }, select: { id: true } });
+    if (storeCoupons.length > 0) {
+      const storeCouponIds = storeCoupons.map((c) => c.id);
+      await prisma.eventCoupon.deleteMany({
+        where: { eventId: previous.eventId, couponId: { in: storeCouponIds } },
+      });
+      await reconcileCuratedCouponsAfterRemoval(previous.eventId, storeCouponIds);
+    }
+  }
+
   const affectedIds = new Set([previous?.eventId, eventId].filter((x): x is string => Boolean(x)));
   if (affectedIds.size > 0) {
     const affectedEvents = await prisma.event.findMany({
@@ -310,4 +331,196 @@ export async function setEventCoupons(eventId: string, couponIds: string[]): Pro
   ]);
   purgeTag(`event:${event.slug}`);
   purgeTag("events:list");
+}
+
+// Active coupon ids of every store currently assigned to `eventId` — the
+// pool both the randomize action and the store-leave backfill draw from.
+async function eventCouponPool(eventId: string): Promise<string[]> {
+  const stores = await prisma.store.findMany({ where: { eventId }, select: { id: true } });
+  if (stores.length === 0) return [];
+  const coupons = await prisma.coupon.findMany({
+    where: { isActive: true, storeId: { in: stores.map((s) => s.id) } },
+    select: { id: true },
+  });
+  return coupons.map((c) => c.id);
+}
+
+export interface RandomizeCuratedCouponsResult {
+  events: number;
+  totalCoupons: number;
+}
+
+// Admin action behind the "Randomize curated coupons" button. For each event
+// id passed, replaces its public "Curated deals" list with up to
+// EVENT_CURATED_COUPON_LIMIT of that event's own stores' active coupons,
+// picked and ordered at random. Leaves the admin-picked Featured Coupons
+// (eventCoupons join table) untouched.
+export async function randomizeEventCuratedCoupons(
+  eventIds: string[]
+): Promise<RandomizeCuratedCouponsResult> {
+  let totalCoupons = 0;
+  for (const eventId of eventIds) {
+    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } });
+    if (!event) continue;
+    const pool = await eventCouponPool(eventId);
+    const picked = shuffled(pool).slice(0, EVENT_CURATED_COUPON_LIMIT);
+    await prisma.event.update({ where: { id: eventId }, data: { curatedCouponIds: picked } });
+    purgeTag(`event:${event.slug}`);
+    totalCoupons += picked.length;
+  }
+  if (eventIds.length > 0) purgeTag("events:list");
+  return { events: eventIds.length, totalCoupons };
+}
+
+// After stores leave an event, drop their coupons from that event's
+// randomized curated list and swap each pulled slot for another coupon
+// still valid for the event (survivors keep their position; a slot vanishes
+// only once the pool is exhausted).
+async function reconcileCuratedCouponsAfterRemoval(
+  eventId: string,
+  removedCouponIds: string[]
+): Promise<void> {
+  if (removedCouponIds.length === 0) return;
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { slug: true, curatedCouponIds: true },
+  });
+  if (!event) return;
+
+  const removed = new Set(removedCouponIds);
+  if (!event.curatedCouponIds.some((id) => removed.has(id))) return;
+
+  const survivors = new Set(event.curatedCouponIds.filter((id) => !removed.has(id)));
+  const replacements = shuffled(
+    (await eventCouponPool(eventId)).filter((id) => !survivors.has(id))
+  );
+
+  const used = new Set(survivors);
+  const next: string[] = [];
+  for (const id of event.curatedCouponIds) {
+    if (!removed.has(id)) {
+      next.push(id);
+      continue;
+    }
+    const replacement = replacements.find((r) => !used.has(r));
+    if (replacement) {
+      used.add(replacement);
+      next.push(replacement);
+    }
+  }
+
+  await prisma.event.update({ where: { id: eventId }, data: { curatedCouponIds: next } });
+  purgeTag(`event:${event.slug}`);
+  purgeTag("events:list");
+}
+
+// Fisher-Yates — used by the bulk add/reset actions below to pick "any"
+// (i.e. random) stores out of the eligible pool without favoring whichever
+// ones happen to sort first.
+function shuffled<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export class ResetExceedsAvailableError extends Error {
+  constructor(public readonly available: number) {
+    super("RESET_EXCEEDS_AVAILABLE");
+  }
+}
+
+export interface BulkAssignResult {
+  assigned: number;
+}
+
+// Admin bulk action: assigns `count` random active stores that currently
+// belong to no event into `eventId`. Adds are cumulative across calls (only
+// eventId=null, isActive=true stores are ever candidates) and silently
+// assign fewer than requested — down to 0 — once the pool of eligible
+// stores runs out, with no error surfaced for that case (by design, see the
+// admin UI).
+export async function bulkAssignStoresToEvent(
+  eventId: string,
+  count: number
+): Promise<BulkAssignResult> {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } });
+  if (!event) throw new Error("EVENT_NOT_FOUND");
+
+  const candidates = await prisma.store.findMany({
+    where: { eventId: null, isActive: true },
+    select: { id: true, slug: true },
+  });
+  const targets = shuffled(candidates).slice(0, count);
+  if (targets.length === 0) return { assigned: 0 };
+
+  const targetIds = targets.map((s) => s.id);
+  await prisma.store.updateMany({ where: { id: { in: targetIds } }, data: { eventId } });
+
+  const exclusiveCoupons = await prisma.coupon.findMany({
+    where: { storeId: { in: targetIds }, exclusive: true, isActive: true },
+    select: { id: true },
+  });
+  await unionCouponsIntoEvent(eventId, exclusiveCoupons.map((c) => c.id));
+
+  for (const store of targets) purgeTag(`store:${store.slug}`);
+  purgeTag("stores:list");
+  purgeTag(`event:${event.slug}`);
+  purgeTag("events:list");
+  return { assigned: targets.length };
+}
+
+export interface BulkResetResult {
+  reset: number;
+}
+
+// Admin bulk action: removes `count` (or every one of them, when `count` is
+// "all") random stores currently in `eventId`, clearing their eventId and
+// dropping their coupons from the event's curated list. Throws
+// ResetExceedsAvailableError when `count` is more than the event currently
+// has — the caller surfaces that as a validation message.
+export async function bulkResetStoresFromEvent(
+  eventId: string,
+  count: number | "all"
+): Promise<BulkResetResult> {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } });
+  if (!event) throw new Error("EVENT_NOT_FOUND");
+
+  const members = await prisma.store.findMany({
+    where: { eventId },
+    select: { id: true, slug: true },
+  });
+  if (count !== "all" && count > members.length) {
+    throw new ResetExceedsAvailableError(members.length);
+  }
+
+  const targets = count === "all" ? members : shuffled(members).slice(0, count);
+  if (targets.length === 0) return { reset: 0 };
+
+  const targetIds = targets.map((s) => s.id);
+  const storeCoupons = await prisma.coupon.findMany({
+    where: { storeId: { in: targetIds } },
+    select: { id: true },
+  });
+
+  const storeCouponIds = storeCoupons.map((c) => c.id);
+  await prisma.$transaction([
+    prisma.eventCoupon.deleteMany({
+      where: { eventId, couponId: { in: storeCouponIds } },
+    }),
+    prisma.store.updateMany({ where: { id: { in: targetIds } }, data: { eventId: null } }),
+  ]);
+
+  // Same backfill as a single store leaving — the removed stores' coupons
+  // drop out of the public curated list and get swapped for others still in
+  // the event.
+  await reconcileCuratedCouponsAfterRemoval(eventId, storeCouponIds);
+
+  for (const store of targets) purgeTag(`store:${store.slug}`);
+  purgeTag("stores:list");
+  purgeTag(`event:${event.slug}`);
+  purgeTag("events:list");
+  return { reset: targets.length };
 }

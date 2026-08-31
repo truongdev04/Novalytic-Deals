@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "nextjs-toploader/app";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
+import { Columns as ColumnsIcon, Filter, ListChecks, Pencil, Search, Trash2 } from "lucide-react";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
@@ -52,6 +52,29 @@ const exclusiveFilterOptions = [
   { value: "false", label: "Not exclusive" },
 ];
 
+// The columns currently shown are locked defaults (always visible, can't be
+// unchecked). The Columns picker only adds these extra database fields, all
+// off by default; the table scrolls horizontally when many are enabled.
+const OPTIONAL_COLUMNS = [
+  { key: "code", label: "Code" },
+  { key: "expiresAt", label: "Expires At" },
+  { key: "usageCount", label: "Usage Count" },
+  { key: "votes", label: "Votes" },
+  { key: "startsAt", label: "Starts At" },
+] as const;
+type OptionalColumnKey = (typeof OPTIONAL_COLUMNS)[number]["key"];
+const DEFAULT_LOCKED_COLUMNS = [
+  "Store",
+  "Title",
+  "Type",
+  "Featured",
+  "Status",
+  "Verified",
+  "Exclusive",
+  "Date",
+  "Actions",
+];
+
 export function CouponTable({
   coupons,
   stores,
@@ -92,6 +115,9 @@ export function CouponTable({
   const [draftVerifiedFilter, setDraftVerifiedFilter] = useState(BOOL_FILTER_ALL);
   const [draftExclusiveFilter, setDraftExclusiveFilter] = useState(BOOL_FILTER_ALL);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumnKey>>(new Set());
+  const [draftVisibleColumns, setDraftVisibleColumns] = useState<Set<OptionalColumnKey>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -137,6 +163,25 @@ export function CouponTable({
       exclusive: draftExclusiveFilter === BOOL_FILTER_ALL ? undefined : draftExclusiveFilter,
     });
     setShowFilterModal(false);
+  }
+
+  function openColumnsModal() {
+    setDraftVisibleColumns(new Set(visibleColumns));
+    setShowColumnsModal(true);
+  }
+
+  function toggleDraftColumn(key: OptionalColumnKey) {
+    setDraftVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function applyColumns() {
+    setVisibleColumns(draftVisibleColumns);
+    setShowColumnsModal(false);
   }
 
   function clearAllFilters() {
@@ -242,6 +287,15 @@ export function CouponTable({
             Clear All
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={openColumnsModal}
+          className="flex items-center gap-1.5 rounded-lg border border-muted-300 bg-surface-0 px-3 py-2 text-sm font-medium text-brand-950 hover:bg-surface-100"
+        >
+          <ColumnsIcon className="h-4 w-4" />
+          Columns
+        </button>
       </div>
 
       <Modal open={showFilterModal} onOpenChange={setShowFilterModal} title="Filters">
@@ -300,6 +354,43 @@ export function CouponTable({
             Apply filter
           </Button>
         </div>
+      </Modal>
+
+      <Modal open={showColumnsModal} onOpenChange={setShowColumnsModal}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold text-brand-950">Columns</h2>
+          <button
+            type="button"
+            onClick={() => setDraftVisibleColumns(new Set())}
+            className="text-sm font-medium text-red-600 hover:underline"
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {DEFAULT_LOCKED_COLUMNS.map((label) => (
+            <label key={label} className="flex items-center gap-2 text-sm text-muted-400">
+              <input type="checkbox" checked disabled className="h-4 w-4" />
+              {label}
+            </label>
+          ))}
+          {OPTIONAL_COLUMNS.map((col) => (
+            <label key={col.key} className="flex items-center gap-2 text-sm text-brand-950">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={draftVisibleColumns.has(col.key)}
+                onChange={() => toggleDraftColumn(col.key)}
+              />
+              {col.label}
+            </label>
+          ))}
+        </div>
+
+        <Button variant="primary" className="mt-5 w-full" onClick={applyColumns}>
+          Apply columns
+        </Button>
       </Modal>
 
       <div className="mt-3 flex items-center justify-between">
@@ -375,12 +466,18 @@ export function CouponTable({
             <tr>
               {selectionMode && <th className="w-10 px-4 py-3" />}
               <th className="px-4 py-3">Store</th>
-              <th className="px-4 py-3">Title</th>
+              <th className="w-64 min-w-64 px-4 py-3">Title</th>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Featured</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Verified</th>
+              <th className="px-4 py-3">Exclusive</th>
               <th className="px-4 py-3">Date</th>
+              {visibleColumns.has("code") && <th className="px-4 py-3">Code</th>}
+              {visibleColumns.has("expiresAt") && <th className="px-4 py-3">Expires At</th>}
+              {visibleColumns.has("usageCount") && <th className="px-4 py-3">Usage Count</th>}
+              {visibleColumns.has("votes") && <th className="px-4 py-3">Votes</th>}
+              {visibleColumns.has("startsAt") && <th className="px-4 py-3">Starts At</th>}
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -410,7 +507,9 @@ export function CouponTable({
                       <span className="text-muted-600">{store?.name ?? "—"}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-medium text-brand-950">{coupon.title}</td>
+                  <td className="w-64 min-w-64 max-w-64 px-4 py-3 font-medium text-brand-950">
+                    <span className="line-clamp-2">{coupon.title}</span>
+                  </td>
                   <td className="px-4 py-3 text-muted-600">{coupon.type}</td>
                   <td className="px-4 py-3">
                     <AdminDropdownSelect
@@ -463,13 +562,56 @@ export function CouponTable({
                       }
                     />
                   </td>
+                  <td className="px-4 py-3">
+                    <AdminDropdownSelect
+                      endpoint={`/api/admin/coupons/${coupon.id}`}
+                      field="exclusive"
+                      value={coupon.exclusive}
+                      options={[
+                        { value: true, label: "Exclusive" },
+                        { value: false, label: "Not exclusive" },
+                      ]}
+                      triggerClassName="w-28"
+                      badgeClassName={
+                        coupon.exclusive
+                          ? "border-accent-300 bg-accent-50 text-accent-700"
+                          : "border-muted-300 text-muted-500 hover:bg-surface-100"
+                      }
+                    />
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted-600">
                     {new Date(coupon.createdAt).toLocaleDateString("en-US")}
                   </td>
+                  {visibleColumns.has("code") && (
+                    <td className="px-4 py-3 text-muted-600">{coupon.code || "—"}</td>
+                  )}
+                  {visibleColumns.has("expiresAt") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {coupon.expiresAt
+                        ? new Date(coupon.expiresAt).toLocaleDateString("en-US")
+                        : "—"}
+                    </td>
+                  )}
+                  {visibleColumns.has("usageCount") && (
+                    <td className="px-4 py-3 text-muted-600">{coupon.usageCount}</td>
+                  )}
+                  {visibleColumns.has("votes") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {coupon.upvotes} / {coupon.downvotes}
+                    </td>
+                  )}
+                  {visibleColumns.has("startsAt") && (
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-600">
+                      {coupon.startsAt
+                        ? new Date(coupon.startsAt).toLocaleDateString("en-US")
+                        : "—"}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/admin/coupons/${coupon.id}`}
+                        prefetch={false}
                         aria-label={`Edit ${coupon.title}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >
@@ -483,7 +625,10 @@ export function CouponTable({
             })}
             {coupons.length === 0 && (
               <tr>
-                <td colSpan={selectionMode ? 9 : 8} className="px-4 py-6 text-center text-muted-500">
+                <td
+                  colSpan={(selectionMode ? 10 : 9) + visibleColumns.size}
+                  className="px-4 py-6 text-center text-muted-500"
+                >
                   No coupons found.
                 </td>
               </tr>

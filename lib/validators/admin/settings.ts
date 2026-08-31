@@ -29,13 +29,21 @@ export const adminIntegrationsSettingsSchema = z.object({
   resendApiKey: z.string().optional().or(z.literal("")),
   contactInboxEmail: z.string().email("Enter a valid email").optional().or(z.literal("")),
   systemFromEmail: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  turnstileSiteKey: z.string().optional().or(z.literal("")),
   turnstileSecretKey: z.string().optional().or(z.literal("")),
+  cloudinaryCloudName: z.string().optional().or(z.literal("")),
+  cloudinaryApiKey: z.string().optional().or(z.literal("")),
+  cloudinaryApiSecret: z.string().optional().or(z.literal("")),
   gaId: z.string().optional().or(z.literal("")),
   gtmId: z.string().optional().or(z.literal("")),
   plausibleDomain: z.string().optional().or(z.literal("")),
   googleSiteVerification: z.string().optional().or(z.literal("")),
   bingSiteVerification: z.string().optional().or(z.literal("")),
-  clearFields: z.array(z.enum(["resendApiKey", "turnstileSecretKey"])).optional(),
+  clearFields: z
+    .array(
+      z.enum(["resendApiKey", "turnstileSecretKey", "cloudinaryApiKey", "cloudinaryApiSecret"])
+    )
+    .optional(),
 });
 export type AdminIntegrationsSettingsInput = z.infer<typeof adminIntegrationsSettingsSchema>;
 
@@ -98,7 +106,19 @@ const storeFaqTemplateSetSchema = z.object({
   items: z.array(storeFaqItemSchema),
 });
 
+const pageBannerSchema = z.object({
+  imageUrl: z.string().optional().or(z.literal("")),
+  title: z.string().optional().or(z.literal("")),
+  description: z.string().optional().or(z.literal("")),
+});
+
 export const adminContentConfigSettingsSchema = z.object({
+  pageBanners: z.object({
+    home: pageBannerSchema,
+    stores: pageBannerSchema,
+    deals: pageBannerSchema,
+    categories: pageBannerSchema,
+  }),
   pagination: z.object({
     dealsPageSize: z.number().int().min(1),
     featuredStoresCount: z.number().int().min(1),

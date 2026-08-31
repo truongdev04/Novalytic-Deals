@@ -12,6 +12,7 @@ import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
 import { CustomHeadScripts } from "@/components/analytics/CustomHeadScripts";
 import { CustomBodyScript } from "@/components/analytics/CustomBodyScript";
 import { CustomFooterScript } from "@/components/analytics/CustomFooterScript";
+import { TurnstileSiteKeyProvider } from "@/components/forms/TurnstileConfig";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/lib/seo/JsonLdScript";
 import {
@@ -19,6 +20,7 @@ import {
   getSeoSettings,
   getEffectiveGoogleSiteVerification,
   getEffectiveBingSiteVerification,
+  getEffectiveTurnstileSiteKey,
 } from "@/lib/data";
 import { SITE_URL as siteUrl } from "@/lib/constants/site";
 import "./globals.css";
@@ -83,6 +85,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const turnstileSiteKey = await getEffectiveTurnstileSiteKey();
+
   return (
     <ViewTransitions>
       <html
@@ -93,17 +97,19 @@ export default async function RootLayout({
           <NextTopLoader color="var(--brand-500)" height={3} showSpinner={false} />
           <JsonLd data={await organizationJsonLd()} />
           <JsonLd data={await websiteJsonLd()} />
-          <SiteChrome
-            header={<Header />}
-            footer={<Footer />}
-            backToTop={<BackToTop />}
-            analytics={<AnalyticsScripts />}
-            headScripts={<CustomHeadScripts />}
-            bodyScript={<CustomBodyScript />}
-            footerScript={<CustomFooterScript />}
-          >
-            {children}
-          </SiteChrome>
+          <TurnstileSiteKeyProvider value={turnstileSiteKey}>
+            <SiteChrome
+              header={<Header />}
+              footer={<Footer />}
+              backToTop={<BackToTop />}
+              analytics={<AnalyticsScripts />}
+              headScripts={<CustomHeadScripts />}
+              bodyScript={<CustomBodyScript />}
+              footerScript={<CustomFooterScript />}
+            >
+              {children}
+            </SiteChrome>
+          </TurnstileSiteKeyProvider>
           <Toaster position="bottom-right" richColors />
           <SpeedInsights />
         </body>
