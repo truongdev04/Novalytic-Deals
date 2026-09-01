@@ -83,7 +83,7 @@ export default async function CategoryPage({
           <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-white">
             {renderCategoryIcon(category, { iconClassName: "h-8 w-8" })}
           </span>
-          <h1 className="mt-4 font-heading text-4xl font-bold text-white sm:text-5xl">
+          <h1 className="mt-4 font-heading text-3xl font-bold text-white sm:text-4xl md:text-5xl">
             {category.name}
           </h1>
           <p className="mt-2 text-brand-100">{category.description}</p>

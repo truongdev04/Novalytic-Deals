@@ -8,7 +8,7 @@ export async function Hero() {
 
   return (
     <PageHero imageSrc={banner.imageUrl || undefined}>
-      <h1 className="max-w-3xl font-heading text-4xl font-bold text-white sm:text-5xl">
+      <h1 className="max-w-3xl font-heading text-3xl font-bold text-white sm:text-4xl md:text-5xl">
         {banner.title || "Verified coupon codes & exclusive deals"}
       </h1>
       <p className="mt-4 max-w-xl text-brand-100">

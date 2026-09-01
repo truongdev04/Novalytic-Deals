@@ -25,24 +25,28 @@ export default async function ContactPage() {
         <div>
           <h1 className="font-heading text-3xl font-bold text-brand-950">Contact us</h1>
           <p className="mt-3 max-w-md text-muted-600">{settings.contactIntro}</p>
-          <div className="mt-6 space-y-2 text-sm text-brand-700">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              <span>{settings.email || "novalytic.studio@gmail.com"}</span>
+          {(settings.email || settings.hotline || settings.address) && (
+            <div className="mt-6 space-y-2 text-sm text-brand-700">
+              {settings.email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>{settings.email}</span>
+                </div>
+              )}
+              {settings.hotline && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>{settings.hotline}</span>
+                </div>
+              )}
+              {settings.address && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>{settings.address}</span>
+                </div>
+              )}
             </div>
-            {settings.hotline && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>{settings.hotline}</span>
-              </div>
-            )}
-            {settings.address && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{settings.address}</span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-muted-200 bg-surface-0 p-6 shadow-sm">

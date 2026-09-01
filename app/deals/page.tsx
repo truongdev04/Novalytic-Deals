@@ -127,7 +127,7 @@ export default async function DealsPage({
         <section>
           <Container>
             <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="font-heading text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+              <h2 className="font-heading text-2xl font-semibold tracking-tight text-brand-950 sm:text-3xl md:text-4xl">
                 Featured Deals
               </h2>
               <DealsFilters categories={categories} />

@@ -65,15 +65,13 @@ export function StoreCouponTabs({ coupons, store }: { coupons: Coupon[]; store: 
           <Tabs.Content
             key={tab.value}
             value={tab.value}
-            className="grid grid-cols-2 gap-4 sm:grid-cols-1"
+            className="grid grid-cols-1 gap-4"
           >
             {filtered.length === 0 ? (
-              <div className="col-span-2 sm:col-span-1">
-                <EmptyState
-                  title="No coupons in this category"
-                  description="Check back soon or browse all offers from this store."
-                />
-              </div>
+              <EmptyState
+                title="No coupons in this category"
+                description="Check back soon or browse all offers from this store."
+              />
             ) : (
               filtered.map((coupon, index) => (
                 <StoreCouponCard

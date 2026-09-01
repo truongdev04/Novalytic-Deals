@@ -1,5 +1,5 @@
 import { Link } from "next-view-transitions";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Newsletter } from "@/components/ui/Newsletter";
 import { getFooterSettings, getGeneralSettings, getSocialSettings } from "@/lib/data";
@@ -79,7 +79,7 @@ export async function Footer() {
               ))}
             </div>
           )}
-          {(settings.hotline || settings.address || settings.email) && (
+          {(settings.hotline || settings.address) && (
             <ul className="mt-5 space-y-2.5 text-sm text-brand-200">
               {settings.hotline && (
                 <li className="flex items-start gap-2">
@@ -91,12 +91,6 @@ export async function Footer() {
                 <li className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{settings.address}</span>
-                </li>
-              )}
-              {settings.email && (
-                <li className="flex items-start gap-2">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{settings.email}</span>
                 </li>
               )}
             </ul>
@@ -146,7 +140,7 @@ export async function Footer() {
         </div>
       </Container>
 
-      <div className="border-t border-white/10 py-6">
+      <div className="border-t border-white/10 pt-6 pb-20 sm:pb-6">
         <Container>
           <p className="text-center text-xs text-brand-300">{buildCopyright(settings)}</p>
         </Container>

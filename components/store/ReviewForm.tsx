@@ -123,7 +123,7 @@ export function ReviewForm({
           id="reviewBody"
           rows={4}
           maxLength={BODY_MAX_LENGTH}
-          placeholder="Share your experience (optional — minimum 25 characters if entered)..."
+          placeholder="Share your experience (optional)..."
           aria-invalid={Boolean(errors.body)}
           aria-describedby={errors.body ? "reviewBody-error" : undefined}
           className={fieldClassName}

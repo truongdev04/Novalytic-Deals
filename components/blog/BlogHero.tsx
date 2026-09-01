@@ -18,7 +18,7 @@ export function BlogHero({ post }: { post: BlogPost }) {
         sizes="100vw"
         className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/75 to-brand-950/25" />
       <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
         <h2 className="max-w-2xl font-heading text-2xl font-bold text-white sm:text-4xl">
           {post.title}

@@ -1,7 +1,6 @@
 import { StoreLogo } from "@/components/store/StoreLogo";
 import { VerifiedBadge } from "@/components/coupon/VerifiedBadge";
 import { CouponCodeModal } from "@/components/coupon/CouponCodeModal";
-import { CouponGridCard } from "@/components/coupon/CouponGridCard";
 import { formatDiscount } from "@/lib/utils";
 import type { Coupon, Store } from "@/types";
 
@@ -36,13 +35,37 @@ export function StoreCouponCard({
       )}
 
       {/* Below sm, the horizontal layout has no room for the discount
-          column + title + button side by side — fall back to the same
-          stacked card design used elsewhere on the site (CouponGridCard).
-          h-full propagates the grid row's stretched height down to
-          CouponGridCard so 2-up mobile cards line up evenly regardless of
-          how many lines their badges/title wrap to. */}
-      <div className="h-full sm:hidden">
-        <CouponGridCard coupon={coupon} store={store} revealBreakpoint="mobile" />
+          column + title + button side by side — stack it vertically:
+          logo + discount on one row, verified under it, then title, then
+          a full-width action button. */}
+      <div className="flex h-full flex-col rounded-lg border border-muted-200 bg-surface-0 p-4 shadow-sm sm:hidden">
+        <div className="flex items-start gap-3">
+          <StoreLogo logoUrl={store.logoUrl} name={store.name} size="md" />
+          <div className="min-w-0">
+            <p className="font-heading text-3xl font-extrabold leading-none text-accent-600">
+              {discountValue}
+              {discountLabel && (
+                <span className="ml-1 text-xl font-bold uppercase">{discountLabel}</span>
+              )}
+            </p>
+            {coupon.verified && (
+              <div className="mt-2">
+                <VerifiedBadge className="px-1.5 py-0.5 text-xs" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <h3 className="mt-4 line-clamp-2 font-heading text-base font-semibold text-brand-950">
+          {coupon.title}
+        </h3>
+
+        <CouponCodeModal
+          coupon={coupon}
+          store={store}
+          className="mt-4 w-full"
+          revealBreakpoint="mobile"
+        />
       </div>
 
       <div className="hidden rounded-lg border border-muted-200 bg-surface-0 p-5 shadow-sm transition-shadow duration-200 ease-out hover:shadow-md sm:flex sm:items-center sm:gap-4">

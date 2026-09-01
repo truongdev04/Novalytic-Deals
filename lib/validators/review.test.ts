@@ -28,8 +28,13 @@ describe("reviewSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a body shorter than 25 characters when entered", () => {
-    const result = reviewSchema.safeParse({ ...validInput, body: "too short" });
+  it("accepts a short body (no minimum length)", () => {
+    const result = reviewSchema.safeParse({ ...validInput, body: "ok" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a body longer than 5000 characters", () => {
+    const result = reviewSchema.safeParse({ ...validInput, body: "x".repeat(5001) });
     expect(result.success).toBe(false);
   });
 
