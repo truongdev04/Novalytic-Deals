@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { auth } from "@/auth";
+import { getGeneralSettings } from "@/lib/data";
 import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -11,12 +12,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     return <>{children}</>;
   }
 
+  const { faviconUrl } = await getGeneralSettings();
+
   return (
     <AdminShell
       userId={session.user?.id ?? ""}
       role={session.user?.role}
       permissions={session.user?.permissions}
       email={session.user?.email ?? ""}
+      faviconUrl={faviconUrl}
     >
       {children}
     </AdminShell>

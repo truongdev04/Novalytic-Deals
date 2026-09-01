@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -127,14 +126,32 @@ function activeChildHref(children: NavChild[], pathname: string): string | null 
   return best;
 }
 
+// Logo shown next to "Admin" — the Favicon set in Settings → General, or a
+// neutral icon box until one is configured.
+function SidebarLogo({ src }: { src?: string }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- admin-configured favicon can be any external URL, outside next/image's remotePatterns allowlist
+      <img src={src} alt="Admin" className="h-10 w-10 shrink-0 rounded-md object-contain" />
+    );
+  }
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white">
+      <LayoutDashboard className="h-5 w-5" />
+    </span>
+  );
+}
+
 export function AdminSidebar({
   role,
   permissions,
+  faviconUrl,
   mobileOpen,
   onClose,
 }: {
   role?: "ADMIN" | "EDITOR";
   permissions?: string[];
+  faviconUrl?: string;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
@@ -271,13 +288,7 @@ export function AdminSidebar({
       >
         <div className="flex items-center justify-between px-4 py-5">
           <span className="flex items-center gap-2.5">
-            <Image
-              src="/images/logo/logo-xoa-nen/icon.png"
-              alt="NovalyticDeals"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
+            <SidebarLogo src={faviconUrl} />
             <span className="font-heading text-lg font-bold text-brand-950">Admin</span>
           </span>
           <button
@@ -319,13 +330,7 @@ export function AdminSidebar({
             !expanded && "justify-center px-0"
           )}
         >
-          <Image
-            src="/images/logo/logo-xoa-nen/icon.png"
-            alt="NovalyticDeals"
-            width={40}
-            height={40}
-            className="shrink-0 rounded-full"
-          />
+          <SidebarLogo src={faviconUrl} />
           {expanded && <span className="font-heading text-lg font-bold text-brand-950">Admin</span>}
         </button>
         {renderNav(expanded, () => {})}

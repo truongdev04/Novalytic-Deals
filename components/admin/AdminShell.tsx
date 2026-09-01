@@ -10,12 +10,14 @@ export function AdminShell({
   role,
   permissions,
   email,
+  faviconUrl,
   children,
 }: {
   userId: string;
   role?: "ADMIN" | "EDITOR";
   permissions?: string[];
   email: string;
+  faviconUrl?: string;
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -26,6 +28,7 @@ export function AdminShell({
       <AdminSidebar
         role={role}
         permissions={permissions}
+        faviconUrl={faviconUrl}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />
