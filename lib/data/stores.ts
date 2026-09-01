@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { deleteUploadedImages, removedImageUrls } from "@/lib/server/storage/deleteImage";
 import { stripUndefined } from "./normalize";
 import type { Store, StoreFaqItem, StoreRegion, StoreSeo } from "@/types";
 import type { Store as PrismaStore } from "@prisma/client";
@@ -466,7 +467,13 @@ export async function deleteStore(id: string): Promise<void> {
     where: { storeId: id },
     select: { id: true, slug: true },
   });
-  const dealCount = await prisma.deal.count({ where: { storeId: id } });
+  // Deals cascade-delete with the store (schema onDelete: Cascade) — grab
+  // their images first so they don't orphan.
+  const deals = await prisma.deal.findMany({
+    where: { storeId: id },
+    select: { imageUrl: true },
+  });
+  const dealCount = deals.length;
   const affectedEvents = await prisma.eventCoupon.findMany({
     where: { coupon: { storeId: id } },
     select: { event: { select: { slug: true } } },
@@ -476,6 +483,12 @@ export async function deleteStore(id: string): Promise<void> {
   const row = await prisma.store.delete({ where: { id } });
   purgeTag("stores:list");
   purgeTag(`store:${row.slug}`);
+
+  await deleteUploadedImages([
+    row.logoUrl,
+    row.bannerUrl,
+    ...deals.map((deal) => deal.imageUrl),
+  ]);
 
   if (dealCount > 0) purgeTag("deals:list");
 
@@ -546,7 +559,10 @@ export async function createStore(fields: AdminStoreCreateFields): Promise<Store
 }
 
 export async function updateStore(id: string, fields: AdminStoreFields): Promise<Store> {
-  const previous = await prisma.store.findUnique({ where: { id }, select: { slug: true } });
+  const previous = await prisma.store.findUnique({
+    where: { id },
+    select: { slug: true, logoUrl: true, bannerUrl: true },
+  });
   let row: PrismaStore;
   try {
     row = await prisma.store.update({
@@ -579,6 +595,14 @@ export async function updateStore(id: string, fields: AdminStoreFields): Promise
   if (previous && previous.slug !== row.slug) {
     purgeTag(`store:${previous.slug}`);
   }
+
+  await deleteUploadedImages(
+    removedImageUrls(previous, { logoUrl: row.logoUrl, bannerUrl: row.bannerUrl }, [
+      "logoUrl",
+      "bannerUrl",
+    ])
+  );
+
   return toStore(row);
 }
 

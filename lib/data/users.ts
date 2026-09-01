@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { prisma, Prisma } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/security/password";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
+import { deleteUploadedImage } from "@/lib/server/storage/deleteImage";
 import { notifyUserStatusChanged } from "@/lib/server/realtime/notifyUserStatus";
 import type { AdminUser, AdminRole, AdminUserStatus } from "@/types";
 import type { User as PrismaUser } from "@prisma/client";
@@ -144,6 +145,9 @@ export async function updateUser(id: string, fields: UpdateUserFields): Promise<
         ...(hashedPassword ? { hashedPassword } : {}),
       },
     });
+    if (existing?.avatarUrl && existing.avatarUrl !== row.avatarUrl) {
+      await deleteUploadedImage(existing.avatarUrl);
+    }
     return toAdminUser(row);
   } catch (error) {
     if (
@@ -200,7 +204,8 @@ export async function deleteUser(id: string, actingUserId: string): Promise<void
     if (remaining === 0) throw new Error("LAST_ADMIN");
   }
 
-  await prisma.user.delete({ where: { id } });
+  const row = await prisma.user.delete({ where: { id } });
   purgeTag(`user-status:${id}`);
   await notifyUserStatusChanged(id);
+  await deleteUploadedImage(row.avatarUrl);
 }

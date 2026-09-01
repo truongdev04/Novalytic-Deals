@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { deleteUploadedImage } from "@/lib/server/storage/deleteImage";
 import { stripUndefined } from "./normalize";
 import type { Category, CategoryFaqItem, CategorySeo } from "@/types";
 import type { Category as PrismaCategory } from "@prisma/client";
@@ -145,7 +146,10 @@ export async function updateCategory(
   id: string,
   fields: AdminCategoryFields
 ): Promise<Category> {
-  const previous = await prisma.category.findUnique({ where: { id }, select: { slug: true } });
+  const previous = await prisma.category.findUnique({
+    where: { id },
+    select: { slug: true, iconImageUrl: true },
+  });
   try {
     const row = await prisma.category.update({
       where: { id },
@@ -165,6 +169,9 @@ export async function updateCategory(
     purgeTag(`category:${row.slug}`);
     if (previous && previous.slug !== row.slug) {
       purgeTag(`category:${previous.slug}`);
+    }
+    if (previous?.iconImageUrl && previous.iconImageUrl !== row.iconImageUrl) {
+      await deleteUploadedImage(previous.iconImageUrl);
     }
     return toCategory(row);
   } catch (error) {
@@ -188,4 +195,5 @@ export async function deleteCategory(id: string): Promise<void> {
   const row = await prisma.category.delete({ where: { id } });
   purgeTag("categories:list");
   purgeTag(`category:${row.slug}`);
+  await deleteUploadedImage(row.iconImageUrl);
 }

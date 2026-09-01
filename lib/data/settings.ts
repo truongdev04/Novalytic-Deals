@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { deleteUploadedImages, removedImageUrls } from "@/lib/server/storage/deleteImage";
 import type {
   AffiliateSettings,
   ContentConfigSettings,
@@ -573,12 +574,16 @@ export async function getGeneralSettings(): Promise<GeneralSettings> {
 }
 
 export async function setGeneralSettings(input: GeneralSettings): Promise<GeneralSettings> {
+  const previous = await getGeneralSettings();
   const row = await prisma.siteSetting.upsert({
     where: { key: GENERAL_KEY },
     create: { key: GENERAL_KEY, value: input as unknown as Prisma.InputJsonValue },
     update: { value: input as unknown as Prisma.InputJsonValue },
   });
   purgeTag("settings:general");
+  await deleteUploadedImages(
+    removedImageUrls(previous, input, ["logoUrl", "faviconUrl", "ogImage"])
+  );
   return row.value as unknown as GeneralSettings;
 }
 
@@ -935,12 +940,22 @@ export async function getContentConfigSettings(): Promise<ContentConfigSettings>
 export async function setContentConfigSettings(
   input: ContentConfigSettings
 ): Promise<ContentConfigSettings> {
+  const previous = await getContentConfigSettings();
   const row = await prisma.siteSetting.upsert({
     where: { key: CONTENT_CONFIG_KEY },
     create: { key: CONTENT_CONFIG_KEY, value: input as unknown as Prisma.InputJsonValue },
     update: { value: input as unknown as Prisma.InputJsonValue },
   });
   purgeTag("settings:content-config");
+  const bannerKeys = ["home", "stores", "deals", "categories"] as const;
+  await deleteUploadedImages(
+    bannerKeys
+      .filter((key) => {
+        const old = previous.pageBanners[key].imageUrl;
+        return old && old !== input.pageBanners[key].imageUrl;
+      })
+      .map((key) => previous.pageBanners[key].imageUrl)
+  );
   return row.value as unknown as ContentConfigSettings;
 }
 

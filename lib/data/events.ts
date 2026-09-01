@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma } from "@/lib/server/db";
+import { deleteUploadedImages, removedImageUrls } from "@/lib/server/storage/deleteImage";
 import { stripUndefined } from "./normalize";
 import type { Event } from "@/types";
 import type { Event as PrismaEvent } from "@prisma/client";
@@ -174,6 +175,7 @@ export async function deleteEvent(id: string): Promise<void> {
   const row = await prisma.event.delete({ where: { id } });
   purgeTag("events:list");
   purgeTag(`event:${row.slug}`);
+  await deleteUploadedImages([row.bannerUrl, row.iconImageUrl]);
 }
 
 export interface AdminEventFields {
@@ -211,7 +213,10 @@ export async function createEvent(fields: AdminEventCreateFields): Promise<Event
 }
 
 export async function updateEvent(id: string, fields: AdminEventFields): Promise<Event> {
-  const previous = await prisma.event.findUnique({ where: { id }, select: { slug: true } });
+  const previous = await prisma.event.findUnique({
+    where: { id },
+    select: { slug: true, bannerUrl: true, iconImageUrl: true },
+  });
   const row = await prisma.event.update({
     where: { id },
     data: {
@@ -230,6 +235,13 @@ export async function updateEvent(id: string, fields: AdminEventFields): Promise
   if (previous && previous.slug !== row.slug) {
     purgeTag(`event:${previous.slug}`);
   }
+  await deleteUploadedImages(
+    removedImageUrls(
+      previous,
+      { bannerUrl: row.bannerUrl, iconImageUrl: row.iconImageUrl },
+      ["bannerUrl", "iconImageUrl"]
+    )
+  );
   const [stores, coupons] = await Promise.all([
     prisma.store.findMany({ where: { eventId: id }, select: { id: true } }),
     prisma.eventCoupon.findMany({ where: { eventId: id }, select: { couponId: true } }),

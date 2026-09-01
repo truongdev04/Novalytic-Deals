@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { deleteUploadedImage } from "@/lib/server/storage/deleteImage";
 import { stripUndefined } from "./normalize";
 import type { Deal } from "@/types";
 import type { Deal as PrismaDeal } from "@prisma/client";
@@ -319,8 +320,9 @@ export async function rolloverHourlyDealClicks(): Promise<void> {
 }
 
 export async function deleteDeal(id: string): Promise<void> {
-  await prisma.deal.delete({ where: { id } });
+  const row = await prisma.deal.delete({ where: { id } });
   purgeTag("deals:list");
+  await deleteUploadedImage(row.imageUrl);
 }
 
 export interface AdminDealFields {
@@ -376,6 +378,9 @@ export async function createDeal(fields: AdminDealCreateFields): Promise<Deal> {
 }
 
 export async function updateDeal(id: string, fields: AdminDealFields): Promise<Deal> {
+  const previousImageUrl = (
+    await prisma.deal.findUnique({ where: { id }, select: { imageUrl: true } })
+  )?.imageUrl;
   try {
     const row = await prisma.deal.update({
       where: { id },
@@ -398,6 +403,9 @@ export async function updateDeal(id: string, fields: AdminDealFields): Promise<D
       },
     });
     purgeTag("deals:list");
+    if (previousImageUrl && previousImageUrl !== row.imageUrl) {
+      await deleteUploadedImage(previousImageUrl);
+    }
     return toDeal(row);
   } catch (error) {
     throwIfSlugConflict(error);

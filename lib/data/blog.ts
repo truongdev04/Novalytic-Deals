@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { purgeTag } from "@/lib/server/cache/purgeTag";
 import { prisma, Prisma } from "@/lib/server/db";
+import { deleteUploadedImage } from "@/lib/server/storage/deleteImage";
 import { stripUndefined } from "./normalize";
 import type { BlogPost, BlogSeo } from "@/types";
 import type { BlogPost as PrismaBlogPost } from "@prisma/client";
@@ -245,6 +246,9 @@ export async function deleteBlogPost(id: string): Promise<void> {
   const row = await prisma.blogPost.delete({ where: { id } });
   purgeTag("blog:list");
   purgeTag(`blog:${row.slug}`);
+  // Only the cover is owned by the post — `authorAvatarUrl` is a snapshot
+  // copy of an Author's avatar, shared across posts, so it's left alone.
+  await deleteUploadedImage(row.coverImage);
 }
 
 export interface AdminBlogPostFields {
@@ -294,7 +298,10 @@ export async function createBlogPost(fields: AdminBlogPostCreateFields): Promise
 }
 
 export async function updateBlogPost(id: string, fields: AdminBlogPostFields): Promise<BlogPost> {
-  const previous = await prisma.blogPost.findUnique({ where: { id }, select: { slug: true } });
+  const previous = await prisma.blogPost.findUnique({
+    where: { id },
+    select: { slug: true, coverImage: true },
+  });
   const row = await prisma.blogPost.update({
     where: { id },
     data: {
@@ -318,6 +325,9 @@ export async function updateBlogPost(id: string, fields: AdminBlogPostFields): P
   purgeTag(`blog:${row.slug}`);
   if (previous && previous.slug !== row.slug) {
     purgeTag(`blog:${previous.slug}`);
+  }
+  if (previous?.coverImage && previous.coverImage !== row.coverImage) {
+    await deleteUploadedImage(previous.coverImage);
   }
   return toBlogPost(row);
 }

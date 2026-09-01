@@ -43,3 +43,19 @@ export async function uploadToCloudinary(
   });
   return result.secure_url;
 }
+
+// Best-effort delete of a previously uploaded asset. Silently no-ops when
+// Cloudinary isn't configured (matches the graceful-degrade the rest of the
+// storage layer follows) — the caller is only cleaning up after a replace.
+export async function deleteFromCloudinary(publicId: string): Promise<void> {
+  const config = await getEffectiveCloudinaryConfig();
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) return;
+
+  cloudinary.config({
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
+  });
+
+  await cloudinary.uploader.destroy(publicId, { invalidate: true });
+}
