@@ -6,10 +6,14 @@ import { isDataScoped } from "@/lib/permissions";
 
 export default async function EditCategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const returnUrl = from && from.startsWith("/admin/categories") ? from : "/admin/categories";
   const session = await auth();
   const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "categories");
   const [category, ownerId, categories] = await Promise.all([
@@ -24,7 +28,7 @@ export default async function EditCategoryPage({
     <div>
       <h1 className="font-heading text-2xl font-bold text-brand-950">Edit category</h1>
       <div className="mt-6">
-        <CategoryForm category={category} categories={categories} />
+        <CategoryForm category={category} categories={categories} returnUrl={returnUrl} />
       </div>
     </div>
   );

@@ -37,13 +37,20 @@ export function DealForm({
   stores,
   events,
   categories,
+  returnUrl = "/admin/deals",
 }: {
   deal?: Deal;
   stores: Store[];
   events: Event[];
   categories: Category[];
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList() {
+    router.push(returnUrl, { scroll: false });
+  }
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [pendingImageProvider, setPendingImageProvider] = useState<StorageProvider>("cloudinary");
@@ -153,8 +160,11 @@ export function DealForm({
         toast.error(message);
         return;
       }
+      if (deal) {
+        sessionStorage.setItem("admin-deals-last-id", deal.id);
+      }
       toast.success(deal ? "Deal updated." : "Deal created.");
-      router.push("/admin/deals");
+      goToList();
       router.refresh();
     } catch {
       toast.error("Failed to save deal.");
@@ -166,7 +176,7 @@ export function DealForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/deals");
+    goToList();
   }
 
   return (

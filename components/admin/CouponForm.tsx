@@ -9,7 +9,7 @@ import { adminCouponSchema, type AdminCouponInput } from "@/lib/validators/admin
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
+import { cn, capitalizeTitleWords } from "@/lib/utils";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { applyTemplate, pickRandomLine, pickRandomBlock } from "@/lib/content/template";
 import type { ContentConfigTemplates, Coupon, CouponType, DiscountType, Store } from "@/types";
@@ -39,12 +39,24 @@ export function CouponForm({
   coupon,
   stores,
   templates,
+  returnUrl = "/admin/coupons",
 }: {
   coupon?: Coupon;
   stores: Store[];
   templates: ContentConfigTemplates;
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList(isNew = false) {
+    if (isNew) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      router.push(returnUrl, { scroll: true });
+    } else {
+      router.push(returnUrl, { scroll: false });
+    }
+  }
+
   const [slugTouched, setSlugTouched] = useState(Boolean(coupon));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
@@ -125,6 +137,7 @@ export function CouponForm({
       // unlike Store, this isn't resolved lazily on the public page.
       // Editing an existing coupon never overrides a blank field this way.
       const storeName = stores.find((s) => s.id === data.storeId)?.name ?? "";
+      const title = capitalizeTitleWords(data.title);
       const description =
         !coupon && !data.description ? applyTemplate(descriptionPick, storeName) : data.description;
       const terms = !coupon && !data.terms ? applyTemplate(termsPick, storeName) : data.terms;
@@ -138,7 +151,7 @@ export function CouponForm({
       const res = await fetch(endpoint, {
         method: coupon ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, type, description, terms }),
+        body: JSON.stringify({ ...data, title, type, description, terms }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -149,8 +162,15 @@ export function CouponForm({
         toast.error(message);
         return;
       }
+      if (coupon) {
+        sessionStorage.setItem("admin-coupons-last-id", coupon.id);
+      } else {
+        sessionStorage.removeItem("admin-coupons-scroll-y");
+        sessionStorage.removeItem("admin-coupons-last-id");
+        sessionStorage.setItem("admin-coupons-scroll-top", "true");
+      }
       toast.success(coupon ? "Coupon updated." : "Coupon created.");
-      router.push("/admin/coupons");
+      goToList(!coupon);
       router.refresh();
     } catch {
       toast.error("Failed to save coupon.");
@@ -162,7 +182,7 @@ export function CouponForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/coupons");
+    goToList();
   }
 
   return (
@@ -217,7 +237,22 @@ export function CouponForm({
               id="title"
               placeholder="e.g. 20% Off Everything"
               className={fieldClassName}
-              {...register("title")}
+              {...register("title", {
+                onChange: (e) => {
+                  const input = e.target as HTMLInputElement;
+                  const start = input.selectionStart;
+                  const end = input.selectionEnd;
+                  const formatted = capitalizeTitleWords(input.value);
+                  if (formatted !== input.value) {
+                    setValue("title", formatted, { shouldDirty: true, shouldValidate: true });
+                    requestAnimationFrame(() => {
+                      if (input && start !== null && end !== null) {
+                        input.setSelectionRange(start, end);
+                      }
+                    });
+                  }
+                },
+              })}
             />
             {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
           </div>

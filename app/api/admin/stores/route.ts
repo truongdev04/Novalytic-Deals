@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const store = await createStore({
+      id: parsed.data.id,
       slug: parsed.data.slug,
       name: parsed.data.name,
       logoUrl: parsed.data.logoUrl,

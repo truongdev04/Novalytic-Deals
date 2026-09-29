@@ -41,12 +41,19 @@ export function EventForm({
   event,
   stores,
   coupons,
+  returnUrl = "/admin/events",
 }: {
   event?: Event;
   stores: Store[];
   coupons: Coupon[];
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList() {
+    router.push(returnUrl, { scroll: false });
+  }
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingBannerFile, setPendingBannerFile] = useState<File | null>(null);
   const [pendingBannerProvider, setPendingBannerProvider] = useState<StorageProvider>("cloudinary");
@@ -156,8 +163,11 @@ export function EventForm({
         body: JSON.stringify({ ...data, bannerUrl, iconImageUrl }),
       });
       if (!res.ok) throw new Error("save failed");
+      if (event) {
+        sessionStorage.setItem("admin-events-last-id", event.id);
+      }
       toast.success(event ? "Event updated." : "Event created.");
-      router.push("/admin/events");
+      goToList();
       router.refresh();
     } catch {
       toast.error("Failed to save event.");
@@ -169,7 +179,7 @@ export function EventForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/events");
+    goToList();
   }
 
   return (

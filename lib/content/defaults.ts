@@ -36,11 +36,13 @@ export async function resolveStoreContent(store: Store): Promise<Store> {
   const t = config.templates;
   const name = store.name;
 
+  const storeSeed = store.id;
+
   // Description renders as HTML (RichHtml) — convert the candidate's line
   // breaks into <br> so they actually show, instead of collapsing into one
   // run-on line the way raw "\n" would in HTML.
   const descriptionBlock = applyTemplate(
-    pickSeededBlock(t.storeDescriptionTemplate, store.id),
+    pickSeededBlock(t.storeDescriptionTemplate, storeSeed),
     name
   );
 
@@ -74,7 +76,7 @@ export async function resolveStoreContent(store: Store): Promise<Store> {
     faq:
       store.faq.length > 0
         ? store.faq
-        : (pickFaqSet(store.id, t.storeFaqTemplateSets ?? [])?.items ?? []).map((item) => ({
+        : (pickFaqSet(storeSeed, t.storeFaqTemplateSets ?? [])?.items ?? []).map((item) => ({
             question: applyTemplate(item.question, name),
             answer: applyTemplate(item.answer, name),
           })),

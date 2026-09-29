@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Pencil, Search } from "lucide-react";
@@ -8,7 +8,11 @@ import { DeleteButton } from "@/components/admin/DeleteButton";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminPagination } from "@/lib/hooks/useAdminPagination";
 import { renderCategoryIcon } from "@/lib/icons";
+import { cn } from "@/lib/utils";
 import type { Event } from "@/types";
+
+const SCROLL_STORAGE_KEY = "admin-events-scroll-y";
+const LAST_EDITED_EVENT_KEY = "admin-events-last-id";
 
 export function EventTable({ events }: { events: Event[] }) {
   const [query, setQuery] = useState("");
@@ -20,6 +24,51 @@ export function EventTable({ events }: { events: Event[] }) {
   }, [events, query]);
 
   const { page, pageSize, paged, total, setPage, setPageSize } = useAdminPagination(filtered);
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    const lastId = sessionStorage.getItem(LAST_EDITED_EVENT_KEY);
+    if (!savedY && !lastId) return;
+
+    const restore = () => {
+      if (lastId) {
+        const itemIndex = filtered.findIndex((e) => e.id === lastId);
+        if (itemIndex !== -1) {
+          const targetPage = Math.floor(itemIndex / pageSize) + 1;
+          if (targetPage !== page) {
+            setPage(targetPage);
+          }
+        }
+        const row = document.getElementById(`event-row-${lastId}`);
+        if (row) {
+          row.scrollIntoView({ block: "center", behavior: "instant" });
+          setHighlightedEventId(lastId);
+          setTimeout(() => setHighlightedEventId(null), 2500);
+          sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+          sessionStorage.removeItem(LAST_EDITED_EVENT_KEY);
+          return true;
+        }
+      }
+      if (savedY) {
+        window.scrollTo({ top: Number(savedY), behavior: "instant" });
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+        sessionStorage.removeItem(LAST_EDITED_EVENT_KEY);
+        return true;
+      }
+      return false;
+    };
+
+    if (!restore()) {
+      const raf = requestAnimationFrame(() => {
+        if (!restore()) {
+          const timer = setTimeout(restore, 100);
+          return () => clearTimeout(timer);
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [events, paged, filtered, pageSize, page, setPage]);
 
   return (
     <div>
@@ -52,7 +101,14 @@ export function EventTable({ events }: { events: Event[] }) {
           </thead>
           <tbody>
             {paged.map((event) => (
-              <tr key={event.id} className="border-t border-muted-200">
+              <tr
+                key={event.id}
+                id={`event-row-${event.id}`}
+                className={cn(
+                  "border-t border-muted-200 transition-colors duration-1000",
+                  highlightedEventId === event.id && "bg-brand-50"
+                )}
+              >
                 <td className="px-4 py-3">
                   <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-muted-200 bg-brand-50 text-brand-600">
                     {renderCategoryIcon(event, { iconClassName: "h-4 w-4" })}
@@ -87,6 +143,10 @@ export function EventTable({ events }: { events: Event[] }) {
                     <Link
                       href={`/admin/events/${event.id}`}
                       prefetch={false}
+                      onClick={() => {
+                        sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
+                        sessionStorage.setItem(LAST_EDITED_EVENT_KEY, event.id);
+                      }}
                       aria-label={`Edit ${event.name}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

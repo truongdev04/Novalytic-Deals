@@ -11,11 +11,14 @@ import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
-import { buildQueryUrl } from "@/lib/utils";
+import { buildQueryUrl, cn } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { Coupon, Store } from "@/types";
+
+const SCROLL_STORAGE_KEY = "admin-coupons-scroll-y";
+const LAST_EDITED_COUPON_KEY = "admin-coupons-last-id";
 
 const STORE_FILTER_ALL = "all";
 const BOOL_FILTER_ALL = "all";
@@ -108,6 +111,55 @@ export function CouponTable({
     navigate({ q: debouncedQuery || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
+
+  const currentListUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname;
+  const [highlightedCouponId, setHighlightedCouponId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const shouldScrollTop = sessionStorage.getItem("admin-coupons-scroll-top");
+    if (shouldScrollTop) {
+      sessionStorage.removeItem("admin-coupons-scroll-top");
+      sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+      sessionStorage.removeItem(LAST_EDITED_COUPON_KEY);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
+    const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    const lastId = sessionStorage.getItem(LAST_EDITED_COUPON_KEY);
+    if (!savedY && !lastId) return;
+
+    const restore = () => {
+      if (lastId) {
+        const row = document.getElementById(`coupon-row-${lastId}`);
+        if (row) {
+          row.scrollIntoView({ block: "center", behavior: "instant" });
+          setHighlightedCouponId(lastId);
+          setTimeout(() => setHighlightedCouponId(null), 2500);
+          sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+          sessionStorage.removeItem(LAST_EDITED_COUPON_KEY);
+          return true;
+        }
+      }
+      if (savedY) {
+        window.scrollTo({ top: Number(savedY), behavior: "instant" });
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+        sessionStorage.removeItem(LAST_EDITED_COUPON_KEY);
+        return true;
+      }
+      return false;
+    };
+
+    if (!restore()) {
+      const raf = requestAnimationFrame(() => {
+        if (!restore()) {
+          const timer = setTimeout(restore, 100);
+          return () => clearTimeout(timer);
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [coupons]);
 
   const [draftTypeFilter, setDraftTypeFilter] = useState(TYPE_FILTER_ALL);
   const [draftFeaturedFilter, setDraftFeaturedFilter] = useState(BOOL_FILTER_ALL);
@@ -485,7 +537,14 @@ export function CouponTable({
             {coupons.map((coupon) => {
               const store = storeById.get(coupon.storeId);
               return (
-                <tr key={coupon.id} className="border-t border-muted-200">
+                <tr
+                  key={coupon.id}
+                  id={`coupon-row-${coupon.id}`}
+                  className={cn(
+                    "border-t border-muted-200 transition-colors duration-1000",
+                    highlightedCouponId === coupon.id && "bg-brand-50"
+                  )}
+                >
                   {selectionMode && (
                     <td className="px-4 py-3">
                       <input
@@ -610,8 +669,12 @@ export function CouponTable({
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link
-                        href={`/admin/coupons/${coupon.id}`}
+                        href={`/admin/coupons/${coupon.id}?from=${encodeURIComponent(currentListUrl)}`}
                         prefetch={false}
+                        onClick={() => {
+                          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
+                          sessionStorage.setItem(LAST_EDITED_COUPON_KEY, coupon.id);
+                        }}
                         aria-label={`Edit ${coupon.title}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

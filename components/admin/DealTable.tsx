@@ -11,11 +11,14 @@ import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
-import { buildQueryUrl } from "@/lib/utils";
+import { buildQueryUrl, cn } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { Deal, DealType, Event, Store } from "@/types";
+
+const SCROLL_STORAGE_KEY = "admin-deals-scroll-y";
+const LAST_EDITED_DEAL_KEY = "admin-deals-last-id";
 
 const STORE_FILTER_ALL = "all";
 const TYPE_FILTER_ALL = "all";
@@ -59,6 +62,46 @@ export function DealTable({
     navigate({ q: debouncedQuery || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
+
+  const currentListUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname;
+  const [highlightedDealId, setHighlightedDealId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    const lastId = sessionStorage.getItem(LAST_EDITED_DEAL_KEY);
+    if (!savedY && !lastId) return;
+
+    const restore = () => {
+      if (lastId) {
+        const row = document.getElementById(`deal-row-${lastId}`);
+        if (row) {
+          row.scrollIntoView({ block: "center", behavior: "instant" });
+          setHighlightedDealId(lastId);
+          setTimeout(() => setHighlightedDealId(null), 2500);
+          sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+          sessionStorage.removeItem(LAST_EDITED_DEAL_KEY);
+          return true;
+        }
+      }
+      if (savedY) {
+        window.scrollTo({ top: Number(savedY), behavior: "instant" });
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+        sessionStorage.removeItem(LAST_EDITED_DEAL_KEY);
+        return true;
+      }
+      return false;
+    };
+
+    if (!restore()) {
+      const raf = requestAnimationFrame(() => {
+        if (!restore()) {
+          const timer = setTimeout(restore, 100);
+          return () => clearTimeout(timer);
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [deals]);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -391,7 +434,14 @@ export function DealTable({
               const store = storeById.get(deal.storeId);
               const currentEventId = deal.eventId ?? null;
               return (
-                <tr key={deal.id} className="border-t border-muted-200">
+                <tr
+                  key={deal.id}
+                  id={`deal-row-${deal.id}`}
+                  className={cn(
+                    "border-t border-muted-200 transition-colors duration-1000",
+                    highlightedDealId === deal.id && "bg-brand-50"
+                  )}
+                >
                   {selectionMode && (
                     <td className="px-4 py-3">
                       <input
@@ -473,8 +523,12 @@ export function DealTable({
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link
-                        href={`/admin/deals/${deal.id}`}
+                        href={`/admin/deals/${deal.id}?from=${encodeURIComponent(currentListUrl)}`}
                         prefetch={false}
+                        onClick={() => {
+                          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
+                          sessionStorage.setItem(LAST_EDITED_DEAL_KEY, deal.id);
+                        }}
                         aria-label={`Edit ${deal.name}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

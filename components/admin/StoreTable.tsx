@@ -11,7 +11,7 @@ import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
-import { buildQueryUrl } from "@/lib/utils";
+import { buildQueryUrl, cn } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -45,12 +45,9 @@ const DEFAULT_LOCKED_COLUMNS = [
   "Actions",
 ];
 
-// Restores the scroll position saved right before navigating to Edit —
-// router.push({ scroll: false }) only stops Next.js from forcing a
-// scroll-to-top, it can't restore where the admin actually was, and
-// router.back()'s native restoration is unreliable once paired with
-// router.refresh() (see https://github.com/vercel/next.js/issues/67006).
+// Restores the scroll position / exact row saved right before navigating to Edit
 const SCROLL_STORAGE_KEY = "admin-stores-scroll-y";
+const LAST_EDITED_STORE_KEY = "admin-stores-last-id";
 
 export function StoreTable({
   stores,
@@ -99,12 +96,45 @@ export function StoreTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
+  const [highlightedStoreId, setHighlightedStoreId] = useState<string | null>(null);
+
   useEffect(() => {
-    const saved = sessionStorage.getItem(SCROLL_STORAGE_KEY);
-    if (saved === null) return;
-    sessionStorage.removeItem(SCROLL_STORAGE_KEY);
-    window.scrollTo(0, Number(saved));
-  }, []);
+    const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    const lastId = sessionStorage.getItem(LAST_EDITED_STORE_KEY);
+    if (!savedY && !lastId) return;
+
+    const restore = () => {
+      if (lastId) {
+        const row = document.getElementById(`store-row-${lastId}`);
+        if (row) {
+          row.scrollIntoView({ block: "center", behavior: "instant" });
+          setHighlightedStoreId(lastId);
+          setTimeout(() => setHighlightedStoreId(null), 2500);
+          sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+          sessionStorage.removeItem(LAST_EDITED_STORE_KEY);
+          return true;
+        }
+      }
+      if (savedY) {
+        window.scrollTo({ top: Number(savedY), behavior: "instant" });
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+        sessionStorage.removeItem(LAST_EDITED_STORE_KEY);
+        return true;
+      }
+      return false;
+    };
+
+    // Attempt restoration across initial render and layout animation frames
+    if (!restore()) {
+      const raf = requestAnimationFrame(() => {
+        if (!restore()) {
+          const timer = setTimeout(restore, 100);
+          return () => clearTimeout(timer);
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [stores]);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -526,7 +556,14 @@ export function StoreTable({
             {stores.map((store) => {
               const currentEventId = store.eventId ?? null;
               return (
-                <tr key={store.id} className="border-t border-muted-200">
+                <tr
+                  key={store.id}
+                  id={`store-row-${store.id}`}
+                  className={cn(
+                    "border-t border-muted-200 transition-colors duration-1000",
+                    highlightedStoreId === store.id && "bg-brand-50"
+                  )}
+                >
                   {selectionMode && (
                     <td className="px-4 py-3">
                       <input
@@ -662,9 +699,10 @@ export function StoreTable({
                       <Link
                         href={`/admin/stores/${store.id}?from=${encodeURIComponent(currentListUrl)}`}
                         prefetch={false}
-                        onClick={() =>
-                          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY))
-                        }
+                        onClick={() => {
+                          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
+                          sessionStorage.setItem(LAST_EDITED_STORE_KEY, store.id);
+                        }}
                         aria-label={`Edit ${store.name}`}
                         className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                       >

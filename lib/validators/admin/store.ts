@@ -20,6 +20,7 @@ function urlField(requiredMessage: string) {
 }
 
 export const adminStoreSchema = z.object({
+  id: z.string().optional(),
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Lowercase kebab-case only"),
   name: z.string().min(1, "Name is required"),
   logoUrl: z.string(),

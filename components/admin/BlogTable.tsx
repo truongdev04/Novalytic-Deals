@@ -11,10 +11,13 @@ import { AdminDropdownSelect } from "@/components/admin/AdminDropdownSelect";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { SingleSelectDropdown } from "@/components/admin/SingleSelectDropdown";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
-import { buildQueryUrl } from "@/lib/utils";
+import { buildQueryUrl, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { BlogPost, BlogTopic, Category } from "@/types";
+
+const SCROLL_STORAGE_KEY = "admin-blog-scroll-y";
+const LAST_EDITED_BLOG_KEY = "admin-blog-last-id";
 
 const BOOL_FILTER_ALL = "all";
 
@@ -117,11 +120,45 @@ export function BlogTable({
     router.push(buildQueryUrl(pathname, searchParams, updates));
   }
 
+  const currentListUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname;
+  const [highlightedBlogId, setHighlightedBlogId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (debouncedQuery === urlQuery) return;
-    navigate({ q: debouncedQuery || undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery]);
+    const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+    const lastId = sessionStorage.getItem(LAST_EDITED_BLOG_KEY);
+    if (!savedY && !lastId) return;
+
+    const restore = () => {
+      if (lastId) {
+        const row = document.getElementById(`blog-row-${lastId}`);
+        if (row) {
+          row.scrollIntoView({ block: "center", behavior: "instant" });
+          setHighlightedBlogId(lastId);
+          setTimeout(() => setHighlightedBlogId(null), 2500);
+          sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+          sessionStorage.removeItem(LAST_EDITED_BLOG_KEY);
+          return true;
+        }
+      }
+      if (savedY) {
+        window.scrollTo({ top: Number(savedY), behavior: "instant" });
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+        sessionStorage.removeItem(LAST_EDITED_BLOG_KEY);
+        return true;
+      }
+      return false;
+    };
+
+    if (!restore()) {
+      const raf = requestAnimationFrame(() => {
+        if (!restore()) {
+          const timer = setTimeout(restore, 100);
+          return () => clearTimeout(timer);
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [posts]);
 
   return (
     <div>
@@ -233,7 +270,14 @@ export function BlogTable({
           </thead>
           <tbody>
             {posts.map((post) => (
-              <tr key={post.id} className="border-t border-muted-200">
+              <tr
+                key={post.id}
+                id={`blog-row-${post.id}`}
+                className={cn(
+                  "border-t border-muted-200 transition-colors duration-1000",
+                  highlightedBlogId === post.id && "bg-brand-50"
+                )}
+              >
                 <td className="px-4 py-3">
                   <div className="relative h-10 w-16 overflow-hidden rounded border border-muted-200 bg-surface-100">
                     <Image src={post.coverImage} alt={post.title} fill sizes="64px" className="object-cover" />
@@ -318,8 +362,12 @@ export function BlogTable({
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <Link
-                      href={`/admin/blog/${post.id}`}
+                      href={`/admin/blog/${post.id}?from=${encodeURIComponent(currentListUrl)}`}
                       prefetch={false}
+                      onClick={() => {
+                        sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
+                        sessionStorage.setItem(LAST_EDITED_BLOG_KEY, post.id);
+                      }}
                       aria-label={`Edit ${post.title}`}
                       className="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50"
                     >

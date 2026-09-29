@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm, useWatch, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "nextjs-toploader/app";
@@ -18,7 +18,7 @@ import { resolveRichTextImages } from "@/lib/richTextImageUpload";
 import {
   applyTemplate,
   applyTemplateVars,
-  pickRandomBlock,
+  pickSeededBlock,
   pickFaqSet,
   flattenBlock,
   getUtcMonthName,
@@ -137,10 +137,26 @@ export function StoreForm({
   const faqArray = useFieldArray({ control, name: "faq" });
 
   const nameValue = useWatch({ control, name: "name" }) || "";
-  // Picked once per mount (not recomputed every keystroke) so the Description
-  // preview doesn't flicker between different random blocks as the admin
-  // types the store name — matches the actual auto-fill.
-  const [descriptionBlock] = useState(() => pickRandomBlock(templates.storeDescriptionTemplate));
+  const faqSets = templates.storeFaqTemplateSets ?? [];
+
+  // Stable store ID: uses existing store.id in edit mode, or generates a stable UUID once
+  // on mount for a new store so that previewFaqSet & descriptionBlock never flicker during typing,
+  // and the chosen FAQ template set on create is identically preserved upon save and subsequent edits.
+  const [formStoreId] = useState(() =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `store-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  );
+  const storeId = store ? store.id : formStoreId;
+
+  const descriptionBlock = useMemo(() => {
+    return pickSeededBlock(templates.storeDescriptionTemplate, storeId);
+  }, [templates.storeDescriptionTemplate, storeId]);
+
+  const previewFaqSet = useMemo(() => {
+    return pickFaqSet(storeId, faqSets);
+  }, [storeId, faqSets]);
+  const placeholderName = nameValue.trim() || "Store Name";
   // SEO title/description are now one fixed structure (no random pick) with
   // {name}/{discount}/{month}/{year} — {discount} uses the real,
   // server-computed monthly-frozen value (discountLabel prop) when available
@@ -150,7 +166,7 @@ export function StoreForm({
   const now = new Date();
   const hasDiscount = discountLabel !== null;
   const seoVars = {
-    name: nameValue,
+    name: placeholderName,
     discount: discountLabel ?? "",
     month: getUtcMonthName(now),
     year: String(now.getUTCFullYear()),
@@ -162,24 +178,23 @@ export function StoreForm({
     ? templates.storeSeoDescriptionTemplate
     : templates.storeSeoDescriptionFallbackTemplate;
   const seoTitlePlaceholder =
-    (nameValue && flattenBlock(applyTemplateVars(seoTitleTemplate, seoVars))) ||
+    flattenBlock(applyTemplateVars(seoTitleTemplate, seoVars)) ||
     "e.g. Amazon Coupons & Promo Codes — Up to 20% Off";
   const seoDescriptionPlaceholder =
-    (nameValue && flattenBlock(applyTemplateVars(seoDescriptionTemplate, seoVars))) ||
+    flattenBlock(applyTemplateVars(seoDescriptionTemplate, seoVars)) ||
     "Meta description shown in Google search results";
   const descriptionPlaceholder =
-    flattenBlock(applyTemplate(descriptionBlock, nameValue)) ||
+    flattenBlock(applyTemplate(descriptionBlock, placeholderName)) ||
     "Short blurb shown on store cards and listings";
   const howToApplyPlaceholder =
-    stripHtml(applyTemplate(templates.storeHowToApplyTemplate, nameValue)) ||
+    stripHtml(applyTemplate(templates.storeHowToApplyTemplate, placeholderName)) ||
     "Steps shoppers should follow to redeem a coupon at checkout";
-  const faqSets = templates.storeFaqTemplateSets ?? [];
-  const previewFaqSet = store
-    ? pickFaqSet(store.id, faqSets)
-    : faqSets.find((set) => set.items.length > 0);
+  // Show a FAQ placeholder preview (mờ, dashed border) when no custom FAQs
+  // have been added yet — for both new store and edit store (deterministic set).
+  // Disappears once the admin adds their own FAQ items.
   const faqTemplatePreview = (previewFaqSet?.items ?? []).map((item) => ({
-    question: applyTemplate(item.question, nameValue),
-    answer: applyTemplate(item.answer, nameValue),
+    question: applyTemplate(item.question, placeholderName),
+    answer: applyTemplate(item.answer, placeholderName),
   }));
 
   async function onSubmit(data: AdminStoreInput) {
@@ -204,7 +219,15 @@ export function StoreForm({
       const res = await fetch(endpoint, {
         method: store ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, description, aboutStore, howToApply, logoUrl, bannerUrl }),
+        body: JSON.stringify({
+          ...data,
+          id: storeId,
+          description,
+          aboutStore,
+          howToApply,
+          logoUrl,
+          bannerUrl,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -215,6 +238,7 @@ export function StoreForm({
         toast.error(message);
         return;
       }
+      sessionStorage.setItem("admin-stores-last-id", storeId);
       toast.success(store ? "Store updated." : "Store created.");
       goToList();
       router.refresh();
@@ -517,7 +541,7 @@ export function StoreForm({
                   )}
                 </div>
               ))}
-              {faqArray.fields.length === 0 && faqTemplatePreview.length === 0 && (
+              {faqArray.fields.length === 0 && (
                 <p className="text-xs text-muted-400">No FAQs added yet.</p>
               )}
               {faqArray.fields.length === 0 && faqTemplatePreview.length > 0 && (

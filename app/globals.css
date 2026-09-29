@@ -247,6 +247,14 @@ body {
   background-color: var(--surface-100);
   font-weight: 600;
 }
+.rich-text-content p.is-editor-empty:first-child::before,
+.rich-text-content p.is-empty::before {
+  color: var(--muted-400);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
 
 /* iOS Safari auto-zooms the page when a focused form control has a computed
    font-size below 16px. Most fields use Tailwind's text-sm (14px), so pin

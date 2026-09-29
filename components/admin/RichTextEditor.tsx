@@ -485,6 +485,9 @@ export function RichTextEditor({
   const [imageModalMounted, setImageModalMounted] = useState(false);
   const [linkModalMounted, setLinkModalMounted] = useState(false);
 
+  const placeholderRef = useRef(placeholder);
+  placeholderRef.current = placeholder;
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
@@ -499,7 +502,10 @@ export function RichTextEditor({
       Underline,
       TextAlign.configure({ types: ["paragraph", "heading"] }),
       Link.configure({ openOnClick: false, autolink: true }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({
+        placeholder: () => placeholderRef.current ?? "",
+        showOnlyCurrent: false,
+      }),
       Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,

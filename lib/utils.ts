@@ -177,3 +177,14 @@ export function consumePendingCodeReveal(id: string): boolean {
     return false;
   }
 }
+
+// Capitalizes the first letter of each word, keeping words that are entirely uppercase
+// unchanged (e.g. "new" -> "New", "New" -> "New", "NEW" -> "NEW", "15% off" -> "15% Off").
+export function capitalizeTitleWords(text: string): string {
+  return text.replace(/\S+/g, (word) => {
+    if (word === word.toUpperCase() && /[A-Z]/.test(word)) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+}

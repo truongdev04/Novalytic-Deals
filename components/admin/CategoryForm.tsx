@@ -26,11 +26,18 @@ function requiredMark() {
 export function CategoryForm({
   category,
   categories,
+  returnUrl = "/admin/categories",
 }: {
   category?: Category;
   categories: Category[];
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList() {
+    router.push(returnUrl, { scroll: false });
+  }
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingIconFile, setPendingIconFile] = useState<File | null>(null);
   const [pendingIconProvider, setPendingIconProvider] = useState<StorageProvider>("cloudinary");
@@ -125,8 +132,11 @@ export function CategoryForm({
         toast.error(message);
         return;
       }
+      if (category) {
+        sessionStorage.setItem("admin-categories-last-id", category.id);
+      }
       toast.success(category ? "Category updated." : "Category created.");
-      router.push("/admin/categories");
+      goToList();
       router.refresh();
     } catch {
       toast.error("Failed to save category.");
@@ -138,7 +148,7 @@ export function CategoryForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/categories");
+    goToList();
   }
 
   return (

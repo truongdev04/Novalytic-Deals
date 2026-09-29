@@ -522,6 +522,7 @@ export interface AdminStoreFields {
 }
 
 export interface AdminStoreCreateFields extends AdminStoreFields {
+  id?: string;
   createdById: string;
 }
 
@@ -530,7 +531,7 @@ export async function createStore(fields: AdminStoreCreateFields): Promise<Store
   try {
     row = await prisma.store.create({
       data: {
-        id: crypto.randomUUID(),
+        id: fields.id || crypto.randomUUID(),
         slug: fields.slug,
         name: fields.name,
         logoUrl: fields.logoUrl,

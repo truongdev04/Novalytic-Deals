@@ -42,14 +42,21 @@ export function BlogForm({
   topics,
   authors,
   templates,
+  returnUrl = "/admin/blog",
 }: {
   post?: BlogPost;
   categories: Category[];
   topics: BlogTopic[];
   authors: Author[];
   templates: ContentConfigTemplates;
+  returnUrl?: string;
 }) {
   const router = useRouter();
+
+  function goToList() {
+    router.push(returnUrl, { scroll: false });
+  }
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
   const [pendingCoverProvider, setPendingCoverProvider] = useState<StorageProvider>("cloudinary");
@@ -171,8 +178,11 @@ export function BlogForm({
         body: JSON.stringify({ ...data, coverImage, body }),
       });
       if (!res.ok) throw new Error("save failed");
+      if (post) {
+        sessionStorage.setItem("admin-blog-last-id", post.id);
+      }
       toast.success(post ? "Blog post updated." : "Blog post created.");
-      router.push("/admin/blog");
+      goToList();
       router.refresh();
     } catch {
       toast.error("Failed to save blog post.");
@@ -184,7 +194,7 @@ export function BlogForm({
       setShowLeaveConfirm(true);
       return;
     }
-    router.push("/admin/blog");
+    goToList();
   }
 
   return (

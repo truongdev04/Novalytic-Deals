@@ -11,8 +11,16 @@ import {
 import { BlogForm } from "@/components/admin/BlogForm";
 import { isDataScoped } from "@/lib/permissions";
 
-export default async function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditBlogPostPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const returnUrl = from && from.startsWith("/admin/blog") ? from : "/admin/blog";
   const session = await auth();
   const scoped = isDataScoped(session?.user?.role, session?.user?.fullDataAccess, "blog");
   const [post, ownerId, categories, topics, authors, contentConfig] = await Promise.all([
@@ -36,6 +44,7 @@ export default async function EditBlogPostPage({ params }: { params: Promise<{ i
           topics={topics}
           authors={authors}
           templates={contentConfig.templates}
+          returnUrl={returnUrl}
         />
       </div>
     </div>

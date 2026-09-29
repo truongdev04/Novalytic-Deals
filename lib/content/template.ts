@@ -95,26 +95,19 @@ export function pickSeededBlock(template: string | undefined, seed: string): str
   return pickBySeed(splitTemplateBlocks(template), seed);
 }
 
-// Deterministically assigns storeId to exactly one set via consistent
-// hashing (hash-ring lookup): the set whose hash is the smallest value
-// >= hash(storeId), wrapping to the globally smallest-hash set if none
-// qualify. Pure function of (storeId, sets) — nothing persisted, so
-// removing a set only remaps the stores whose nearest ring neighbor WAS
-// that set; every other store's assignment is unaffected. Sets with no
-// items are treated as not existing, so a store never lands on an empty
-// set while another set still has content.
+// Deterministically assigns seed (e.g. store.slug / store.id) to exactly one set
+// via uniform hashing modulo eligible set count. Pure function of (seed, sets) —
+// nothing persisted, so any store with the same slug/id always receives the
+// exact same set across create preview, edit preview, and public SSR. Sets with
+// no items are excluded.
 export function pickFaqSet(
-  storeId: string,
+  seed: string,
   sets: StoreFaqTemplateSet[]
 ): StoreFaqTemplateSet | undefined {
   const eligible = sets.filter((set) => set.items.length > 0);
   if (eligible.length === 0) return undefined;
-  const target = hashSeed(storeId);
-  const ring = eligible
-    .map((set) => ({ set, hash: hashSeed(set.setId) }))
-    .sort((a, b) => a.hash - b.hash || a.set.setId.localeCompare(b.set.setId));
-  const match = ring.find((entry) => entry.hash >= target);
-  return (match ?? ring[0]).set;
+  const index = (hashSeed(seed) >>> 0) % eligible.length;
+  return eligible[index];
 }
 
 // Collapses a block's internal line breaks into single spaces — for
