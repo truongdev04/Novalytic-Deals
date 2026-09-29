@@ -53,8 +53,13 @@ export function BlogForm({
 }) {
   const router = useRouter();
 
-  function goToList() {
-    router.push(returnUrl, { scroll: false });
+  function goToList(isNew = false) {
+    if (isNew) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      router.push(returnUrl, { scroll: true });
+    } else {
+      router.push(returnUrl, { scroll: false });
+    }
   }
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -180,9 +185,13 @@ export function BlogForm({
       if (!res.ok) throw new Error("save failed");
       if (post) {
         sessionStorage.setItem("admin-blog-last-id", post.id);
+      } else {
+        sessionStorage.removeItem("admin-blog-scroll-y");
+        sessionStorage.removeItem("admin-blog-last-id");
+        sessionStorage.setItem("admin-blog-scroll-top", "true");
       }
       toast.success(post ? "Blog post updated." : "Blog post created.");
-      goToList();
+      goToList(!post);
       router.refresh();
     } catch {
       toast.error("Failed to save blog post.");

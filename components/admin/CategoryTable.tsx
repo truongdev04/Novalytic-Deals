@@ -48,6 +48,15 @@ export function CategoryTable({ categories }: { categories: Category[] }) {
   const [highlightedCategoryId, setHighlightedCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
+    const shouldScrollTop = sessionStorage.getItem("admin-categories-scroll-top");
+    if (shouldScrollTop) {
+      sessionStorage.removeItem("admin-categories-scroll-top");
+      sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+      sessionStorage.removeItem(LAST_EDITED_CATEGORY_KEY);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
     const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
     const lastId = sessionStorage.getItem(LAST_EDITED_CATEGORY_KEY);
     if (!savedY && !lastId) return;

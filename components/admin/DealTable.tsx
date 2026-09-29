@@ -67,6 +67,15 @@ export function DealTable({
   const [highlightedDealId, setHighlightedDealId] = useState<string | null>(null);
 
   useEffect(() => {
+    const shouldScrollTop = sessionStorage.getItem("admin-deals-scroll-top");
+    if (shouldScrollTop) {
+      sessionStorage.removeItem("admin-deals-scroll-top");
+      sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+      sessionStorage.removeItem(LAST_EDITED_DEAL_KEY);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
     const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
     const lastId = sessionStorage.getItem(LAST_EDITED_DEAL_KEY);
     if (!savedY && !lastId) return;

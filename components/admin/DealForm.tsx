@@ -47,8 +47,13 @@ export function DealForm({
 }) {
   const router = useRouter();
 
-  function goToList() {
-    router.push(returnUrl, { scroll: false });
+  function goToList(isNew = false) {
+    if (isNew) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      router.push(returnUrl, { scroll: true });
+    } else {
+      router.push(returnUrl, { scroll: false });
+    }
   }
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -162,9 +167,13 @@ export function DealForm({
       }
       if (deal) {
         sessionStorage.setItem("admin-deals-last-id", deal.id);
+      } else {
+        sessionStorage.removeItem("admin-deals-scroll-y");
+        sessionStorage.removeItem("admin-deals-last-id");
+        sessionStorage.setItem("admin-deals-scroll-top", "true");
       }
       toast.success(deal ? "Deal updated." : "Deal created.");
-      goToList();
+      goToList(!deal);
       router.refresh();
     } catch {
       toast.error("Failed to save deal.");

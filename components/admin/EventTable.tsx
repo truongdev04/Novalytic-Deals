@@ -27,6 +27,15 @@ export function EventTable({ events }: { events: Event[] }) {
   const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
 
   useEffect(() => {
+    const shouldScrollTop = sessionStorage.getItem("admin-events-scroll-top");
+    if (shouldScrollTop) {
+      sessionStorage.removeItem("admin-events-scroll-top");
+      sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+      sessionStorage.removeItem(LAST_EDITED_EVENT_KEY);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
     const savedY = sessionStorage.getItem(SCROLL_STORAGE_KEY);
     const lastId = sessionStorage.getItem(LAST_EDITED_EVENT_KEY);
     if (!savedY && !lastId) return;

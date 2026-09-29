@@ -50,8 +50,13 @@ export function EventForm({
 }) {
   const router = useRouter();
 
-  function goToList() {
-    router.push(returnUrl, { scroll: false });
+  function goToList(isNew = false) {
+    if (isNew) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      router.push(returnUrl, { scroll: true });
+    } else {
+      router.push(returnUrl, { scroll: false });
+    }
   }
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -165,9 +170,13 @@ export function EventForm({
       if (!res.ok) throw new Error("save failed");
       if (event) {
         sessionStorage.setItem("admin-events-last-id", event.id);
+      } else {
+        sessionStorage.removeItem("admin-events-scroll-y");
+        sessionStorage.removeItem("admin-events-last-id");
+        sessionStorage.setItem("admin-events-scroll-top", "true");
       }
       toast.success(event ? "Event updated." : "Event created.");
-      goToList();
+      goToList(!event);
       router.refresh();
     } catch {
       toast.error("Failed to save event.");

@@ -61,8 +61,13 @@ export function StoreForm({
 }) {
   const router = useRouter();
 
-  function goToList() {
-    router.push(returnUrl, { scroll: false });
+  function goToList(isNew = false) {
+    if (isNew) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      router.push(returnUrl, { scroll: true });
+    } else {
+      router.push(returnUrl, { scroll: false });
+    }
   }
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -238,9 +243,15 @@ export function StoreForm({
         toast.error(message);
         return;
       }
-      sessionStorage.setItem("admin-stores-last-id", storeId);
+      if (store) {
+        sessionStorage.setItem("admin-stores-last-id", storeId);
+      } else {
+        sessionStorage.removeItem("admin-stores-scroll-y");
+        sessionStorage.removeItem("admin-stores-last-id");
+        sessionStorage.setItem("admin-stores-scroll-top", "true");
+      }
       toast.success(store ? "Store updated." : "Store created.");
-      goToList();
+      goToList(!store);
       router.refresh();
     } catch {
       toast.error("Failed to save store.");
@@ -629,7 +640,7 @@ export function StoreForm({
           <Button variant="outline" onClick={() => setShowLeaveConfirm(false)}>
             Keep editing
           </Button>
-          <Button variant="primary" onClick={goToList}>
+          <Button variant="primary" onClick={() => goToList()}>
             Discard changes
           </Button>
         </div>
